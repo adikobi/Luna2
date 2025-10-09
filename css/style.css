@@ -1,0 +1,276 @@
+/* Global Design System (Tokens) */
+:root {
+    /* Font Stack */
+    --font-stack: 'Heebo', sans-serif;
+
+    /* Color and Surface Tokens (Dark Mode) */
+    --color-background-primary: #1C1C1E; /* Dark System Background */
+    --color-surface-card: #2C2C2E; /* Layered Dark Surface */
+    --color-text-primary: #FFFFFF; /* White */
+    --color-text-secondary: rgba(235, 235, 245, 0.6);
+    --color-accent-system: #0A84FF; /* iOS Blue */
+    --color-frosted-glass: rgba(44, 44, 46, 0.7);
+    --color-frosted-glass-border: rgba(255, 255, 255, 0.1);
+
+    /* Border Radius */
+    --border-radius-card: 12px;
+
+    /* Shadowing */
+    --box-shadow-dark: 0 1px 1px rgba(0, 0, 0, 0.3);
+
+    /* Typography */
+    --font-size-large-title: 34px;
+    --font-weight-large-title: 700;
+    --font-size-body: 17px;
+    --font-weight-body: 400;
+    --font-size-metadata: 13px;
+    --font-weight-metadata: 500;
+}
+
+body {
+    font-family: var(--font-stack);
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#timeline-view {
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+}
+
+#timeline-header {
+    padding: 20px;
+    position: sticky;
+    top: 0;
+    background-color: transparent; /* Start transparent */
+    z-index: 100;
+    transition: all 0.3s ease-in-out;
+    text-align: left;
+}
+
+#timeline-header.collapsed {
+    background-color: var(--color-frosted-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--color-frosted-glass-border);
+    padding: 10px 20px;
+    text-align: center;
+}
+
+#main-title {
+    font-size: var(--font-size-large-title);
+    font-weight: var(--font-weight-large-title);
+    margin: 0;
+    transition: all 0.3s ease-in-out;
+    display: inline-block; /* For centering */
+}
+
+#timeline-header.collapsed #main-title {
+    font-size: 17px;
+    font-weight: var(--font-weight-metadata);
+}
+
+#journal-feed {
+    padding: 0 20px;
+}
+
+.journal-card {
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+    box-shadow: var(--box-shadow-dark);
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.journal-card .metadata {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-metadata);
+    font-weight: var(--font-weight-metadata);
+    margin-bottom: 8px;
+}
+
+.journal-card .body-text {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-body);
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 4; /* number of lines to show */
+    -webkit-box-orient: vertical;
+}
+
+#fab {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background-color: var(--color-accent-system);
+    border: none;
+    color: white;
+    font-size: 36px;
+    line-height: 65px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.05s ease-in-out;
+}
+
+/* Micro-interaction: Tap Feedback */
+button:active,
+.journal-card:active,
+.suggestion-card:active {
+    opacity: 0.8;
+    transition: opacity 0.05s ease-in-out;
+}
+
+/* Screen 2: Entry Composer View */
+#composer-view {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--color-background-primary);
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+}
+
+#composer-view.visible {
+    transform: translateY(0);
+}
+
+.composer-header {
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.composer-header button {
+    background: none;
+    border: none;
+    color: var(--color-accent-system);
+    font-size: 17px;
+    cursor: pointer;
+}
+
+#suggestions-bar {
+    margin-bottom: 15px;
+    flex-shrink: 0;
+    padding: 0 20px; /* This creates the visual affordance */
+}
+
+.swiper-container {
+    width: 100%;
+    height: 110px; /* Height of the scroll area */
+    overflow: visible; /* Allows seeing partial slides */
+}
+
+.swiper-slide.suggestion-card {
+    width: auto; /* Let content define width */
+    min-width: 120px;
+    height: 100px;
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    font-size: var(--font-size-metadata);
+    font-weight: var(--font-weight-metadata);
+    color: var(--color-text-secondary);
+}
+
+.composer-metadata {
+    padding-bottom: 15px;
+}
+
+#entry-title {
+    background: none;
+    border: none;
+    width: 100%;
+    font-family: var(--font-stack);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    padding: 0;
+    margin-bottom: 8px;
+}
+
+#entry-title:focus {
+    outline: none;
+}
+
+#entry-title::placeholder {
+    color: var(--color-text-secondary);
+    font-weight: 700;
+}
+
+#entry-date-location {
+    font-size: var(--font-size-metadata);
+    font-weight: var(--font-weight-metadata);
+    color: var(--color-text-secondary);
+}
+
+.composer-content {
+    flex-grow: 1;
+    padding: 0 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#entry-textarea {
+    width: 100%;
+    height: 100%;
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: var(--font-size-body);
+    resize: none;
+    padding: 0;
+}
+
+#entry-textarea:focus {
+    outline: none;
+}
+
+#entry-textarea::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.composer-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-frosted-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid var(--color-frosted-glass-border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.composer-toolbar button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 24px;
+    cursor: pointer;
+}
