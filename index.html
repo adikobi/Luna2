@@ -21,8 +21,12 @@
 
     <!-- Journals List View (hidden by default) -->
     <div id="journals-list-view" class="view-screen" style="display: none;">
-        <header>
-            <h1>היומנים שלי</h1>
+        <header class="journals-list-header">
+            <button id="journals-list-done-btn" class="header-action-btn" style="display: none;">סיום</button>
+            <h1 class="journals-list-title">היומנים שלי</h1>
+            <button id="journals-list-edit-btn" class="header-action-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            </button>
         </header>
         <main>
             <div id="journals-list-container">
@@ -35,8 +39,12 @@
     <!-- Timeline View (hidden by default) -->
     <div id="timeline-view" class="view-screen" style="display: none;">
         <header class="timeline-top-bar">
-            <button id="back-to-journals-btn">חזרה &gt;</button>
-            <button id="search-toggle-btn">🔍</button>
+            <button id="back-to-journals-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <button id="search-toggle-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
         </header>
         <h1 id="main-title"></h1> <!-- Title will be set dynamically -->
         <div class="search-bar-container">
@@ -51,6 +59,19 @@
     <!-- Entry Composer View (Initially hidden) -->
     <div id="composer-view">
         <!-- Composer content will be added here -->
+    </div>
+
+    <!-- Custom Modal for New Journal -->
+    <div id="new-journal-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h2>יומן חדש</h2>
+            <p>הזן שם ליומן החדש:</p>
+            <input type="text" id="new-journal-name-input" dir="rtl">
+            <div class="modal-actions">
+                <button id="cancel-new-journal-btn">ביטול</button>
+                <button id="create-new-journal-btn">צור</button>
+            </div>
+        </div>
     </div>
 </body>
 </html>

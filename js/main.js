@@ -44,7 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function linkify(text) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        // First, escape HTML to prevent XSS
+        let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // Then, convert newlines to <br>
+        escapedText = escapedText.replace(/\n/g, '<br>');
+        // Finally, linkify URLs
+        return escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
     function isHebrew(text) {
@@ -60,9 +65,24 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'journal-card';
             card.dataset.index = index;
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
+
+            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
+            const match = entry.text.match(titleRegex);
+            let bodyHtml = '';
+
+            if (match) {
+                const title = match[1];
+                const body = match[2];
+                // Manually construct HTML, only linkifying the body part
+                bodyHtml = `<strong>${title}</strong><br>${linkify(body)}`;
+            } else {
+                // If no title, linkify the whole text safely
+                bodyHtml = linkify(entry.text);
+            }
+
             card.innerHTML = `
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
-                <div class="body-text" dir="${textDir}">${linkify(entry.text)}</div>
+                <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
             journalFeed.appendChild(card);
         });
@@ -72,11 +92,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('journals-list-container');
         container.innerHTML = '';
         appData.journals.forEach((journal, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'journal-list-item-wrapper';
+
             const item = document.createElement('div');
             item.className = 'journal-list-item';
             item.textContent = journal.name;
             item.dataset.index = index;
-            container.appendChild(item);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-journal-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.dataset.index = index;
+
+            wrapper.appendChild(item);
+            wrapper.appendChild(deleteBtn);
+            container.appendChild(wrapper);
         });
     }
 
@@ -113,10 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="composer-content">
                 <div class="composer-metadata">
-                    <input type="text" id="entry-title" placeholder="כותרת" dir="rtl" ${!isEditing ? 'disabled' : ''}>
+                    <input type="text" id="entry-title" placeholder="${isEditing ? 'כותרת' : ''}" dir="rtl" ${!isEditing ? 'disabled' : ''}>
                     <input type="datetime-local" id="entry-date" ${!isEditing ? 'disabled' : ''}>
                 </div>
-                <div id="entry-textarea" contenteditable="${isEditing}" placeholder="התחל לכתוב..." dir="rtl"></div>
+                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar" style="justify-content: flex-end; display: ${isEditing && !isNewEntry ? 'flex' : 'none'};">
                 <button id="delete-entry-btn">מחק רשומה</button>
@@ -157,15 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveBtn.addEventListener('click', () => {
                 const title = titleInput.value;
 
-                // Convert editor's HTML to plain text with preserved newlines
-                let text = textInput.innerHTML;
-                text = text.replace(/<br\s*\/?>/gi, '\n'); // Convert <br> to newline
-                text = text.replace(/<div>/gi, '\n'); // Convert start of div to newline
-                text = text.replace(/<\/div>/gi, ''); // Remove closing div
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = text;
-                text = tempDiv.textContent || tempDiv.innerText || '';
-
+                const text = textInput.innerText;
                 const dateValue = dateInput.value;
 
                 if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
@@ -190,11 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteBtn = document.getElementById('delete-entry-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                if (currentlyEditingIndex !== null) {
-                    const currentJournal = appData.journals[appData.currentJournalIndex];
-                    currentJournal.entries.splice(currentlyEditingIndex, 1);
-                    renderJournalFeed(currentJournal.entries);
-                    composerView.classList.remove('visible');
+                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+                    if (currentlyEditingIndex !== null) {
+                        const currentJournal = appData.journals[appData.currentJournalIndex];
+                        currentJournal.entries.splice(currentlyEditingIndex, 1);
+                        renderJournalFeed(currentJournal.entries);
+                        composerView.classList.remove('visible');
+                    }
                 }
             });
         }
@@ -241,19 +266,65 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const editJournalsBtn = document.getElementById('journals-list-edit-btn');
+    const doneJournalsBtn = document.getElementById('journals-list-done-btn');
+
+    editJournalsBtn.addEventListener('click', () => {
+        journalsListView.classList.add('edit-mode');
+        editJournalsBtn.style.display = 'none';
+        doneJournalsBtn.style.display = 'block';
+    });
+
+    doneJournalsBtn.addEventListener('click', () => {
+        journalsListView.classList.remove('edit-mode');
+        doneJournalsBtn.style.display = 'none';
+        editJournalsBtn.style.display = 'block';
+    });
+
     const journalsListContainer = document.getElementById('journals-list-container');
     journalsListContainer.addEventListener('click', (e) => {
-        const journalItem = e.target.closest('.journal-list-item');
-        if (journalItem) {
-            showTimelineView(parseInt(journalItem.dataset.index, 10));
+        if (journalsListView.classList.contains('edit-mode')) {
+            const deleteBtn = e.target.closest('.delete-journal-btn');
+            if (deleteBtn) {
+                const index = parseInt(deleteBtn.dataset.index, 10);
+                const journalName = appData.journals[index].name;
+                if (confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journalName}"? פעולה זו היא בלתי הפיכה.`)) {
+                    appData.journals.splice(index, 1);
+                    renderJournalsList();
+                }
+            }
+            // In edit mode, do nothing when clicking the item itself
+        } else {
+            const journalItem = e.target.closest('.journal-list-item');
+            if (journalItem) {
+                showTimelineView(parseInt(journalItem.dataset.index, 10));
+            }
         }
     });
 
+    const newJournalModal = document.getElementById('new-journal-modal');
+    const newJournalNameInput = document.getElementById('new-journal-name-input');
+    const createNewJournalBtn = document.getElementById('create-new-journal-btn');
+    const cancelNewJournalBtn = document.getElementById('cancel-new-journal-btn');
+
     document.getElementById('add-journal-fab').addEventListener('click', () => {
-        const newName = prompt("הזן שם ליומן החדש:");
-        if (newName && newName.trim()) {
-            appData.journals.push({ name: newName.trim(), entries: [] });
+        newJournalNameInput.value = '';
+        newJournalModal.style.display = 'flex';
+        newJournalNameInput.focus();
+    });
+
+    function closeNewJournalModal() {
+        newJournalModal.style.display = 'none';
+    }
+
+    cancelNewJournalBtn.addEventListener('click', closeNewJournalModal);
+
+    createNewJournalBtn.addEventListener('click', () => {
+        const newName = newJournalNameInput.value.trim();
+        if (newName) {
+            appData.journals.push({ name: newName, entries: [] });
             renderJournalsList();
+            closeNewJournalModal();
         }
     });
 
