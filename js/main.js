@@ -1,32 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Ensure composer is a direct child of body to avoid stacking context issues
+    document.body.appendChild(document.getElementById('composer-view'));
+
     // --- View Elements ---
+    const passwordView = document.getElementById('password-view');
+    const journalsListView = document.getElementById('journals-list-view');
     const timelineView = document.getElementById('timeline-view');
     const composerView = document.getElementById('composer-view');
-    const fab = document.getElementById('fab');
-    const timelineHeader = document.getElementById('timeline-header');
     const mainTitle = document.getElementById('main-title');
     const journalFeed = document.getElementById('journal-feed');
+    const fab = document.getElementById('fab');
 
-    // --- Data Store (Single Source of Truth) ---
+    // --- Data Store ---
     let appData = {
         journals: [
             {
                 name: "יומן אישי",
                 entries: [
-                    { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Hopefully it looks good on the screen.' },
-                    { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app. It is fun. I am using HTML, CSS, and JavaScript. I am following a design specification.' },
-                    { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' },
-                    { date: new Date('2025-10-06T18:30:00').toISOString(), text: 'Thinking about what to have for dinner. Maybe pizza? Or perhaps something healthier. The eternal struggle.' },
-                    { date: new Date('2025-10-05T11:00:00').toISOString(), text: 'Went for a walk in the park. The weather was perfect. The leaves are starting to change color. Autumn is a beautiful season.' },
-                    { date: new Date('2025-10-04T14:00:00').toISOString(), text: 'Worked on a coding project today. It was challenging but I made good progress. Feeling accomplished.' },
-                    { date: new Date('2025-10-03T22:00:00').toISOString(), text: 'Watched a movie with friends. It was a lot of fun. We should do it more often.' },
-                    { date: new Date('2025-10-02T07:00:00').toISOString(), text: 'Woke up early to go for a run. It was tough but I feel great now. Ready to start the day.' },
-                    { date: new Date('2025-10-01T16:00:00').toISOString(), text: 'Read a book this afternoon. It was so captivating I lost track of time. A good story is a wonderful escape.' }
+                    { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Check out this link: https://www.google.com' },
+                    { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app.' },
+                    { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' }
                 ]
             }
         ],
         currentJournalIndex: null
     };
+    let currentlyEditingIndex = null;
 
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
@@ -36,10 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Converts a date object or ISO string to the format required by datetime-local input
     function formatISOForInput(isoString) {
         const date = new Date(isoString);
-        // Adjust for timezone offset to display local time correctly in the input
         const timezoneOffset = date.getTimezoneOffset() * 60000;
         const localDate = new Date(date.getTime() - timezoneOffset);
         return localDate.toISOString().slice(0, 16);
@@ -55,13 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return hebrewRegex.test(text);
     }
 
-    // --- UI Rendering Logic ---
+    // --- UI Rendering ---
     function renderJournalFeed(entries) {
-        journalFeed.innerHTML = ''; // Clear the feed before rendering
+        journalFeed.innerHTML = '';
         entries.forEach((entry, index) => {
             const card = document.createElement('div');
             card.className = 'journal-card';
-            card.dataset.index = index; // Add index for identifying the entry
+            card.dataset.index = index;
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
             card.innerHTML = `
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
@@ -71,207 +68,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Event Listeners & Initial Setup ---
-
-    // Timeline View Scroll Animation
-    timelineView.addEventListener('scroll', () => {
-        timelineHeader.classList.toggle('collapsed', timelineView.scrollTop > 40);
-    });
-
-    let currentlyEditingIndex = null; // To track which entry is being edited
-
-    // FAB opens Composer View for a new entry
-    fab.addEventListener('click', () => {
-        currentlyEditingIndex = null; // Ensure we are in "new entry" mode
-        populateComposerView();
-        composerView.classList.add('visible');
-    });
-
-    // Handle clicks on journal cards to open for editing
-    journalFeed.addEventListener('click', (e) => {
-        const card = e.target.closest('.journal-card');
-        if (!card) return;
-
-        const index = parseInt(card.dataset.index, 10);
-
-        // Open the composer for editing
-        currentlyEditingIndex = index;
-        populateComposerView(appData.journals[appData.currentJournalIndex].entries[index]);
-        composerView.classList.add('visible');
-    });
-
-    // Function to create and manage the composer view
-    function populateComposerView(entry = null) {
-        composerView.innerHTML = `
-            <div class="composer-header" id="composer-header">
-                <button id="cancel-btn">ביטול</button>
-                <button id="done-btn">${entry ? 'עדכון' : 'סיום'}</button>
-            </div>
-            <div id="suggestions-bar" class="swiper-container">
-                <div class="swiper-wrapper">
-                    <div class="swiper-slide suggestion-card">אחרונים</div>
-                    <div class="swiper-slide suggestion-card">לפני שנה</div>
-                    <div class="swiper-slide suggestion-card">בוקר</div>
-                    <div class="swiper-slide suggestion-card">ערב</div>
-                    <div class="swiper-slide suggestion-card">הכרת תודה</div>
-                    <div class="swiper-slide suggestion-card">הרהור</div>
-                </div>
-            </div>
-            <div class="composer-content">
-                 <div class="composer-metadata">
-                    <input type="text" id="entry-title" placeholder="כותרת" dir="rtl">
-                    <input type="datetime-local" id="entry-date">
-                </div>
-                <div id="entry-textarea" contenteditable="true" placeholder="התחל לכתוב..." dir="rtl"></div>
-            </div>
-            <div class="composer-toolbar">
-                <div>
-                    <button>📷</button> <button>📸</button> <button>📍</button> <button>✏️</button> <button>Aa</button>
-                </div>
-                ${entry ? '<button id="delete-entry-btn">מחק רשומה</button>' : ''}
-            </div>
-        `;
-
-        const titleInput = document.getElementById('entry-title');
-        const textInput = document.getElementById('entry-textarea');
-        const dateInput = document.getElementById('entry-date');
-
-        const setDirection = (el) => {
-            const text = el.isContentEditable ? el.innerText : el.value;
-            el.dir = isHebrew(text) ? 'rtl' : 'ltr';
-        };
-
-        // Pre-fill form if editing an existing entry
-        if (entry) {
-            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
-            const match = entry.text.match(titleRegex);
-            if (match) {
-                titleInput.value = match[1];
-                textInput.innerHTML = linkify(match[2]);
-            } else {
-                titleInput.value = '';
-                textInput.innerHTML = linkify(entry.text);
-            }
-            dateInput.value = formatISOForInput(entry.date);
-        } else {
-            // Set to current date and time for new entries
-            dateInput.value = formatISOForInput(new Date().toISOString());
-        }
-
-        // Set initial direction only when editing, otherwise default to template's rtl
-        if (entry) {
-            setDirection(titleInput);
-            setDirection(textInput);
-        }
-        titleInput.addEventListener('input', () => setDirection(titleInput));
-        textInput.addEventListener('input', () => setDirection(textInput));
-
-
-        // Event listener for the Cancel button
-        document.getElementById('cancel-btn').addEventListener('click', () => {
-            composerView.classList.remove('visible');
-            currentlyEditingIndex = null; // Reset editing state on cancel
-        });
-
-        // Event listener for the new Delete button inside the composer
-        const deleteBtn = document.getElementById('delete-entry-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
-                if (currentlyEditingIndex !== null && appData.currentJournalIndex !== null) {
-                    const currentJournal = appData.journals[appData.currentJournalIndex];
-                    currentJournal.entries.splice(currentlyEditingIndex, 1);
-                    renderJournalFeed(currentJournal.entries);
-                    composerView.classList.remove('visible');
-                    currentlyEditingIndex = null;
-                }
-            });
-        }
-
-        // Event listener for the Done/Update button
-        document.getElementById('done-btn').addEventListener('click', () => {
-            const title = titleInput.value;
-            const text = textInput.innerText; // Use innerText to get plain text from contenteditable
-            const dateValue = dateInput.value;
-
-            if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
-
-            const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
-            const newEntryDate = new Date(dateValue).toISOString();
-
-            const currentJournal = appData.journals[appData.currentJournalIndex];
-
-            if (currentlyEditingIndex !== null) {
-                // Update existing entry
-                currentJournal.entries[currentlyEditingIndex].text = newEntryText;
-                currentJournal.entries[currentlyEditingIndex].date = newEntryDate;
-            } else {
-                // Add new entry
-                currentJournal.entries.unshift({ date: newEntryDate, text: newEntryText });
-            }
-
-            // Sort entries by date after adding/editing
-            currentJournal.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            // Re-render the UI
-            renderJournalFeed(currentJournal.entries);
-
-            // Reset and hide the composer
-            composerView.classList.remove('visible');
-            currentlyEditingIndex = null; // Reset editing state
-        });
-
-        // Initialize Swiper for the suggestions bar
-        new Swiper('.swiper-container', {
-            slidesPerView: 'auto',
-            spaceBetween: 12,
-            freeMode: true,
+    function renderJournalsList() {
+        const container = document.getElementById('journals-list-container');
+        container.innerHTML = '';
+        appData.journals.forEach((journal, index) => {
+            const item = document.createElement('div');
+            item.className = 'journal-list-item';
+            item.textContent = journal.name;
+            item.dataset.index = index;
+            container.appendChild(item);
         });
     }
 
-    // --- Screen Navigation Logic ---
-    const journalsListView = document.getElementById('journals-list-view');
-    const searchInput = document.getElementById('search-input');
-    const backToJournalsBtn = document.getElementById('back-to-journals-btn');
-
-    const searchBarContainer = document.querySelector('.search-bar-container');
-    const searchToggleBtn = document.getElementById('search-toggle-btn');
-
-    searchToggleBtn.addEventListener('click', () => {
-        searchBarContainer.classList.toggle('visible');
-        if (searchBarContainer.classList.contains('visible')) {
-            searchInput.focus();
-        } else {
-            // Clear search when hiding
-            if (searchInput.value !== '') {
-                searchInput.value = '';
-                // Manually trigger input event to reset filter
-                searchInput.dispatchEvent(new Event('input'));
-            }
-        }
-    });
-
-    searchInput.addEventListener('input', () => {
-        const searchTerm = searchInput.value.toLowerCase();
-        const currentJournal = appData.journals[appData.currentJournalIndex];
-        if (!currentJournal) return;
-
-        if (searchTerm.trim() === '') {
-            renderJournalFeed(currentJournal.entries);
-            return;
-        }
-
-        const filteredEntries = currentJournal.entries.filter(entry => {
-            // Simple search in the raw text content (including title)
-            return entry.text.toLowerCase().includes(searchTerm);
-        });
-        renderJournalFeed(filteredEntries);
-    });
-
+    // --- Screen Navigation ---
     function showTimelineView(journalIndex) {
         appData.currentJournalIndex = journalIndex;
         const journal = appData.journals[journalIndex];
         mainTitle.textContent = journal.name;
-        searchInput.value = ''; // Clear search input when changing journals
+        document.getElementById('search-input').value = '';
         renderJournalFeed(journal.entries);
         journalsListView.style.display = 'none';
         timelineView.style.display = 'block';
@@ -284,32 +98,158 @@ document.addEventListener('DOMContentLoaded', () => {
         journalsListView.style.display = 'block';
     }
 
-    backToJournalsBtn.addEventListener('click', showJournalsListView);
+    // --- Composer Logic ---
+    function populateComposerView(entry = null, mode = 'edit') {
+        const isEditing = mode === 'edit';
+        const isNewEntry = entry === null;
 
-    // --- Journals List Logic ---
-    const journalsListContainer = document.getElementById('journals-list-container');
-    const addJournalFab = document.getElementById('add-journal-fab');
+        composerView.innerHTML = `
+            <div class="composer-header">
+                <button id="close-cancel-btn">${isEditing && !isNewEntry ? 'ביטול' : 'סגור'}</button>
+                <div>
+                    ${!isEditing && !isNewEntry ? '<button id="edit-btn">ערוך</button>' : ''}
+                    ${isEditing ? `<button id="save-btn">${isNewEntry ? 'סיום' : 'שמור'}</button>` : ''}
+                </div>
+            </div>
+            <div class="composer-content">
+                <div class="composer-metadata">
+                    <input type="text" id="entry-title" placeholder="כותרת" dir="rtl" ${!isEditing ? 'disabled' : ''}>
+                    <input type="datetime-local" id="entry-date" ${!isEditing ? 'disabled' : ''}>
+                </div>
+                <div id="entry-textarea" contenteditable="${isEditing}" placeholder="התחל לכתוב..." dir="rtl"></div>
+            </div>
+            <div class="composer-toolbar" style="justify-content: flex-end; display: ${isEditing && !isNewEntry ? 'flex' : 'none'};">
+                <button id="delete-entry-btn">מחק רשומה</button>
+            </div>
+        `;
 
-    journalsListContainer.addEventListener('click', (e) => {
-        const journalItem = e.target.closest('.journal-list-item');
-        if (journalItem) {
-            const journalIndex = parseInt(journalItem.dataset.index, 10);
-            showTimelineView(journalIndex);
+        const titleInput = document.getElementById('entry-title');
+        const textInput = document.getElementById('entry-textarea');
+        const dateInput = document.getElementById('entry-date');
+
+        if (entry) {
+            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
+            const match = entry.text.match(titleRegex);
+            if (match) {
+                titleInput.value = match[1];
+                textInput.innerHTML = linkify(match[2]);
+            } else {
+                titleInput.value = '';
+                textInput.innerHTML = linkify(entry.text);
+            }
+            dateInput.value = formatISOForInput(entry.date);
+        } else {
+            dateInput.value = formatISOForInput(new Date().toISOString());
+        }
+
+        // Event Listeners
+        document.getElementById('close-cancel-btn').addEventListener('click', () => {
+            composerView.classList.remove('visible');
+        });
+
+        const editBtn = document.getElementById('edit-btn');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
+        }
+
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const title = titleInput.value;
+
+                // Convert editor's HTML to plain text with preserved newlines
+                let text = textInput.innerHTML;
+                text = text.replace(/<br\s*\/?>/gi, '\n'); // Convert <br> to newline
+                text = text.replace(/<div>/gi, '\n'); // Convert start of div to newline
+                text = text.replace(/<\/div>/gi, ''); // Remove closing div
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = text;
+                text = tempDiv.textContent || tempDiv.innerText || '';
+
+                const dateValue = dateInput.value;
+
+                if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
+
+                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
+                const newEntryDate = new Date(dateValue).toISOString();
+
+                const currentJournal = appData.journals[appData.currentJournalIndex];
+                if (isNewEntry) {
+                    currentJournal.entries.unshift({ date: newEntryDate, text: newEntryText });
+                } else {
+                    currentJournal.entries[currentlyEditingIndex].text = newEntryText;
+                    currentJournal.entries[currentlyEditingIndex].date = newEntryDate;
+                }
+
+                currentJournal.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
+                renderJournalFeed(currentJournal.entries);
+                composerView.classList.remove('visible');
+            });
+        }
+
+        const deleteBtn = document.getElementById('delete-entry-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (currentlyEditingIndex !== null) {
+                    const currentJournal = appData.journals[appData.currentJournalIndex];
+                    currentJournal.entries.splice(currentlyEditingIndex, 1);
+                    renderJournalFeed(currentJournal.entries);
+                    composerView.classList.remove('visible');
+                }
+            });
+        }
+    }
+
+    // --- Global Event Listeners ---
+    fab.addEventListener('click', () => {
+        currentlyEditingIndex = null;
+        populateComposerView(null, 'edit'); // Open directly in edit mode for new entry
+        composerView.classList.add('visible');
+    });
+
+    journalFeed.addEventListener('click', (e) => {
+        const card = e.target.closest('.journal-card');
+        if (card) {
+            const index = parseInt(card.dataset.index, 10);
+            currentlyEditingIndex = index;
+            populateComposerView(appData.journals[appData.currentJournalIndex].entries[index], 'view'); // Open in view mode
+            composerView.classList.add('visible');
         }
     });
 
-    function renderJournalsList() {
-        journalsListContainer.innerHTML = '';
-        appData.journals.forEach((journal, index) => {
-            const journalItem = document.createElement('div');
-            journalItem.className = 'journal-list-item';
-            journalItem.textContent = journal.name;
-            journalItem.dataset.index = index;
-            journalsListContainer.appendChild(journalItem);
-        });
-    }
+    document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
 
-    addJournalFab.addEventListener('click', () => {
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const currentJournal = appData.journals[appData.currentJournalIndex];
+        if (!currentJournal) return;
+        const filteredEntries = searchTerm.trim() === ''
+            ? currentJournal.entries
+            : currentJournal.entries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
+        renderJournalFeed(filteredEntries);
+    });
+
+    document.getElementById('search-toggle-btn').addEventListener('click', () => {
+        const container = document.querySelector('.search-bar-container');
+        container.classList.toggle('visible');
+        if (container.classList.contains('visible')) {
+            searchInput.focus();
+        } else if (searchInput.value !== '') {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    });
+
+    const journalsListContainer = document.getElementById('journals-list-container');
+    journalsListContainer.addEventListener('click', (e) => {
+        const journalItem = e.target.closest('.journal-list-item');
+        if (journalItem) {
+            showTimelineView(parseInt(journalItem.dataset.index, 10));
+        }
+    });
+
+    document.getElementById('add-journal-fab').addEventListener('click', () => {
         const newName = prompt("הזן שם ליומן החדש:");
         if (newName && newName.trim()) {
             appData.journals.push({ name: newName.trim(), entries: [] });
@@ -317,11 +257,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Password Verification Logic ---
-    const passwordView = document.getElementById('password-view');
+    // --- Password Logic ---
     const passwordInput = document.getElementById('password-input');
     const passwordSubmitBtn = document.getElementById('password-submit-btn');
-    const passwordContainer = document.querySelector('.password-container');
     const CORRECT_PASSWORD = '6417';
 
     function checkPassword() {
@@ -329,23 +267,13 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordView.style.display = 'none';
             showJournalsListView();
         } else {
-            passwordContainer.classList.add('shake');
+            passwordInput.parentElement.classList.add('shake');
             passwordInput.value = '';
-            setTimeout(() => {
-                passwordContainer.classList.remove('shake');
-            }, 500);
+            setTimeout(() => passwordInput.parentElement.classList.remove('shake'), 500);
         }
     }
-
     passwordSubmitBtn.addEventListener('click', checkPassword);
     passwordInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            checkPassword();
-        }
+        if (e.key === 'Enter') checkPassword();
     });
-
-
-    // --- Initial Application Load ---
-    // The app starts with the password screen.
-    // renderJournalsList() is now called after successful login.
 });
