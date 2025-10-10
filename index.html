@@ -13,8 +13,17 @@
     <script src="js/main.js" defer></script>
 </head>
 <body>
-    <!-- Journals List View -->
-    <div id="journals-list-view" class="view-screen">
+    <!-- Password View -->
+    <div id="password-view" class="view-screen">
+        <div class="password-container">
+            <h1>הזן קוד סודי</h1>
+            <input type="password" id="password-input" inputmode="numeric" pattern="[0-9]*">
+            <button id="password-submit-btn">כניסה</button>
+        </div>
+    </div>
+
+    <!-- Journals List View (hidden by default) -->
+    <div id="journals-list-view" class="view-screen" style="display: none;">
         <header>
             <h1>היומנים שלי</h1>
         </header>

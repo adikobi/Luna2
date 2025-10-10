@@ -282,6 +282,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Password Verification Logic ---
+    const passwordView = document.getElementById('password-view');
+    const passwordInput = document.getElementById('password-input');
+    const passwordSubmitBtn = document.getElementById('password-submit-btn');
+    const passwordContainer = document.querySelector('.password-container');
+    const CORRECT_PASSWORD = '1234';
+
+    function checkPassword() {
+        if (passwordInput.value === CORRECT_PASSWORD) {
+            passwordView.style.display = 'none';
+            showJournalsListView();
+        } else {
+            passwordContainer.classList.add('shake');
+            passwordInput.value = '';
+            setTimeout(() => {
+                passwordContainer.classList.remove('shake');
+            }, 500);
+        }
+    }
+
+    passwordSubmitBtn.addEventListener('click', checkPassword);
+    passwordInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            checkPassword();
+        }
+    });
+
+
     // --- Initial Application Load ---
-    renderJournalsList();
+    // The app starts with the password screen.
+    // renderJournalsList() is now called after successful login.
 });
