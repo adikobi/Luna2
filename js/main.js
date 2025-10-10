@@ -120,10 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="composer-content">
                  <div class="composer-metadata">
-                    <input type="text" id="entry-title" placeholder="כותרת">
+                    <input type="text" id="entry-title" placeholder="כותרת" dir="rtl">
                     <input type="datetime-local" id="entry-date">
                 </div>
-                <textarea id="entry-textarea" placeholder="התחל לכתוב..."></textarea>
+                <div id="entry-textarea" contenteditable="true" placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar">
                 <div>
@@ -147,10 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const match = entry.text.match(titleRegex);
             if (match) {
                 titleInput.value = match[1];
-                textInput.value = match[2];
+                textInput.innerHTML = linkify(match[2]);
             } else {
                 titleInput.value = '';
-                textInput.value = entry.text;
+                textInput.innerHTML = linkify(entry.text);
             }
             dateInput.value = formatISOForInput(entry.date);
         } else {
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Event listener for the Done/Update button
         document.getElementById('done-btn').addEventListener('click', () => {
             const title = titleInput.value;
-            const text = textInput.value;
+            const text = textInput.innerText; // Use innerText to get plain text from contenteditable
             const dateValue = dateInput.value;
 
             if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const passwordInput = document.getElementById('password-input');
     const passwordSubmitBtn = document.getElementById('password-submit-btn');
     const passwordContainer = document.querySelector('.password-container');
-    const CORRECT_PASSWORD = '1234';
+    const CORRECT_PASSWORD = '6417';
 
     function checkPassword() {
         if (passwordInput.value === CORRECT_PASSWORD) {

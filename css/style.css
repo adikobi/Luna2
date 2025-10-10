@@ -380,16 +380,27 @@ button:active,
     color: var(--color-text-primary);
     font-family: var(--font-stack);
     font-size: var(--font-size-body);
-    resize: none;
     padding: 0;
+    -webkit-user-modify: read-write-plaintext-only; /* Ensures plain text pasting */
+    overflow-y: auto; /* Allow scrolling */
 }
 
 #entry-textarea:focus {
     outline: none;
 }
 
-#entry-textarea::placeholder {
+/* Custom placeholder for contenteditable div */
+#entry-textarea:empty:before {
+    content: attr(placeholder);
     color: var(--color-text-secondary);
+    pointer-events: none;
+    display: block; /* For the cursor to be where it is supposed to be */
+}
+
+/* Style for links inside the editor */
+#entry-textarea a {
+    color: var(--color-accent-system);
+    text-decoration: underline;
 }
 
 .composer-toolbar {
