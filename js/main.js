@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="composer-content">
                 <div class="composer-metadata">
-                    <input type="text" id="entry-title" placeholder="כותרת" dir="rtl" ${!isEditing ? 'disabled' : ''}>
+                    <input type="text" id="entry-title" placeholder="${isEditing ? 'כותרת' : ''}" dir="rtl" ${!isEditing ? 'disabled' : ''}>
                     <input type="datetime-local" id="entry-date" ${!isEditing ? 'disabled' : ''}>
                 </div>
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
@@ -302,11 +302,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const newJournalModal = document.getElementById('new-journal-modal');
+    const newJournalNameInput = document.getElementById('new-journal-name-input');
+    const createNewJournalBtn = document.getElementById('create-new-journal-btn');
+    const cancelNewJournalBtn = document.getElementById('cancel-new-journal-btn');
+
     document.getElementById('add-journal-fab').addEventListener('click', () => {
-        const newName = prompt("הזן שם ליומן החדש:");
-        if (newName && newName.trim()) {
-            appData.journals.push({ name: newName.trim(), entries: [] });
+        newJournalNameInput.value = '';
+        newJournalModal.style.display = 'flex';
+        newJournalNameInput.focus();
+    });
+
+    function closeNewJournalModal() {
+        newJournalModal.style.display = 'none';
+    }
+
+    cancelNewJournalBtn.addEventListener('click', closeNewJournalModal);
+
+    createNewJournalBtn.addEventListener('click', () => {
+        const newName = newJournalNameInput.value.trim();
+        if (newName) {
+            appData.journals.push({ name: newName, entries: [] });
             renderJournalsList();
+            closeNewJournalModal();
         }
     });
 
