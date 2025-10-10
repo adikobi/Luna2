@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Firebase Setup ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCwZjm9jmF8UHAzK7cIVtoUwuB27QX0zuA",
+        authDomain: "luna2-ba3ec.firebaseapp.com",
+        databaseURL: "https://luna2-ba3ec-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "luna2-ba3ec",
+        storageBucket: "luna2-ba3ec.firebasestorage.app",
+        messagingSenderId: "220309039843",
+        appId: "1:220309039843:web:735b36668c63a01a20f3d6",
+        measurementId: "G-HZ0K9S89JL"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     // Ensure composer is a direct child of body to avoid stacking context issues
     document.body.appendChild(document.getElementById('composer-view'));
 
@@ -13,19 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Data Store ---
     let appData = {
-        journals: [
-            {
-                name: "יומן אישי",
-                entries: [
-                    { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Check out this link: https://www.google.com' },
-                    { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app.' },
-                    { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' }
-                ]
-            }
-        ],
-        currentJournalIndex: null
+        journals: [],
+        currentJournalId: null,
     };
-    let currentlyEditingIndex = null;
+    let currentlyEditingEntryId = null;
+
+    // --- Firebase Refs ---
+    const journalsRef = database.ref('journals');
 
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
@@ -60,10 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UI Rendering ---
     function renderJournalFeed(entries) {
         journalFeed.innerHTML = '';
-        entries.forEach((entry, index) => {
+        // Note: 'entries' is now an array of objects, each with an 'id' property
+        entries.forEach(entry => {
             const card = document.createElement('div');
             card.className = 'journal-card';
-            card.dataset.index = index;
+            card.dataset.id = entry.id; // Use the entry's Firebase key
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
             const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
@@ -88,22 +99,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderJournalsList() {
+    function renderJournalsList(journals) {
         const container = document.getElementById('journals-list-container');
         container.innerHTML = '';
-        appData.journals.forEach((journal, index) => {
+        journals.forEach(journal => {
             const wrapper = document.createElement('div');
             wrapper.className = 'journal-list-item-wrapper';
 
             const item = document.createElement('div');
             item.className = 'journal-list-item';
             item.textContent = journal.name;
-            item.dataset.index = index;
+            item.dataset.id = journal.id; // Use Firebase key as ID
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
             deleteBtn.innerHTML = '&times;';
-            deleteBtn.dataset.index = index;
+            deleteBtn.dataset.id = journal.id; // Use Firebase key for deletion
 
             wrapper.appendChild(item);
             wrapper.appendChild(deleteBtn);
@@ -112,19 +123,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Screen Navigation ---
-    function showTimelineView(journalIndex) {
-        appData.currentJournalIndex = journalIndex;
-        const journal = appData.journals[journalIndex];
+    function showTimelineView(journalId) {
+        appData.currentJournalId = journalId;
+        const journal = appData.journals.find(j => j.id === journalId);
+        if (!journal) return;
+
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
-        renderJournalFeed(journal.entries);
+
+        // Entries in Firebase are objects, convert to array and sort
+        const entriesArray = journal.entries ? Object.values(journal.entries) : [];
+        entriesArray.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        renderJournalFeed(entriesArray);
         journalsListView.style.display = 'none';
         timelineView.style.display = 'block';
     }
 
     function showJournalsListView() {
-        appData.currentJournalIndex = null;
-        renderJournalsList();
+        appData.currentJournalId = null;
+        renderJournalsList(appData.journals);
         timelineView.style.display = 'none';
         journalsListView.style.display = 'block';
     }
@@ -187,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-
                 const text = textInput.innerText;
                 const dateValue = dateInput.value;
 
@@ -195,17 +212,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
                 const newEntryDate = new Date(dateValue).toISOString();
+                const entryData = { date: newEntryDate, text: newEntryText };
 
-                const currentJournal = appData.journals[appData.currentJournalIndex];
+                const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
+
                 if (isNewEntry) {
-                    currentJournal.entries.unshift({ date: newEntryDate, text: newEntryText });
+                    const newEntryRef = journalEntriesRef.push();
+                    newEntryRef.set(entryData);
                 } else {
-                    currentJournal.entries[currentlyEditingIndex].text = newEntryText;
-                    currentJournal.entries[currentlyEditingIndex].date = newEntryDate;
+                    journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
                 }
 
-                currentJournal.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderJournalFeed(currentJournal.entries);
                 composerView.classList.remove('visible');
             });
         }
@@ -214,10 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
                 if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
-                    if (currentlyEditingIndex !== null) {
-                        const currentJournal = appData.journals[appData.currentJournalIndex];
-                        currentJournal.entries.splice(currentlyEditingIndex, 1);
-                        renderJournalFeed(currentJournal.entries);
+                    if (currentlyEditingEntryId) {
+                        journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
                         composerView.classList.remove('visible');
                     }
                 }
@@ -227,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Global Event Listeners ---
     fab.addEventListener('click', () => {
-        currentlyEditingIndex = null;
+        currentlyEditingEntryId = null;
         populateComposerView(null, 'edit'); // Open directly in edit mode for new entry
         composerView.classList.add('visible');
     });
@@ -235,9 +250,11 @@ document.addEventListener('DOMContentLoaded', () => {
     journalFeed.addEventListener('click', (e) => {
         const card = e.target.closest('.journal-card');
         if (card) {
-            const index = parseInt(card.dataset.index, 10);
-            currentlyEditingIndex = index;
-            populateComposerView(appData.journals[appData.currentJournalIndex].entries[index], 'view'); // Open in view mode
+            const entryId = card.dataset.id;
+            currentlyEditingEntryId = entryId;
+            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+            const entry = journal.entries[entryId];
+            populateComposerView({ id: entryId, ...entry }, 'view'); // Open in view mode
             composerView.classList.add('visible');
         }
     });
@@ -247,11 +264,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
-        const currentJournal = appData.journals[appData.currentJournalIndex];
-        if (!currentJournal) return;
+        const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+        if (!journal) return;
+
+        const entriesArray = journal.entries ? Object.values(journal.entries) : [];
         const filteredEntries = searchTerm.trim() === ''
-            ? currentJournal.entries
-            : currentJournal.entries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
+            ? entriesArray
+            : entriesArray.filter(entry => entry.text.toLowerCase().includes(searchTerm));
+
+        filteredEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
         renderJournalFeed(filteredEntries);
     });
 
@@ -286,18 +307,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (journalsListView.classList.contains('edit-mode')) {
             const deleteBtn = e.target.closest('.delete-journal-btn');
             if (deleteBtn) {
-                const index = parseInt(deleteBtn.dataset.index, 10);
-                const journalName = appData.journals[index].name;
-                if (confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journalName}"? פעולה זו היא בלתי הפיכה.`)) {
-                    appData.journals.splice(index, 1);
-                    renderJournalsList();
+                const journalId = deleteBtn.dataset.id;
+                const journal = appData.journals.find(j => j.id === journalId);
+                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
+                    journalsRef.child(journalId).remove();
                 }
             }
-            // In edit mode, do nothing when clicking the item itself
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
-                showTimelineView(parseInt(journalItem.dataset.index, 10));
+                showTimelineView(journalItem.dataset.id);
             }
         }
     });
@@ -322,8 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
     createNewJournalBtn.addEventListener('click', () => {
         const newName = newJournalNameInput.value.trim();
         if (newName) {
-            appData.journals.push({ name: newName, entries: [] });
-            renderJournalsList();
+            journalsRef.push({ name: newName, entries: {} });
             closeNewJournalModal();
         }
     });
@@ -336,7 +354,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkPassword() {
         if (passwordInput.value === CORRECT_PASSWORD) {
             passwordView.style.display = 'none';
-            showJournalsListView();
+
+            // Initial load and listen for changes from Firebase
+            journalsRef.on('value', (snapshot) => {
+                const journalsData = snapshot.val();
+                if (journalsData) {
+                    appData.journals = Object.keys(journalsData).map(key => ({
+                        id: key,
+                        ...journalsData[key]
+                    }));
+                } else {
+                    appData.journals = [];
+                }
+
+                // If a journal is being viewed, refresh its view, otherwise show list
+                if (appData.currentJournalId) {
+                    const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
+                    if (currentJournalExists) {
+                        showTimelineView(appData.currentJournalId);
+                    } else {
+                        showJournalsListView();
+                    }
+                } else {
+                    showJournalsListView();
+                }
+            });
         } else {
             passwordInput.parentElement.classList.add('shake');
             passwordInput.value = '';
