@@ -196,18 +196,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Store the initial state for checking for unsaved changes if in edit mode
         if (isEditing) {
+            // For a new entry, the state is empty. For an existing one, it's the current content.
             initialEntryState = {
                 title: titleInput.value,
                 text: textInput.innerText,
                 date: dateInput.value
             };
         } else {
+            // No tracking needed for view mode
             initialEntryState = null;
         }
 
         // Event Listeners
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
-            composerView.classList.remove('visible');
+            // Check for unsaved changes only if we were in edit mode
+            if (initialEntryState) {
+                const titleInput = document.getElementById('entry-title');
+                const textInput = document.getElementById('entry-textarea');
+                const dateInput = document.getElementById('entry-date');
+
+                const currentState = {
+                    title: titleInput.value,
+                    text: textInput.innerText,
+                    date: dateInput.value
+                };
+
+                const hasChanged = currentState.title !== initialEntryState.title ||
+                                   currentState.text !== initialEntryState.text ||
+                                   currentState.date !== initialEntryState.date;
+
+                if (hasChanged) {
+                    if (confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
+                        composerView.classList.remove('visible');
+                    }
+                } else {
+                    // No changes, close without confirmation
+                    composerView.classList.remove('visible');
+                }
+            } else {
+                // Not in edit mode (view mode), just close
+                composerView.classList.remove('visible');
+            }
         });
 
         const editBtn = document.getElementById('edit-btn');
@@ -281,7 +310,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal) return;
 
-        const entriesArray = journal.entries ? Object.values(journal.entries) : [];
+        const entriesArray = journal.entries
+            ? Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }))
+            : [];
         const filteredEntries = searchTerm.trim() === ''
             ? entriesArray
             : entriesArray.filter(entry => entry.text.toLowerCase().includes(searchTerm));
