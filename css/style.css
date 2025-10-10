@@ -227,6 +227,7 @@ body {
     font-size: var(--font-size-metadata);
     font-weight: var(--font-weight-metadata);
     margin-bottom: 8px;
+    text-align: center;
 }
 
 .journal-card .body-text {

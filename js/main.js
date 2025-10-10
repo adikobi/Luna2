@@ -31,10 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
         const date = new Date(isoString);
-        // Use 'he-IL' locale for Hebrew dates, and a 24-hour clock format.
-        return date.toLocaleDateString('he-IL', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+        return date.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
+        }).toUpperCase().replace(',', '');
     }
 
     // Converts a date object or ISO string to the format required by datetime-local input
@@ -138,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateInput = document.getElementById('entry-date');
 
         const setDirection = (el) => {
-            el.dir = isHebrew(el.value) ? 'rtl' : 'ltr';
+            const text = el.isContentEditable ? el.innerText : el.value;
+            el.dir = isHebrew(text) ? 'rtl' : 'ltr';
         };
 
         // Pre-fill form if editing an existing entry
@@ -158,9 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
-        // Set initial direction and add listeners for dynamic changes
-        setDirection(titleInput);
-        setDirection(textInput);
+        // Set initial direction only when editing, otherwise default to template's rtl
+        if (entry) {
+            setDirection(titleInput);
+            setDirection(textInput);
+        }
         titleInput.addEventListener('input', () => setDirection(titleInput));
         textInput.addEventListener('input', () => setDirection(textInput));
 
