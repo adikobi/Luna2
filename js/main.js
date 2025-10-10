@@ -251,8 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Journals List Logic ---
     const journalsListContainer = document.getElementById('journals-list-container');
-    const newJournalNameInput = document.getElementById('new-journal-name');
-    const addJournalBtn = document.getElementById('add-journal-btn');
+    const addJournalFab = document.getElementById('add-journal-fab');
 
     journalsListContainer.addEventListener('click', (e) => {
         const journalItem = e.target.closest('.journal-list-item');
@@ -273,11 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    addJournalBtn.addEventListener('click', () => {
-        const newName = newJournalNameInput.value.trim();
-        if (newName) {
-            appData.journals.push({ name: newName, entries: [] });
-            newJournalNameInput.value = '';
+    addJournalFab.addEventListener('click', () => {
+        const newName = prompt("הזן שם ליומן החדש:");
+        if (newName && newName.trim()) {
+            appData.journals.push({ name: newName.trim(), entries: [] });
             renderJournalsList();
         }
     });
