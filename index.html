@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Journal</title>
+    <title>יומן</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
@@ -13,10 +13,27 @@
     <script src="js/main.js" defer></script>
 </head>
 <body>
-    <!-- Screen 1: Timeline View -->
-    <div id="timeline-view">
+    <!-- Journals List View -->
+    <div id="journals-list-view" class="view-screen">
+        <header>
+            <h1>היומנים שלי</h1>
+        </header>
+        <main>
+            <div id="journals-list-container">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="new-journal-form">
+                <input type="text" id="new-journal-name" placeholder="שם יומן חדש">
+                <button id="add-journal-btn">+</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Timeline View (hidden by default) -->
+    <div id="timeline-view" class="view-screen" style="display: none;">
         <header id="timeline-header">
-            <h1 id="main-title">יומן</h1>
+            <button id="back-to-journals-btn">&lt; חזרה</button>
+            <h1 id="main-title"></h1> <!-- Title will be set dynamically -->
         </header>
         <main id="journal-feed">
             <!-- Journal Entry Cards will be populated here -->
@@ -24,7 +41,7 @@
         <button id="fab">+</button>
     </div>
 
-    <!-- Screen 2: Entry Composer View (Initially hidden) -->
+    <!-- Entry Composer View (Initially hidden) -->
     <div id="composer-view">
         <!-- Composer content will be added here -->
     </div>

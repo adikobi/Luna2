@@ -8,17 +8,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const journalFeed = document.getElementById('journal-feed');
 
     // --- Data Store (Single Source of Truth) ---
-    let journalData = [
-        { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Hopefully it looks good on the screen.' },
-        { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app. It is fun. I am using HTML, CSS, and JavaScript. I am following a design specification.' },
-        { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' },
-        { date: new Date('2025-10-06T18:30:00').toISOString(), text: 'Thinking about what to have for dinner. Maybe pizza? Or perhaps something healthier. The eternal struggle.' },
-        { date: new Date('2025-10-05T11:00:00').toISOString(), text: 'Went for a walk in the park. The weather was perfect. The leaves are starting to change color. Autumn is a beautiful season.' },
-        { date: new Date('2025-10-04T14:00:00').toISOString(), text: 'Worked on a coding project today. It was challenging but I made good progress. Feeling accomplished.' },
-        { date: new Date('2025-10-03T22:00:00').toISOString(), text: 'Watched a movie with friends. It was a lot of fun. We should do it more often.' },
-        { date: new Date('2025-10-02T07:00:00').toISOString(), text: 'Woke up early to go for a run. It was tough but I feel great now. Ready to start the day.' },
-        { date: new Date('2025-10-01T16:00:00').toISOString(), text: 'Read a book this afternoon. It was so captivating I lost track of time. A good story is a wonderful escape.' }
-    ];
+    let appData = {
+        journals: [
+            {
+                name: "יומן אישי",
+                entries: [
+                    { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Hopefully it looks good on the screen.' },
+                    { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app. It is fun. I am using HTML, CSS, and JavaScript. I am following a design specification.' },
+                    { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' },
+                    { date: new Date('2025-10-06T18:30:00').toISOString(), text: 'Thinking about what to have for dinner. Maybe pizza? Or perhaps something healthier. The eternal struggle.' },
+                    { date: new Date('2025-10-05T11:00:00').toISOString(), text: 'Went for a walk in the park. The weather was perfect. The leaves are starting to change color. Autumn is a beautiful season.' },
+                    { date: new Date('2025-10-04T14:00:00').toISOString(), text: 'Worked on a coding project today. It was challenging but I made good progress. Feeling accomplished.' },
+                    { date: new Date('2025-10-03T22:00:00').toISOString(), text: 'Watched a movie with friends. It was a lot of fun. We should do it more often.' },
+                    { date: new Date('2025-10-02T07:00:00').toISOString(), text: 'Woke up early to go for a run. It was tough but I feel great now. Ready to start the day.' },
+                    { date: new Date('2025-10-01T16:00:00').toISOString(), text: 'Read a book this afternoon. It was so captivating I lost track of time. A good story is a wonderful escape.' }
+                ]
+            }
+        ],
+        currentJournalIndex: null
+    };
 
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
@@ -89,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Open the composer for editing
         currentlyEditingIndex = index;
-        populateComposerView(journalData[index]);
+        populateComposerView(appData.journals[appData.currentJournalIndex].entries[index]);
         composerView.classList.add('visible');
     });
 
@@ -167,9 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteBtn = document.getElementById('delete-entry-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                if (currentlyEditingIndex !== null) {
-                    journalData.splice(currentlyEditingIndex, 1);
-                    renderJournalFeed(journalData);
+                if (currentlyEditingIndex !== null && appData.currentJournalIndex !== null) {
+                    const currentJournal = appData.journals[appData.currentJournalIndex];
+                    currentJournal.entries.splice(currentlyEditingIndex, 1);
+                    renderJournalFeed(currentJournal.entries);
                     composerView.classList.remove('visible');
                     currentlyEditingIndex = null;
                 }
@@ -187,20 +196,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
             const newEntryDate = new Date(dateValue).toISOString();
 
+            const currentJournal = appData.journals[appData.currentJournalIndex];
+
             if (currentlyEditingIndex !== null) {
                 // Update existing entry
-                journalData[currentlyEditingIndex].text = newEntryText;
-                journalData[currentlyEditingIndex].date = newEntryDate;
+                currentJournal.entries[currentlyEditingIndex].text = newEntryText;
+                currentJournal.entries[currentlyEditingIndex].date = newEntryDate;
             } else {
                 // Add new entry
-                journalData.unshift({ date: newEntryDate, text: newEntryText });
+                currentJournal.entries.unshift({ date: newEntryDate, text: newEntryText });
             }
 
             // Sort entries by date after adding/editing
-            journalData.sort((a, b) => new Date(b.date) - new Date(a.date));
+            currentJournal.entries.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             // Re-render the UI
-            renderJournalFeed(journalData);
+            renderJournalFeed(currentJournal.entries);
 
             // Reset and hide the composer
             composerView.classList.remove('visible');
@@ -215,6 +226,62 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Screen Navigation Logic ---
+    const journalsListView = document.getElementById('journals-list-view');
+    // timelineView is already declared at the top
+    const backToJournalsBtn = document.getElementById('back-to-journals-btn');
+
+    function showTimelineView(journalIndex) {
+        appData.currentJournalIndex = journalIndex;
+        const journal = appData.journals[journalIndex];
+        mainTitle.textContent = journal.name;
+        renderJournalFeed(journal.entries);
+        journalsListView.style.display = 'none';
+        timelineView.style.display = 'block';
+    }
+
+    function showJournalsListView() {
+        appData.currentJournalIndex = null;
+        renderJournalsList();
+        timelineView.style.display = 'none';
+        journalsListView.style.display = 'block';
+    }
+
+    backToJournalsBtn.addEventListener('click', showJournalsListView);
+
+    // --- Journals List Logic ---
+    const journalsListContainer = document.getElementById('journals-list-container');
+    const newJournalNameInput = document.getElementById('new-journal-name');
+    const addJournalBtn = document.getElementById('add-journal-btn');
+
+    journalsListContainer.addEventListener('click', (e) => {
+        const journalItem = e.target.closest('.journal-list-item');
+        if (journalItem) {
+            const journalIndex = parseInt(journalItem.dataset.index, 10);
+            showTimelineView(journalIndex);
+        }
+    });
+
+    function renderJournalsList() {
+        journalsListContainer.innerHTML = '';
+        appData.journals.forEach((journal, index) => {
+            const journalItem = document.createElement('div');
+            journalItem.className = 'journal-list-item';
+            journalItem.textContent = journal.name;
+            journalItem.dataset.index = index;
+            journalsListContainer.appendChild(journalItem);
+        });
+    }
+
+    addJournalBtn.addEventListener('click', () => {
+        const newName = newJournalNameInput.value.trim();
+        if (newName) {
+            appData.journals.push({ name: newName, entries: [] });
+            newJournalNameInput.value = '';
+            renderJournalsList();
+        }
+    });
+
     // --- Initial Application Load ---
-    renderJournalFeed(journalData);
+    renderJournalsList();
 });
