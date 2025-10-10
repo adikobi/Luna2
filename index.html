@@ -6,7 +6,8 @@
     <title>יומן</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
     <!-- Firebase SDKs (v9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -16,6 +17,18 @@
 <body>
     <!-- Password View -->
     <div id="password-view" class="view-screen">
+        <div id="splash-screen">
+            <div class="logo-container">
+                <i class="fas fa-moon moon-icon"></i>
+                <div class="stars">
+                    <i class="fas fa-star star-1"></i>
+                    <i class="fas fa-heart heart-star"></i>
+                    <i class="fas fa-star star-2"></i>
+                </div>
+            </div>
+            <h1 class="splash-title">Luna</h1>
+            <p class="splash-subtitle">זיכרונות ורגעים</p>
+        </div>
         <div class="password-container">
             <input type="password" id="password-input" inputmode="numeric" pattern="[0-9]*" placeholder="הזן קוד סודי">
             <button id="password-submit-btn">כניסה</button>
