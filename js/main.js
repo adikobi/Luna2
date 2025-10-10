@@ -213,11 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteBtn = document.getElementById('delete-entry-btn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                if (currentlyEditingIndex !== null) {
-                    const currentJournal = appData.journals[appData.currentJournalIndex];
-                    currentJournal.entries.splice(currentlyEditingIndex, 1);
-                    renderJournalFeed(currentJournal.entries);
-                    composerView.classList.remove('visible');
+                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+                    if (currentlyEditingIndex !== null) {
+                        const currentJournal = appData.journals[appData.currentJournalIndex];
+                        currentJournal.entries.splice(currentlyEditingIndex, 1);
+                        renderJournalFeed(currentJournal.entries);
+                        composerView.classList.remove('visible');
+                    }
                 }
             });
         }
@@ -264,20 +266,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const editJournalsBtn = document.getElementById('journals-list-edit-btn');
+    const doneJournalsBtn = document.getElementById('journals-list-done-btn');
+
+    editJournalsBtn.addEventListener('click', () => {
+        journalsListView.classList.add('edit-mode');
+        editJournalsBtn.style.display = 'none';
+        doneJournalsBtn.style.display = 'block';
+    });
+
+    doneJournalsBtn.addEventListener('click', () => {
+        journalsListView.classList.remove('edit-mode');
+        doneJournalsBtn.style.display = 'none';
+        editJournalsBtn.style.display = 'block';
+    });
+
     const journalsListContainer = document.getElementById('journals-list-container');
     journalsListContainer.addEventListener('click', (e) => {
-        const journalItem = e.target.closest('.journal-list-item');
-        const deleteBtn = e.target.closest('.delete-journal-btn');
-
-        if (deleteBtn) {
-            const index = parseInt(deleteBtn.dataset.index, 10);
-            const journalName = appData.journals[index].name;
-            if (confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journalName}"? פעולה זו היא בלתי הפיכה.`)) {
-                appData.journals.splice(index, 1);
-                renderJournalsList();
+        if (journalsListView.classList.contains('edit-mode')) {
+            const deleteBtn = e.target.closest('.delete-journal-btn');
+            if (deleteBtn) {
+                const index = parseInt(deleteBtn.dataset.index, 10);
+                const journalName = appData.journals[index].name;
+                if (confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journalName}"? פעולה זו היא בלתי הפיכה.`)) {
+                    appData.journals.splice(index, 1);
+                    renderJournalsList();
+                }
             }
-        } else if (journalItem) {
-            showTimelineView(parseInt(journalItem.dataset.index, 10));
+            // In edit mode, do nothing when clicking the item itself
+        } else {
+            const journalItem = e.target.closest('.journal-list-item');
+            if (journalItem) {
+                showTimelineView(parseInt(journalItem.dataset.index, 10));
+            }
         }
     });
 

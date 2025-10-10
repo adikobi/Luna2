@@ -109,12 +109,37 @@ body {
 }
 
 /* --- Journals List View Styles --- */
-#journals-list-view header h1 {
+.journals-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+}
+
+.journals-list-title {
     font-size: var(--font-size-large-title);
     font-weight: var(--font-weight-large-title);
-    padding: 20px;
     margin: 0;
+    text-align: center;
+    flex-grow: 1; /* Allows the title to take up space and center itself */
 }
+
+.header-action-btn {
+    background: none;
+    border: none;
+    color: var(--color-accent-system);
+    cursor: pointer;
+    padding: 5px;
+    font-size: 17px;
+    font-weight: 500;
+}
+
+.header-action-btn svg {
+     width: 24px;
+    height: 24px;
+    stroke: var(--color-accent-system);
+}
+
 
 #journals-list-container {
     display: grid;
@@ -156,13 +181,26 @@ body {
     text-align: center;
     cursor: pointer;
     z-index: 10;
-    opacity: 0.9;
-    transition: opacity 0.1s ease-in-out, transform 0.1s ease-in-out;
+    display: none; /* Hidden by default using display */
+    transition: transform 0.1s ease-in-out;
+}
+
+#journals-list-view.edit-mode .delete-journal-btn {
+    display: block; /* Shown in edit mode */
 }
 
 .delete-journal-btn:hover {
-    opacity: 1;
-    transform: scale(1.1);
+    transform: scale(1.1) !important; /* Important to override the shake */
+}
+
+/* Add a slight "jiggle" animation to items in edit mode */
+#journals-list-view.edit-mode .journal-list-item-wrapper {
+    animation: jiggle 0.3s infinite alternate;
+}
+
+@keyframes jiggle {
+  from { transform: rotate(-1.5deg); }
+  to { transform: rotate(1.5deg); }
 }
 
 #add-journal-fab {
@@ -176,7 +214,7 @@ body {
     border-radius: 50%;
     background-color: var(--color-accent-system);
     border: none;
-    color: white;
+    color: var(--color-background-primary);
     font-size: 36px;
     line-height: 65px;
     text-align: center;
@@ -287,7 +325,7 @@ body {
     border-radius: 50%;
     background-color: var(--color-accent-system);
     border: none;
-    color: white;
+    color: var(--color-background-primary);
     font-size: 36px;
     line-height: 65px;
     text-align: center;
