@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
-        }).toUpperCase().replace(',', '');
+        });
     }
 
     // Converts a date object or ISO string to the format required by datetime-local input
@@ -232,6 +232,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const journalsListView = document.getElementById('journals-list-view');
     const searchInput = document.getElementById('search-input');
     const backToJournalsBtn = document.getElementById('back-to-journals-btn');
+
+    const searchBarContainer = document.querySelector('.search-bar-container');
+    const searchToggleBtn = document.getElementById('search-toggle-btn');
+
+    searchToggleBtn.addEventListener('click', () => {
+        searchBarContainer.classList.toggle('visible');
+        if (searchBarContainer.classList.contains('visible')) {
+            searchInput.focus();
+        } else {
+            // Clear search when hiding
+            if (searchInput.value !== '') {
+                searchInput.value = '';
+                // Manually trigger input event to reset filter
+                searchInput.dispatchEvent(new Event('input'));
+            }
+        }
+    });
 
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();

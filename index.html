@@ -37,13 +37,13 @@
 
     <!-- Timeline View (hidden by default) -->
     <div id="timeline-view" class="view-screen" style="display: none;">
-        <header id="timeline-header">
-            <button id="back-to-journals-btn">&lt; חזרה</button>
-            <h1 id="main-title"></h1> <!-- Title will be set dynamically -->
+        <header class="timeline-top-bar">
+            <button id="back-to-journals-btn">חזרה &gt;</button>
+            <button id="search-toggle-btn">🔍</button>
         </header>
+        <h1 id="main-title"></h1> <!-- Title will be set dynamically -->
         <div class="search-bar-container">
             <input type="search" id="search-input" placeholder="חיפוש">
-            <span class="search-icon">🔍</span>
         </div>
         <main id="journal-feed">
             <!-- Journal Entry Cards will be populated here -->
