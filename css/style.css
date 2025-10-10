@@ -260,7 +260,7 @@ body {
     background-color: var(--color-accent-system);
     border: none;
     border-radius: 8px;
-    color: white;
+    color: var(--color-background-primary);
     font-size: 18px;
     cursor: pointer;
     box-sizing: border-box;
