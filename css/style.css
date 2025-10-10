@@ -42,36 +42,47 @@ body {
     -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
 }
 
-#timeline-header {
-    padding: 20px;
-    position: sticky;
-    top: 0;
-    background-color: transparent; /* Start transparent */
-    z-index: 100;
-    transition: all 0.3s ease-in-out;
-    text-align: left;
-}
-
-#timeline-header.collapsed {
-    background-color: var(--color-frosted-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--color-frosted-glass-border);
-    padding: 10px 20px;
-    text-align: center;
-}
-
 #main-title {
-    font-size: var(--font-size-large-title);
-    font-weight: var(--font-weight-large-title);
+    font-size: 17px; /* Static size as per new design */
+    font-weight: var(--font-weight-metadata);
     margin: 0;
-    transition: all 0.3s ease-in-out;
     display: inline-block; /* For centering */
 }
 
-#timeline-header.collapsed #main-title {
-    font-size: 17px;
-    font-weight: var(--font-weight-metadata);
+/* Search Bar Styles */
+.search-bar-container {
+    position: relative;
+    padding: 0 20px 15px 20px;
+}
+
+#search-input {
+    width: 100%;
+    padding: 10px 40px 10px 15px; /* Padding for RTL icon */
+    background-color: var(--color-surface-card);
+    border: none;
+    border-radius: 10px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    direction: rtl;
+}
+
+#search-input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+#search-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-accent-system);
+}
+
+.search-icon {
+    position: absolute;
+    right: 35px; /* Position icon on the right for RTL */
+    top: 50%;
+    transform: translateY(-60%);
+    color: var(--color-text-secondary);
+    pointer-events: none;
 }
 
 /* Journals List View Styles */

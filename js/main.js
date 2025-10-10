@@ -228,13 +228,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Screen Navigation Logic ---
     const journalsListView = document.getElementById('journals-list-view');
-    // timelineView is already declared at the top
+    const searchInput = document.getElementById('search-input');
     const backToJournalsBtn = document.getElementById('back-to-journals-btn');
+
+    searchInput.addEventListener('input', () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const currentJournal = appData.journals[appData.currentJournalIndex];
+        if (!currentJournal) return;
+
+        if (searchTerm.trim() === '') {
+            renderJournalFeed(currentJournal.entries);
+            return;
+        }
+
+        const filteredEntries = currentJournal.entries.filter(entry => {
+            // Simple search in the raw text content (including title)
+            return entry.text.toLowerCase().includes(searchTerm);
+        });
+        renderJournalFeed(filteredEntries);
+    });
 
     function showTimelineView(journalIndex) {
         appData.currentJournalIndex = journalIndex;
         const journal = appData.journals[journalIndex];
         mainTitle.textContent = journal.name;
+        searchInput.value = ''; // Clear search input when changing journals
         renderJournalFeed(journal.entries);
         journalsListView.style.display = 'none';
         timelineView.style.display = 'block';
