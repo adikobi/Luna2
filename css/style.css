@@ -102,6 +102,28 @@ body {
     display: -webkit-box;
     -webkit-line-clamp: 4; /* number of lines to show */
     -webkit-box-orient: vertical;
+    margin-bottom: 15px;
+}
+
+.journal-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.journal-card-actions button {
+    background-color: #3a3a3c;
+    color: var(--color-text-primary);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.journal-card-actions .delete-btn {
+    background-color: #d9363e;
 }
 
 #fab {

@@ -24,15 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UI Rendering Logic ---
     function renderJournalFeed(entries) {
         journalFeed.innerHTML = ''; // Clear the feed before rendering
-        for (const entry of entries) {
+        entries.forEach((entry, index) => {
             const card = document.createElement('div');
             card.className = 'journal-card';
+            card.dataset.index = index; // Add index for identifying the entry
             card.innerHTML = `
                 <div class="metadata">${entry.date}</div>
                 <div class="body-text">${entry.text}</div>
+                <div class="journal-card-actions">
+                    <button class="edit-btn">Edit</button>
+                    <button class="delete-btn">Delete</button>
+                </div>
             `;
             journalFeed.appendChild(card);
-        }
+        });
     }
 
     // --- Event Listeners & Initial Setup ---
@@ -42,20 +47,43 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineHeader.classList.toggle('collapsed', timelineView.scrollTop > 40);
     });
 
-    // FAB opens Composer View
+    let currentlyEditingIndex = null; // To track which entry is being edited
+
+    // FAB opens Composer View for a new entry
     fab.addEventListener('click', () => {
-        if (!document.getElementById('composer-header')) {
-            populateComposerView();
-        }
+        currentlyEditingIndex = null; // Ensure we are in "new entry" mode
+        populateComposerView();
         composerView.classList.add('visible');
     });
 
+    // Handle clicks for Edit and Delete buttons using event delegation
+    journalFeed.addEventListener('click', (e) => {
+        const target = e.target;
+        const card = target.closest('.journal-card');
+        if (!card) return;
+
+        const index = parseInt(card.dataset.index, 10);
+
+        if (target.classList.contains('delete-btn')) {
+            // Remove the entry from the data array
+            journalData.splice(index, 1);
+            // Re-render the feed
+            renderJournalFeed(journalData);
+        }
+
+        if (target.classList.contains('edit-btn')) {
+            currentlyEditingIndex = index;
+            populateComposerView(journalData[index]);
+            composerView.classList.add('visible');
+        }
+    });
+
     // Function to create and manage the composer view
-    function populateComposerView() {
+    function populateComposerView(entry = null) {
         composerView.innerHTML = `
             <div class="composer-header" id="composer-header">
                 <button id="cancel-btn">Cancel</button>
-                <button id="done-btn">Done</button>
+                <button id="done-btn">${entry ? 'Update' : 'Done'}</button>
             </div>
             <div id="suggestions-bar" class="swiper-container">
                 <div class="swiper-wrapper">
@@ -79,37 +107,58 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
 
-        // Set current date in composer
+        const titleInput = document.getElementById('entry-title');
+        const textInput = document.getElementById('entry-textarea');
         const dateElement = document.getElementById('entry-date-location');
-        dateElement.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+        // Pre-fill form if editing an existing entry
+        if (entry) {
+            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
+            const match = entry.text.match(titleRegex);
+            if (match) {
+                titleInput.value = match[1];
+                textInput.value = match[2];
+            } else {
+                textInput.value = entry.text;
+            }
+            dateElement.textContent = entry.date;
+        } else {
+            dateElement.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
 
         // Event listener for the Cancel button
         document.getElementById('cancel-btn').addEventListener('click', () => {
             composerView.classList.remove('visible');
+            currentlyEditingIndex = null; // Reset editing state on cancel
         });
 
-        // Event listener for the Done button (Data saving logic)
+        // Event listener for the Done/Update button
         document.getElementById('done-btn').addEventListener('click', () => {
-            const title = document.getElementById('entry-title').value;
-            const text = document.getElementById('entry-textarea').value;
+            const title = titleInput.value;
+            const text = textInput.value;
 
-            if (text.trim() === '') return; // Don't save empty entries
+            if (text.trim() === '' && title.trim() === '') return;
 
             const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
-            const newEntryDate = new Date().toLocaleDateString('en-US', {
-                month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
-            }).toUpperCase().replace(',', '');
 
-            // Add new entry to the start of our data array
-            journalData.unshift({ date: newEntryDate, text: newEntryText });
+            if (currentlyEditingIndex !== null) {
+                // Update existing entry
+                journalData[currentlyEditingIndex].text = newEntryText;
+            } else {
+                // Add new entry
+                const newEntryDate = new Date().toLocaleDateString('en-US', {
+                    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
+                }).toUpperCase().replace(',', '');
+                journalData.unshift({ date: newEntryDate, text: newEntryText });
+            }
 
-            // Re-render the UI with the new data
+            // Re-render the UI
             renderJournalFeed(journalData);
 
             // Reset and hide the composer
-            document.getElementById('entry-title').value = '';
-            document.getElementById('entry-textarea').value = '';
             composerView.classList.remove('visible');
+            currentlyEditingIndex = null; // Reset editing state
         });
 
         // Initialize Swiper for the suggestions bar
@@ -117,8 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
             slidesPerView: 'auto',
             spaceBetween: 12,
             freeMode: true,
-            freeModeMomentumRatio: 0.5,
-            freeModeMomentumBounceRatio: 2.5,
         });
     }
 
