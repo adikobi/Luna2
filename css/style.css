@@ -240,10 +240,21 @@ button:active,
     font-weight: 700;
 }
 
-#entry-date-location {
+#entry-date {
+    background: none;
+    border: none;
+    font-family: var(--font-stack);
     font-size: var(--font-size-metadata);
     font-weight: var(--font-weight-metadata);
     color: var(--color-text-secondary);
+    padding: 0;
+    margin-bottom: 10px;
+    width: 100%;
+    color-scheme: dark; /* Use dark mode for the date picker UI */
+}
+
+#entry-date:focus {
+    outline: none;
 }
 
 .composer-content {

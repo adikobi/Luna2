@@ -8,18 +8,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const journalFeed = document.getElementById('journal-feed');
 
     // --- Data Store (Single Source of Truth) ---
-    // This will be replaced by Firebase
     let journalData = [
-        { date: 'OCT 09, 2025, 12:42 PM', text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Hopefully it looks good on the screen.' },
-        { date: 'OCT 08, 2025, 8:15 AM', text: 'Another day, another entry. I am building a journal app. It is fun. I am using HTML, CSS, and JavaScript. I am following a design specification.' },
-        { date: 'OCT 07, 2025, 9:00 PM', text: 'This is a shorter entry.' },
-        { date: 'OCT 06, 2025, 6:30 PM', text: 'Thinking about what to have for dinner. Maybe pizza? Or perhaps something healthier. The eternal struggle.' },
-        { date: 'OCT 05, 2025, 11:00 AM', text: 'Went for a walk in the park. The weather was perfect. The leaves are starting to change color. Autumn is a beautiful season.' },
-        { date: 'OCT 04, 2025, 2:00 PM', text: 'Worked on a coding project today. It was challenging but I made good progress. Feeling accomplished.' },
-        { date: 'OCT 03, 2025, 10:00 PM', text: 'Watched a movie with friends. It was a lot of fun. We should do it more often.' },
-        { date: 'OCT 02, 2025, 7:00 AM', text: 'Woke up early to go for a run. It was tough but I feel great now. Ready to start the day.' },
-        { date: 'OCT 01, 2025, 4:00 PM', text: 'Read a book this afternoon. It was so captivating I lost track of time. A good story is a wonderful escape.' }
+        { date: new Date('2025-10-09T12:42:00').toISOString(), text: 'This is the first journal entry. It has a bit of text to see how the truncation works. Hopefully it looks good on the screen.' },
+        { date: new Date('2025-10-08T08:15:00').toISOString(), text: 'Another day, another entry. I am building a journal app. It is fun. I am using HTML, CSS, and JavaScript. I am following a design specification.' },
+        { date: new Date('2025-10-07T21:00:00').toISOString(), text: 'This is a shorter entry.' },
+        { date: new Date('2025-10-06T18:30:00').toISOString(), text: 'Thinking about what to have for dinner. Maybe pizza? Or perhaps something healthier. The eternal struggle.' },
+        { date: new Date('2025-10-05T11:00:00').toISOString(), text: 'Went for a walk in the park. The weather was perfect. The leaves are starting to change color. Autumn is a beautiful season.' },
+        { date: new Date('2025-10-04T14:00:00').toISOString(), text: 'Worked on a coding project today. It was challenging but I made good progress. Feeling accomplished.' },
+        { date: new Date('2025-10-03T22:00:00').toISOString(), text: 'Watched a movie with friends. It was a lot of fun. We should do it more often.' },
+        { date: new Date('2025-10-02T07:00:00').toISOString(), text: 'Woke up early to go for a run. It was tough but I feel great now. Ready to start the day.' },
+        { date: new Date('2025-10-01T16:00:00').toISOString(), text: 'Read a book this afternoon. It was so captivating I lost track of time. A good story is a wonderful escape.' }
     ];
+
+    // --- Helper Functions ---
+    function formatISODateForDisplay(isoString) {
+        const date = new Date(isoString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
+        }).toUpperCase().replace(',', '');
+    }
+
+    // Converts a date object or ISO string to the format required by datetime-local input
+    function formatISOForInput(isoString) {
+        const date = new Date(isoString);
+        // Adjust for timezone offset to display local time correctly in the input
+        const timezoneOffset = date.getTimezoneOffset() * 60000;
+        const localDate = new Date(date.getTime() - timezoneOffset);
+        return localDate.toISOString().slice(0, 16);
+    }
 
     // --- UI Rendering Logic ---
     function renderJournalFeed(entries) {
@@ -29,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'journal-card';
             card.dataset.index = index; // Add index for identifying the entry
             card.innerHTML = `
-                <div class="metadata">${entry.date}</div>
+                <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 <div class="body-text">${entry.text}</div>
                 <div class="journal-card-actions">
                     <button class="edit-btn">Edit</button>
@@ -98,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="composer-content">
                  <div class="composer-metadata">
                     <input type="text" id="entry-title" placeholder="Title">
-                    <div id="entry-date-location"></div>
+                    <input type="datetime-local" id="entry-date">
                 </div>
                 <textarea id="entry-textarea" placeholder="Start writing..."></textarea>
             </div>
@@ -109,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const titleInput = document.getElementById('entry-title');
         const textInput = document.getElementById('entry-textarea');
-        const dateElement = document.getElementById('entry-date-location');
+        const dateInput = document.getElementById('entry-date');
 
         // Pre-fill form if editing an existing entry
         if (entry) {
@@ -121,9 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 textInput.value = entry.text;
             }
-            dateElement.textContent = entry.date;
+            dateInput.value = formatISOForInput(entry.date);
         } else {
-            dateElement.textContent = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+            // Set to current date and time for new entries
+            dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
 
@@ -137,21 +154,24 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('done-btn').addEventListener('click', () => {
             const title = titleInput.value;
             const text = textInput.value;
+            const dateValue = dateInput.value;
 
-            if (text.trim() === '' && title.trim() === '') return;
+            if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
 
             const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
+            const newEntryDate = new Date(dateValue).toISOString();
 
             if (currentlyEditingIndex !== null) {
                 // Update existing entry
                 journalData[currentlyEditingIndex].text = newEntryText;
+                journalData[currentlyEditingIndex].date = newEntryDate;
             } else {
                 // Add new entry
-                const newEntryDate = new Date().toLocaleDateString('en-US', {
-                    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
-                }).toUpperCase().replace(',', '');
                 journalData.unshift({ date: newEntryDate, text: newEntryText });
             }
+
+            // Sort entries by date after adding/editing
+            journalData.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             // Re-render the UI
             renderJournalFeed(journalData);
