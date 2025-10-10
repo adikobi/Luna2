@@ -47,10 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.innerHTML = `
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 <div class="body-text">${entry.text}</div>
-                <div class="journal-card-actions">
-                    <button class="edit-btn">Edit</button>
-                    <button class="delete-btn">Delete</button>
-                </div>
             `;
             journalFeed.appendChild(card);
         });
@@ -72,26 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
         composerView.classList.add('visible');
     });
 
-    // Handle clicks for Edit and Delete buttons using event delegation
+    // Handle clicks on journal cards to open for editing
     journalFeed.addEventListener('click', (e) => {
-        const target = e.target;
-        const card = target.closest('.journal-card');
+        const card = e.target.closest('.journal-card');
         if (!card) return;
 
         const index = parseInt(card.dataset.index, 10);
 
-        if (target.classList.contains('delete-btn')) {
-            // Remove the entry from the data array
-            journalData.splice(index, 1);
-            // Re-render the feed
-            renderJournalFeed(journalData);
-        }
-
-        if (target.classList.contains('edit-btn')) {
-            currentlyEditingIndex = index;
-            populateComposerView(journalData[index]);
-            composerView.classList.add('visible');
-        }
+        // Open the composer for editing
+        currentlyEditingIndex = index;
+        populateComposerView(journalData[index]);
+        composerView.classList.add('visible');
     });
 
     // Function to create and manage the composer view
@@ -119,7 +106,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <textarea id="entry-textarea" placeholder="Start writing..."></textarea>
             </div>
             <div class="composer-toolbar">
-                <button>📷</button> <button>📸</button> <button>📍</button> <button>✏️</button> <button>Aa</button>
+                <div>
+                    <button>📷</button> <button>📸</button> <button>📍</button> <button>✏️</button> <button>Aa</button>
+                </div>
+                ${entry ? '<button id="delete-entry-btn">Delete Entry</button>' : ''}
             </div>
         `;
 
@@ -149,6 +139,19 @@ document.addEventListener('DOMContentLoaded', () => {
             composerView.classList.remove('visible');
             currentlyEditingIndex = null; // Reset editing state on cancel
         });
+
+        // Event listener for the new Delete button inside the composer
+        const deleteBtn = document.getElementById('delete-entry-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (currentlyEditingIndex !== null) {
+                    journalData.splice(currentlyEditingIndex, 1);
+                    renderJournalFeed(journalData);
+                    composerView.classList.remove('visible');
+                    currentlyEditingIndex = null;
+                }
+            });
+        }
 
         // Event listener for the Done/Update button
         document.getElementById('done-btn').addEventListener('click', () => {
