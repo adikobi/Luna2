@@ -104,6 +104,10 @@ body {
     -webkit-box-orient: vertical;
 }
 
+.body-text[dir="rtl"] {
+    text-align: right;
+}
+
 #fab {
     position: fixed;
     bottom: 30px;

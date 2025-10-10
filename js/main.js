@@ -23,9 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
         const date = new Date(isoString);
-        return date.toLocaleDateString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
-        }).toUpperCase().replace(',', '');
+        // Use 'he-IL' locale for Hebrew dates, and a 24-hour clock format.
+        return date.toLocaleDateString('he-IL', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
     }
 
     // Converts a date object or ISO string to the format required by datetime-local input
@@ -37,6 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return localDate.toISOString().slice(0, 16);
     }
 
+    function linkify(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
+
+    function isHebrew(text) {
+        const hebrewRegex = /[\u0590-\u05FF]/;
+        return hebrewRegex.test(text);
+    }
+
     // --- UI Rendering Logic ---
     function renderJournalFeed(entries) {
         journalFeed.innerHTML = ''; // Clear the feed before rendering
@@ -44,9 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'journal-card';
             card.dataset.index = index; // Add index for identifying the entry
+            const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
             card.innerHTML = `
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
-                <div class="body-text">${entry.text}</div>
+                <div class="body-text" dir="${textDir}">${linkify(entry.text)}</div>
             `;
             journalFeed.appendChild(card);
         });
@@ -85,37 +97,41 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateComposerView(entry = null) {
         composerView.innerHTML = `
             <div class="composer-header" id="composer-header">
-                <button id="cancel-btn">Cancel</button>
-                <button id="done-btn">${entry ? 'Update' : 'Done'}</button>
+                <button id="cancel-btn">ביטול</button>
+                <button id="done-btn">${entry ? 'עדכון' : 'סיום'}</button>
             </div>
             <div id="suggestions-bar" class="swiper-container">
                 <div class="swiper-wrapper">
-                    <div class="swiper-slide suggestion-card">Recents</div>
-                    <div class="swiper-slide suggestion-card">A Year Ago</div>
-                    <div class="swiper-slide suggestion-card">Morning</div>
-                    <div class="swiper-slide suggestion-card">Evening</div>
-                    <div class="swiper-slide suggestion-card">Gratitude</div>
-                    <div class="swiper-slide suggestion-card">Reflection</div>
+                    <div class="swiper-slide suggestion-card">אחרונים</div>
+                    <div class="swiper-slide suggestion-card">לפני שנה</div>
+                    <div class="swiper-slide suggestion-card">בוקר</div>
+                    <div class="swiper-slide suggestion-card">ערב</div>
+                    <div class="swiper-slide suggestion-card">הכרת תודה</div>
+                    <div class="swiper-slide suggestion-card">הרהור</div>
                 </div>
             </div>
             <div class="composer-content">
                  <div class="composer-metadata">
-                    <input type="text" id="entry-title" placeholder="Title">
+                    <input type="text" id="entry-title" placeholder="כותרת">
                     <input type="datetime-local" id="entry-date">
                 </div>
-                <textarea id="entry-textarea" placeholder="Start writing..."></textarea>
+                <textarea id="entry-textarea" placeholder="התחל לכתוב..."></textarea>
             </div>
             <div class="composer-toolbar">
                 <div>
                     <button>📷</button> <button>📸</button> <button>📍</button> <button>✏️</button> <button>Aa</button>
                 </div>
-                ${entry ? '<button id="delete-entry-btn">Delete Entry</button>' : ''}
+                ${entry ? '<button id="delete-entry-btn">מחק רשומה</button>' : ''}
             </div>
         `;
 
         const titleInput = document.getElementById('entry-title');
         const textInput = document.getElementById('entry-textarea');
         const dateInput = document.getElementById('entry-date');
+
+        const setDirection = (el) => {
+            el.dir = isHebrew(el.value) ? 'rtl' : 'ltr';
+        };
 
         // Pre-fill form if editing an existing entry
         if (entry) {
@@ -125,6 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleInput.value = match[1];
                 textInput.value = match[2];
             } else {
+                titleInput.value = '';
                 textInput.value = entry.text;
             }
             dateInput.value = formatISOForInput(entry.date);
@@ -132,6 +149,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Set to current date and time for new entries
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
+
+        // Set initial direction and add listeners for dynamic changes
+        setDirection(titleInput);
+        setDirection(textInput);
+        titleInput.addEventListener('input', () => setDirection(titleInput));
+        textInput.addEventListener('input', () => setDirection(textInput));
 
 
         // Event listener for the Cancel button
