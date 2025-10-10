@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentJournalId: null,
     };
     let currentlyEditingEntryId = null;
+    let initialEntryState = null; // Used to check for unsaved changes
 
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
@@ -131,8 +132,10 @@ document.addEventListener('DOMContentLoaded', () => {
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
 
-        // Entries in Firebase are objects, convert to array and sort
-        const entriesArray = journal.entries ? Object.values(journal.entries) : [];
+        // Entries in Firebase are objects, convert to array with IDs and sort
+        const entriesArray = journal.entries
+            ? Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }))
+            : [];
         entriesArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         renderJournalFeed(entriesArray);
@@ -189,6 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
             dateInput.value = formatISOForInput(entry.date);
         } else {
             dateInput.value = formatISOForInput(new Date().toISOString());
+        }
+
+        // Store the initial state for checking for unsaved changes if in edit mode
+        if (isEditing) {
+            initialEntryState = {
+                title: titleInput.value,
+                text: textInput.innerText,
+                date: dateInput.value
+            };
+        } else {
+            initialEntryState = null;
         }
 
         // Event Listeners
