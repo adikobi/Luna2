@@ -12,6 +12,7 @@
     <!-- Firebase SDKs (v9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="js/main.js" defer></script>
 </head>
 <body>
@@ -30,7 +31,7 @@
             <p class="splash-subtitle">זיכרונות ורגעים</p>
         </div>
         <div class="password-container">
-            <input type="password" id="password-input" inputmode="numeric" pattern="[0-9]*" placeholder="הזן קוד סודי">
+            <input type="password" id="password-input" inputmode="numeric" pattern="[0-9]*">
             <button id="password-submit-btn">כניסה</button>
         </div>
     </div>
@@ -38,11 +39,17 @@
     <!-- Journals List View (hidden by default) -->
     <div id="journals-list-view" class="view-screen" style="display: none;">
         <header class="journals-list-header">
-            <button id="journals-list-done-btn" class="header-action-btn" style="display: none;">סיום</button>
+            <button id="lock-app-btn" class="header-action-btn">
+                <i class="fas fa-lock"></i>
+            </button>
             <h1 class="journals-list-title">היומנים שלי</h1>
+            <button id="show-all-entries-btn" class="header-action-btn">
+                <i class="fas fa-list"></i>
+            </button>
             <button id="journals-list-edit-btn" class="header-action-btn">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
             </button>
+            <button id="journals-list-done-btn" class="header-action-btn" style="display: none;">סיום</button>
         </header>
         <main>
             <div id="journals-list-container">

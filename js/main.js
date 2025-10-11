@@ -1,17 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Firebase Setup ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCwZjm9jmF8UHAzK7cIVtoUwuB27QX0zuA",
-        authDomain: "luna2-ba3ec.firebaseapp.com",
-        databaseURL: "https://luna2-ba3ec-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "luna2-ba3ec",
-        storageBucket: "luna2-ba3ec.firebasestorage.app",
-        messagingSenderId: "220309039843",
-        appId: "1:220309039843:web:735b36668c63a01a20f3d6",
-        measurementId: "G-HZ0K9S89JL"
-    };
-
-    // Initialize Firebase
+    // Initialize Firebase (firebaseConfig is loaded from firebase-config.js)
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
@@ -69,13 +58,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- UI Rendering ---
-    function renderJournalFeed(entries) {
+    function renderJournalFeed(entries, showJournalName = false) {
         journalFeed.innerHTML = '';
         // Note: 'entries' is now an array of objects, each with an 'id' property
         entries.forEach(entry => {
             const card = document.createElement('div');
             card.className = 'journal-card';
             card.dataset.id = entry.id; // Use the entry's Firebase key
+            card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
             const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
@@ -93,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             card.innerHTML = `
+                ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
@@ -241,7 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
-            editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
+            editBtn.addEventListener('click', () => {
+                // When switching from view to edit, we need to capture the state
+                populateComposerView(entry, 'edit');
+            });
         }
 
         const saveBtn = document.getElementById('save-btn');
@@ -294,10 +288,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = e.target.closest('.journal-card');
         if (card) {
             const entryId = card.dataset.id;
+            const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
-            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+            appData.currentJournalId = journalId; // Set current journal for composer logic
+            const journal = appData.journals.find(j => j.id === journalId);
             const entry = journal.entries[entryId];
-            populateComposerView({ id: entryId, ...entry }, 'view'); // Open in view mode
+            populateComposerView({ id: entryId, ...entry }, 'view');
             composerView.classList.add('visible');
         }
     });
@@ -307,18 +303,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', () => {
         const searchTerm = searchInput.value.toLowerCase();
-        const journal = appData.journals.find(j => j.id === appData.currentJournalId);
-        if (!journal) return;
+        let allEntries = [];
+        let showJournalName = false;
 
-        const entriesArray = journal.entries
-            ? Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }))
-            : [];
+        if (appData.currentJournalId) {
+            // Search within a single journal
+            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+            if (journal && journal.entries) {
+                allEntries = Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }));
+            }
+        } else {
+            // Search across all journals (we are in "All Entries" view)
+            showJournalName = true;
+            appData.journals.forEach(journal => {
+                if (journal.entries) {
+                    const entriesArray = Object.keys(journal.entries).map(key => ({
+                        id: key,
+                        journalId: journal.id,
+                        journalName: journal.name,
+                        ...journal.entries[key]
+                    }));
+                    allEntries = allEntries.concat(entriesArray);
+                }
+            });
+        }
+
         const filteredEntries = searchTerm.trim() === ''
-            ? entriesArray
-            : entriesArray.filter(entry => entry.text.toLowerCase().includes(searchTerm));
+            ? allEntries
+            : allEntries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
 
         filteredEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-        renderJournalFeed(filteredEntries);
+        renderJournalFeed(filteredEntries, showJournalName);
     });
 
     document.getElementById('search-toggle-btn').addEventListener('click', () => {
@@ -332,8 +347,48 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const lockAppBtn = document.getElementById('lock-app-btn');
+    const showAllEntriesBtn = document.getElementById('show-all-entries-btn');
     const editJournalsBtn = document.getElementById('journals-list-edit-btn');
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
+
+    function showAllEntriesView() {
+        let allEntries = [];
+        appData.journals.forEach(journal => {
+            if (journal.entries) {
+                const entriesArray = Object.keys(journal.entries).map(key => ({
+                    id: key,
+                    journalId: journal.id,
+                    journalName: journal.name,
+                    ...journal.entries[key]
+                }));
+                allEntries = allEntries.concat(entriesArray);
+            }
+        });
+
+        allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        mainTitle.textContent = "כל הרשומות";
+        renderJournalFeed(allEntries, true); // Pass true to show journal names
+        journalsListView.style.display = 'none';
+        timelineView.style.display = 'block';
+        // In "All Entries" view, we don't have a single current journal
+        appData.currentJournalId = null;
+    }
+
+    showAllEntriesBtn.addEventListener('click', showAllEntriesView);
+
+    lockAppBtn.addEventListener('click', () => {
+        // Hide all main views
+        journalsListView.style.display = 'none';
+        timelineView.style.display = 'none';
+        composerView.classList.remove('visible');
+
+        // Show the password view
+        passwordView.style.display = 'flex';
+        passwordInput.value = ''; // Clear password field
+        passwordInput.focus();
+    });
 
     editJournalsBtn.addEventListener('click', () => {
         journalsListView.classList.add('edit-mode');

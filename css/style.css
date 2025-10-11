@@ -391,6 +391,15 @@ body {
     text-align: center;
 }
 
+.journal-name-indicator {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-accent-system);
+    text-align: right;
+    margin-bottom: 8px;
+    opacity: 0.8;
+}
+
 .journal-card .body-text {
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-body);
