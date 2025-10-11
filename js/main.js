@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const journalsListView = document.getElementById('journals-list-view');
     const timelineView = document.getElementById('timeline-view');
     const composerView = document.getElementById('composer-view');
+    const insightsView = document.getElementById('insights-view');
     const mainTitle = document.getElementById('main-title');
     const journalFeed = document.getElementById('journal-feed');
     const fab = document.getElementById('fab');
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
+    let calendarDate = new Date(); // State for the calendar's currently displayed month
 
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
@@ -67,10 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return hebrewRegex.test(text);
     }
 
+    function countWords(str) {
+        const cleanString = str.replace(/<\/?[^>]+(>|$)/g, " ").trim();
+        if (cleanString === '') return 0;
+        return cleanString.split(/\s+/).length;
+    }
+
     // --- UI Rendering ---
-    function renderJournalFeed(entries, showJournalName = false) {
-        journalFeed.innerHTML = '';
-        // Note: 'entries' is now an array of objects, each with an 'id' property
+    function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
+        container.innerHTML = '';
+         if (entries.length === 0 && container.id === 'entries-for-date-view') {
+            container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+            return;
+        }
         entries.forEach(entry => {
             const card = document.createElement('div');
             card.className = 'journal-card';
@@ -85,10 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const title = match[1];
                 const body = match[2];
-                // Manually construct HTML, only linkifying the body part
                 bodyHtml = `<strong>${title}</strong><br>${linkify(body)}`;
             } else {
-                // If no title, linkify the whole text safely
                 bodyHtml = linkify(entry.text);
             }
 
@@ -97,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
-            journalFeed.appendChild(card);
+            container.appendChild(card);
         });
     }
 
@@ -111,12 +120,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'journal-list-item';
             item.textContent = journal.name;
-            item.dataset.id = journal.id; // Use Firebase key as ID
+            item.dataset.id = journal.id;
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
             deleteBtn.innerHTML = '&times;';
-            deleteBtn.dataset.id = journal.id; // Use Firebase key for deletion
+            deleteBtn.dataset.id = journal.id;
 
             wrapper.appendChild(item);
             wrapper.appendChild(deleteBtn);
@@ -133,7 +142,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
 
-        // Entries in Firebase are objects, convert to array with IDs and sort
         const entriesArray = journal.entries
             ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
             : [];
@@ -141,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderJournalFeed(entriesArray);
         journalsListView.style.display = 'none';
+        insightsView.style.display = 'none';
         timelineView.style.display = 'block';
     }
 
@@ -148,7 +157,16 @@ document.addEventListener('DOMContentLoaded', () => {
         appData.currentJournalId = null;
         renderJournalsList(appData.journals);
         timelineView.style.display = 'none';
+        insightsView.style.display = 'none';
         journalsListView.style.display = 'block';
+    }
+
+    function showInsightsView() {
+        const stats = calculateInsights();
+        renderInsightsDetailView(stats);
+        renderCalendar(calendarDate);
+        journalsListView.style.display = 'none';
+        insightsView.style.display = 'block';
     }
 
     // --- Composer Logic ---
@@ -195,57 +213,36 @@ document.addEventListener('DOMContentLoaded', () => {
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
-        // Store the initial state for checking for unsaved changes if in edit mode
         if (isEditing) {
-            // For a new entry, the state is empty. For an existing one, it's the current content.
             initialEntryState = {
                 title: titleInput.value,
                 text: textInput.innerText,
                 date: dateInput.value
             };
         } else {
-            // No tracking needed for view mode
             initialEntryState = null;
         }
 
-        // Event Listeners
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
-            // Check for unsaved changes only if we were in edit mode
             if (initialEntryState) {
-                const titleInput = document.getElementById('entry-title');
-                const textInput = document.getElementById('entry-textarea');
-                const dateInput = document.getElementById('entry-date');
-
                 const currentState = {
-                    title: titleInput.value,
-                    text: textInput.innerText,
-                    date: dateInput.value
+                    title: document.getElementById('entry-title').value,
+                    text: document.getElementById('entry-textarea').innerText,
+                    date: document.getElementById('entry-date').value
                 };
-
                 const hasChanged = currentState.title !== initialEntryState.title ||
                                    currentState.text !== initialEntryState.text ||
                                    currentState.date !== initialEntryState.date;
-
-                if (hasChanged) {
-                    if (confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
-                        composerView.classList.remove('visible');
-                    }
-                } else {
-                    // No changes, close without confirmation
-                    composerView.classList.remove('visible');
+                if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
+                    return;
                 }
-            } else {
-                // Not in edit mode (view mode), just close
-                composerView.classList.remove('visible');
             }
+            composerView.classList.remove('visible');
         });
 
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
-            editBtn.addEventListener('click', () => {
-                // When switching from view to edit, we need to capture the state
-                populateComposerView(entry, 'edit');
-            });
+            editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
         }
 
         const saveBtn = document.getElementById('save-btn');
@@ -260,12 +257,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
-
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
                 if (isNewEntry) {
-                    const newEntryRef = journalEntriesRef.push();
-                    newEntryRef.set(entryData);
+                    journalEntriesRef.push(entryData);
                 } else {
                     journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
                 }
@@ -275,32 +270,173 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const deleteBtn = document.getElementById('delete-entry-btn');
-        if (deleteBtn) {
+        if (deleteBtn && confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
             deleteBtn.addEventListener('click', () => {
-                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
-                    if (currentlyEditingEntryId) {
-                        journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
-                        composerView.classList.remove('visible');
-                    }
+                 if (currentlyEditingEntryId) {
+                    journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
+                    composerView.classList.remove('visible');
                 }
             });
         }
     }
 
+    // --- Insights Logic ---
+    function calculateInsights() {
+        const currentYear = new Date().getFullYear();
+        let entriesThisYear = 0;
+        let wordsAllTime = 0;
+        const daysJournaled = new Set();
+
+        appData.journals.forEach(journal => {
+            if (!journal.entries) return;
+            Object.values(journal.entries).forEach(entry => {
+                const entryDate = new Date(entry.date);
+                if (entryDate.getFullYear() === currentYear) {
+                    entriesThisYear++;
+                }
+                const dateString = entryDate.toISOString().split('T')[0];
+                daysJournaled.add(dateString);
+                wordsAllTime += countWords(entry.text);
+            });
+        });
+
+        return { entriesThisYear, daysJournaled: daysJournaled.size, wordsAllTime };
+    }
+
+    function renderInsightsWidget(stats) {
+        const container = document.getElementById('insights-widget-container');
+        container.innerHTML = `
+            <div class="insights-widget">
+                <div class="main-stat">
+                    <div class="count">${stats.entriesThisYear}</div>
+                    <div class="label">Entries This Year</div>
+                </div>
+                <div class="sub-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div class="text">
+                            <div class="count">${stats.daysJournaled}</div>
+                            <div class="label">Days Journaled</div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-quote-left"></i>
+                        <div class="text">
+                            <div class="count">${stats.wordsAllTime}</div>
+                            <div class="label">Words All Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.querySelector('.insights-widget').addEventListener('click', showInsightsView);
+    }
+
+    function renderInsightsDetailView(stats) {
+        const container = document.querySelector('#insights-view .insights-main-stats');
+        container.innerHTML = `
+            <div class="stat-card entries-year">
+                <div class="count">${stats.entriesThisYear}</div>
+                <div class="label">Entries This Year</div>
+            </div>
+            <div class="stat-card days-journaled">
+                <div class="count">${stats.daysJournaled}</div>
+                <div class="label">Days Journaled</div>
+            </div>
+            <div class="stat-card words-written">
+                <div class="count">${stats.wordsAllTime}</div>
+                <div class="label">Words Written</div>
+            </div>
+        `;
+    }
+
+    function renderCalendar(date) {
+        const grid = document.getElementById('calendar-grid');
+        const monthYearDisplay = document.getElementById('month-year-display');
+        grid.innerHTML = '';
+        document.getElementById('entries-for-date-view').innerHTML = '';
+
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        monthYearDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const entryDates = new Set();
+        appData.journals.forEach(journal => {
+            if (journal.entries) {
+                Object.values(journal.entries).forEach(entry => {
+                    entryDates.add(new Date(entry.date).toISOString().split('T')[0]);
+                });
+            }
+        });
+
+        const dayNames = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+        dayNames.forEach(name => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day day-name';
+            dayEl.textContent = name;
+            grid.appendChild(dayEl);
+        });
+
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day';
+            dayEl.textContent = i;
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            if (entryDates.has(dateString)) {
+                dayEl.classList.add('has-entry', 'is-clickable');
+                dayEl.addEventListener('click', () => {
+                    document.querySelectorAll('.calendar-day.is-selected').forEach(el => el.classList.remove('is-selected'));
+                    dayEl.classList.add('is-selected');
+                    renderEntriesForDate(dateString);
+                });
+            }
+            grid.appendChild(dayEl);
+        }
+    }
+
+    function renderEntriesForDate(dateString) {
+        const container = document.getElementById('entries-for-date-view');
+        let entriesForDate = [];
+        appData.journals.forEach(journal => {
+            if(journal.entries) {
+                Object.keys(journal.entries).forEach(key => {
+                    const entry = journal.entries[key];
+                    if (new Date(entry.date).toISOString().startsWith(dateString)) {
+                        entriesForDate.push({
+                            id: key,
+                            journalId: journal.id,
+                            journalName: journal.name,
+                            ...entry
+                        });
+                    }
+                });
+            }
+        });
+        entriesForDate.sort((a, b) => new Date(b.date) - new Date(a.date));
+        renderJournalFeed(entriesForDate, true, container);
+    }
+
     // --- Global Event Listeners ---
     fab.addEventListener('click', () => {
         currentlyEditingEntryId = null;
-        populateComposerView(null, 'edit'); // Open directly in edit mode for new entry
+        populateComposerView(null, 'edit');
         composerView.classList.add('visible');
     });
 
-    journalFeed.addEventListener('click', (e) => {
+    document.body.addEventListener('click', (e) => {
         const card = e.target.closest('.journal-card');
-        if (card) {
+        if (card && card.parentElement.id !== 'entries-for-date-view') {
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
-            appData.currentJournalId = journalId; // Set current journal for composer logic
+            appData.currentJournalId = journalId;
             const journal = appData.journals.find(j => j.id === journalId);
             const entry = journal.entries[entryId];
             populateComposerView({ id: entryId, ...entry }, 'view');
@@ -309,6 +445,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
+    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
+
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() - 1);
+        renderCalendar(calendarDate);
+    });
+
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() + 1);
+        renderCalendar(calendarDate);
+    });
 
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', () => {
@@ -317,31 +464,22 @@ document.addEventListener('DOMContentLoaded', () => {
         let showJournalName = false;
 
         if (appData.currentJournalId) {
-            // Search within a single journal
             const journal = appData.journals.find(j => j.id === appData.currentJournalId);
             if (journal && journal.entries) {
                 allEntries = Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }));
             }
         } else {
-            // Search across all journals (we are in "All Entries" view)
             showJournalName = true;
             appData.journals.forEach(journal => {
                 if (journal.entries) {
                     const entriesArray = Object.keys(journal.entries).map(key => ({
-                        id: key,
-                        journalId: journal.id,
-                        journalName: journal.name,
-                        ...journal.entries[key]
+                        id: key, journalId: journal.id, journalName: journal.name, ...journal.entries[key]
                     }));
                     allEntries = allEntries.concat(entriesArray);
                 }
             });
         }
-
-        const filteredEntries = searchTerm.trim() === ''
-            ? allEntries
-            : allEntries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
-
+        const filteredEntries = searchTerm.trim() === '' ? allEntries : allEntries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
         filteredEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
         renderJournalFeed(filteredEntries, showJournalName);
     });
@@ -367,36 +505,29 @@ document.addEventListener('DOMContentLoaded', () => {
         appData.journals.forEach(journal => {
             if (journal.entries) {
                 const entriesArray = Object.keys(journal.entries).map(key => ({
-                    id: key,
-                    journalId: journal.id,
-                    journalName: journal.name,
-                    ...journal.entries[key]
+                    id: key, journalId: journal.id, journalName: journal.name, ...journal.entries[key]
                 }));
                 allEntries = allEntries.concat(entriesArray);
             }
         });
-
         allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-
         mainTitle.textContent = "כל הרשומות";
-        renderJournalFeed(allEntries, true); // Pass true to show journal names
+        renderJournalFeed(allEntries, true);
         journalsListView.style.display = 'none';
+        insightsView.style.display = 'none';
         timelineView.style.display = 'block';
-        // In "All Entries" view, we don't have a single current journal
         appData.currentJournalId = null;
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
 
     lockAppBtn.addEventListener('click', () => {
-        // Hide all main views
         journalsListView.style.display = 'none';
         timelineView.style.display = 'none';
+        insightsView.style.display = 'none';
         composerView.classList.remove('visible');
-
-        // Show the password view
         passwordView.style.display = 'flex';
-        passwordInput.value = ''; // Clear password field
+        passwordInput.value = '';
         passwordInput.focus();
     });
 
@@ -462,22 +593,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const CORRECT_PASSWORD = '6417';
 
     function checkPassword() {
-        if (passwordInput.value === CORRECT_PASSWORD) {
+        if (passwordInput.value.trim() === CORRECT_PASSWORD) {
             passwordView.style.display = 'none';
 
-            // Initial load and listen for changes from Firebase
             journalsRef.on('value', (snapshot) => {
                 const journalsData = snapshot.val();
-                if (journalsData) {
-                    appData.journals = Object.keys(journalsData).map(key => ({
-                        id: key,
-                        ...journalsData[key]
-                    }));
-                } else {
-                    appData.journals = [];
-                }
+                appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
 
-                // If a journal is being viewed, refresh its view, otherwise show list
+                const stats = calculateInsights();
+                renderInsightsWidget(stats);
+
                 if (appData.currentJournalId) {
                     const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
                     if (currentJournalExists) {
@@ -485,7 +610,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showJournalsListView();
                     }
-                } else {
+                } else if (journalsListView.style.display === 'block' || insightsView.style.display === 'block') {
+                    showJournalsListView();
+                } else if (timelineView.style.display === 'block') {
+                    // This handles the "All Entries" view refresh
+                    const isAllEntriesView = mainTitle.textContent === "כל הרשומות";
+                    if(isAllEntriesView){
+                        showAllEntriesView();
+                    }
+                }
+                 else {
                     showJournalsListView();
                 }
             });
