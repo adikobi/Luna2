@@ -1,5 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Firebase Setup ---
+    if (typeof firebaseConfig === 'undefined') {
+        alert("Firebase configuration is missing. Please create firebase-config.js from the example file.");
+        return;
+    }
     // Initialize Firebase (firebaseConfig is loaded from firebase-config.js)
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
