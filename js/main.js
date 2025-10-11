@@ -35,6 +35,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
     let calendarDate = new Date(); // State for the calendar's currently displayed month
+    let insightsChart = {
+        selectedYear: new Date().getFullYear(),
+        allTime: false,
+    };
 
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
@@ -284,47 +288,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Insights Logic ---
     function calculateInsights() {
-        const currentYear = new Date().getFullYear();
-        let entriesThisYear = 0;
-        let wordsAllTime = 0;
-        const daysJournaled = new Set();
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        const stats = {
+            byYear: {},
+            allTime: { entries: 0, words: 0, days: new Set() },
+            thisMonth: { entries: 0, words: 0, days: new Set() },
+            thisYear: { entries: 0, words: 0, days: new Set() },
+        };
 
         appData.journals.forEach(journal => {
             if (!journal.entries) return;
             Object.values(journal.entries).forEach(entry => {
-                const entryDate = new Date(entry.date);
-                if (entryDate.getFullYear() === currentYear) {
-                    entriesThisYear++;
+                const date = new Date(entry.date);
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const day = date.toISOString().split('T')[0];
+                const wordCount = countWords(entry.text);
+
+                if (!stats.byYear[year]) {
+                    stats.byYear[year] = {
+                        totalEntries: 0,
+                        totalWords: 0,
+                        totalDays: new Set(),
+                        byMonth: Array(12).fill(0).map(() => ({ entries: 0, words: 0, days: new Set() })),
+                    };
                 }
-                const dateString = entryDate.toISOString().split('T')[0];
-                daysJournaled.add(dateString);
-                wordsAllTime += countWords(entry.text);
+
+                stats.byYear[year].totalEntries++;
+                stats.byYear[year].totalWords += wordCount;
+                stats.byYear[year].totalDays.add(day);
+                stats.byYear[year].byMonth[month].entries++;
+                stats.byYear[year].byMonth[month].words += wordCount;
+                stats.byYear[year].byMonth[month].days.add(day);
+
+                stats.allTime.entries++;
+                stats.allTime.words += wordCount;
+                stats.allTime.days.add(day);
+
+                if (year === currentYear) {
+                    stats.thisYear.entries++;
+                    stats.thisYear.words += wordCount;
+                    stats.thisYear.days.add(day);
+                    if (month === currentMonth) {
+                        stats.thisMonth.entries++;
+                        stats.thisMonth.words += wordCount;
+                        stats.thisMonth.days.add(day);
+                    }
+                }
             });
         });
 
-        return { entriesThisYear, daysJournaled: daysJournaled.size, wordsAllTime };
+        Object.keys(stats.byYear).forEach(year => {
+            stats.byYear[year].totalDays = stats.byYear[year].totalDays.size;
+            stats.byYear[year].byMonth.forEach(month => {
+                month.days = month.days.size;
+            });
+        });
+
+        stats.allTime.days = stats.allTime.days.size;
+        stats.thisMonth.days = stats.thisMonth.days.size;
+        stats.thisYear.days = stats.thisYear.days.size;
+
+        return stats;
     }
+
 
     function renderInsightsWidget(stats) {
         const container = document.getElementById('insights-widget-container');
         container.innerHTML = `
             <div class="insights-widget">
                 <div class="main-stat">
-                    <div class="count">${stats.entriesThisYear}</div>
+                    <div class="count">${stats.thisYear.entries}</div>
                     <div class="label">Entries This Year</div>
                 </div>
                 <div class="sub-stats">
                     <div class="stat-item">
                         <i class="fas fa-calendar-alt"></i>
                         <div class="text">
-                            <div class="count">${stats.daysJournaled}</div>
+                            <div class="count">${stats.allTime.days}</div>
                             <div class="label">Days Journaled</div>
                         </div>
                     </div>
                     <div class="stat-item">
                         <i class="fas fa-quote-left"></i>
                         <div class="text">
-                            <div class="count">${stats.wordsAllTime}</div>
+                            <div class="count">${stats.allTime.words}</div>
                             <div class="label">Words All Time</div>
                         </div>
                     </div>
@@ -335,19 +386,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderInsightsDetailView(stats) {
-        const container = document.querySelector('#insights-view .insights-main-stats');
+        renderMainStatContent(stats);
+        renderExpandedStatContent(stats);
+    }
+
+    function renderMainStatContent(stats) {
+        const entriesCardMain = document.querySelector('.stat-card[data-stat="entries"] .stat-card-main');
+        const journaledCardMain = document.querySelector('.stat-card[data-stat="journaled"] .stat-card-main');
+        const writtenCardMain = document.querySelector('.stat-card[data-stat="written"] .stat-card-main');
+
+        const yearData = stats.byYear[insightsChart.selectedYear] || { totalEntries: 0 };
+        const displayEntries = insightsChart.allTime ? stats.allTime.entries : yearData.totalEntries;
+
+        entriesCardMain.innerHTML = `
+            <div class="count">${displayEntries}</div>
+            <div class="label">Entries</div>
+        `;
+
+        journaledCardMain.innerHTML = `
+            <div class="count">${stats.thisYear.days}</div>
+            <div class="label">Days Journaled</div>
+        `;
+
+        writtenCardMain.innerHTML = `
+            <div class="count">${stats.allTime.words}</div>
+            <div class="label">Words Written</div>
+        `;
+    }
+
+    function renderExpandedStatContent(stats) {
+        renderBarChart(stats);
+        renderExpandedDetails(stats, 'journaled');
+        renderExpandedDetails(stats, 'written');
+    }
+
+    function renderBarChart(stats) {
+        const container = document.querySelector('.stat-card[data-stat="entries"] .stat-card-expanded');
+        const allYears = Object.keys(stats.byYear).map(Number).sort((a, b) => b - a);
+        const currentYear = insightsChart.selectedYear;
+        const yearData = stats.byYear[currentYear];
+
+        let monthlyEntries = Array(12).fill(0);
+        if (insightsChart.allTime) {
+            allYears.forEach(year => {
+                stats.byYear[year].byMonth.forEach((monthData, index) => {
+                    monthlyEntries[index] += monthData.entries;
+                });
+            });
+        } else if (yearData) {
+            monthlyEntries = yearData.byMonth.map(m => m.entries);
+        }
+
+        const maxEntries = Math.max(...monthlyEntries, 1);
+
         container.innerHTML = `
-            <div class="stat-card entries-year">
-                <div class="count">${stats.entriesThisYear}</div>
-                <div class="label">Entries This Year</div>
+            <div class="year-selector">
+                <button id="prev-year-btn" ${!insightsChart.allTime && allYears.indexOf(currentYear) >= allYears.length - 1 ? 'disabled' : ''}>&lt;</button>
+                <h3 id="year-display">${insightsChart.allTime ? 'All Time' : currentYear}</h3>
+                <button id="next-year-btn" ${insightsChart.allTime ? 'disabled' : ''}>&gt;</button>
             </div>
-            <div class="stat-card days-journaled">
-                <div class="count">${stats.daysJournaled}</div>
-                <div class="label">Days Journaled</div>
+            <div class="bar-chart-container">
+                ${monthlyEntries.map(count => `<div class="bar-chart-bar" style="height: ${(count / maxEntries) * 100}%"></div>`).join('')}
             </div>
-            <div class="stat-card words-written">
-                <div class="count">${stats.wordsAllTime}</div>
-                <div class="label">Words Written</div>
+            <div class="bar-chart-labels">
+                ${['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(l => `<span>${l}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    function renderExpandedDetails(stats, type) {
+        const container = document.querySelector(`.stat-card[data-stat="${type}"] .stat-card-expanded`);
+        const data = (type === 'journaled')
+            ? { thisMonth: stats.thisMonth.days, thisYear: stats.thisYear.days, allTime: stats.allTime.days }
+            : { thisMonth: stats.thisMonth.words, thisYear: stats.thisYear.words, allTime: stats.allTime.words };
+
+        container.innerHTML = `
+            <div class="expanded-stat-details">
+                <div class="detail-stat">
+                    <span class="label">This Month</span>
+                    <span class="count">${data.thisMonth}</span>
+                </div>
+                <div class="detail-stat">
+                    <span class="label">This Year</span>
+                    <span class="count">${data.thisYear}</span>
+                </div>
+                <div class="detail-stat">
+                    <span class="label">All Time</span>
+                    <span class="count">${data.allTime}</span>
+                </div>
             </div>
         `;
     }
@@ -360,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const year = date.getFullYear();
         const month = date.getMonth();
-        monthYearDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        monthYearDisplay.textContent = date.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
 
         const firstDayOfMonth = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -592,6 +718,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const insightsStatsContainer = document.querySelector('.insights-main-stats');
+    insightsStatsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.stat-card.expandable');
+        if (!card) return;
+
+        const prevBtn = e.target.closest('#prev-year-btn');
+        const nextBtn = e.target.closest('#next-year-btn');
+        if (prevBtn || nextBtn) {
+            const stats = calculateInsights();
+            const allYears = Object.keys(stats.byYear).map(Number).sort((a,b) => b-a);
+            const currentIndex = allYears.indexOf(insightsChart.selectedYear);
+
+            if (prevBtn) {
+                if (insightsChart.allTime) {
+                    insightsChart.selectedYear = allYears[0];
+                    insightsChart.allTime = false;
+                }
+                else if (currentIndex < allYears.length - 1) {
+                    insightsChart.selectedYear = allYears[currentIndex + 1];
+                } else {
+                    insightsChart.allTime = true;
+                }
+            }
+            if (nextBtn) {
+                 if (!insightsChart.allTime && currentIndex > 0) {
+                    insightsChart.selectedYear = allYears[currentIndex - 1];
+                 } else if (!insightsChart.allTime && currentIndex === 0) {
+                    insightsChart.allTime = true;
+                 }
+            }
+            renderInsightsDetailView(stats);
+            return;
+        }
+
+        const isExpanded = card.classList.contains('expanded');
+
+        // Remove all layout classes from the parent
+        insightsStatsContainer.classList.remove('journaled-expanded', 'written-expanded');
+        insightsStatsContainer.querySelectorAll('.stat-card.expandable').forEach(c => c.classList.remove('expanded'));
+
+        if (!isExpanded) {
+            card.classList.add('expanded');
+            const statType = card.dataset.stat;
+            if (statType === 'journaled' || statType === 'written') {
+                insightsStatsContainer.classList.add(`${statType}-expanded`);
+            }
+        }
+    });
+
     // --- Password Logic ---
     const passwordInput = document.getElementById('password-input');
     const passwordSubmitBtn = document.getElementById('password-submit-btn');
@@ -608,23 +783,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const stats = calculateInsights();
                 renderInsightsWidget(stats);
 
-                if (appData.currentJournalId) {
-                    const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
-                    if (currentJournalExists) {
-                        showTimelineView(appData.currentJournalId);
+                const isInsightsVisible = insightsView.style.display === 'block';
+                const isTimelineVisible = timelineView.style.display === 'block';
+
+                if (isInsightsVisible) {
+                    renderInsightsDetailView(stats);
+                    renderCalendar(calendarDate);
+                } else if (isTimelineVisible) {
+                    if (appData.currentJournalId) {
+                        const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
+                        if (currentJournalExists) {
+                            showTimelineView(appData.currentJournalId);
+                        } else {
+                            showJournalsListView();
+                        }
                     } else {
-                        showJournalsListView();
-                    }
-                } else if (journalsListView.style.display === 'block' || insightsView.style.display === 'block') {
-                    showJournalsListView();
-                } else if (timelineView.style.display === 'block') {
-                    // This handles the "All Entries" view refresh
-                    const isAllEntriesView = mainTitle.textContent === "כל הרשומות";
-                    if(isAllEntriesView){
                         showAllEntriesView();
                     }
-                }
-                 else {
+                } else {
+                    // Default action for initial load or if on the main page
                     showJournalsListView();
                 }
             });

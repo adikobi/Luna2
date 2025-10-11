@@ -742,6 +742,15 @@ button:active,
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
+    transition: grid-template-columns 0.4s ease-in-out;
+}
+
+.insights-main-stats.journaled-expanded {
+    grid-template-columns: 2fr 1fr;
+}
+
+.insights-main-stats.written-expanded {
+    grid-template-columns: 1fr 2fr;
 }
 
 .stat-card {
@@ -773,6 +782,99 @@ button:active,
     font-size: 15px;
     opacity: 0.9;
 }
+
+.stat-card.expandable {
+    cursor: pointer;
+    padding: 0; /* Remove padding from the card itself */
+    overflow: hidden; /* Hide the expanded content until it's ready */
+}
+
+.stat-card-inner {
+    padding: 20px; /* Add padding to the inner container */
+    transition: transform 0.3s ease-in-out;
+}
+
+.stat-card-expanded {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease-in-out;
+    padding-top: 0; /* No padding when collapsed */
+}
+
+.stat-card.expanded .stat-card-expanded {
+    max-height: 300px; /* Animate to this height */
+    padding-top: 20px; /* Add padding when expanded */
+}
+
+/* Bar Chart Styles */
+.year-selector {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.year-selector button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 22px;
+    cursor: pointer;
+}
+.year-selector h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.bar-chart-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    height: 120px;
+    border-bottom: 1px solid var(--color-text-secondary);
+    padding-bottom: 5px;
+}
+
+.bar-chart-bar {
+    width: 8%;
+    background-color: var(--color-text-primary);
+    border-radius: 3px 3px 0 0;
+    transition: height 0.3s ease-in-out;
+}
+
+.bar-chart-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    padding-top: 5px;
+}
+.bar-chart-labels span {
+    width: 8%;
+    text-align: center;
+}
+
+/* Expanded Detail Styles */
+.expanded-stat-details .detail-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.expanded-stat-details .detail-stat:last-child {
+    border-bottom: none;
+}
+.expanded-stat-details .detail-stat .label {
+    font-size: 15px;
+    font-weight: 500;
+}
+.expanded-stat-details .detail-stat .count {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+}
+
 
 /* Calendar Styles */
 .insights-calendar {
