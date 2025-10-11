@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Entries in Firebase are objects, convert to array with IDs and sort
         const entriesArray = journal.entries
-            ? Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }))
+            ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
             : [];
         entriesArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
