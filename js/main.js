@@ -270,11 +270,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const deleteBtn = document.getElementById('delete-entry-btn');
-        if (deleteBtn && confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+        if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                 if (currentlyEditingEntryId) {
-                    journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
-                    composerView.classList.remove('visible');
+                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+                    if (currentlyEditingEntryId) {
+                        journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
+                        composerView.classList.remove('visible');
+                    }
                 }
             });
         }
@@ -386,17 +388,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 1; i <= daysInMonth; i++) {
             const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day';
+            dayEl.className = 'calendar-day is-clickable'; // Always clickable
             dayEl.textContent = i;
             const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
             if (entryDates.has(dateString)) {
-                dayEl.classList.add('has-entry', 'is-clickable');
-                dayEl.addEventListener('click', () => {
-                    document.querySelectorAll('.calendar-day.is-selected').forEach(el => el.classList.remove('is-selected'));
-                    dayEl.classList.add('is-selected');
-                    renderEntriesForDate(dateString);
-                });
+                dayEl.classList.add('has-entry');
             }
+
+            dayEl.addEventListener('click', () => {
+                document.querySelectorAll('.calendar-day.is-selected').forEach(el => el.classList.remove('is-selected'));
+                dayEl.classList.add('is-selected');
+                renderEntriesForDate(dateString);
+            });
+
             grid.appendChild(dayEl);
         }
     }

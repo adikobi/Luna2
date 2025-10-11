@@ -810,7 +810,6 @@ button:active,
 }
 
 .calendar-day {
-    padding: 8px 0;
     font-size: 15px;
     position: relative;
     border-radius: 50%;
