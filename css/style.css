@@ -135,6 +135,7 @@ body {
     padding: 5px;
     font-size: 17px;
     font-weight: 500;
+    font-family: var(--font-stack);
 }
 
 .header-action-btn svg {
@@ -489,6 +490,7 @@ button:active,
     color: var(--color-accent-system);
     font-size: 17px;
     cursor: pointer;
+    font-family: var(--font-stack);
 }
 
 .composer-metadata {
@@ -603,6 +605,7 @@ button:active,
     font-size: 17px;
     cursor: pointer;
     font-weight: 400;
+    font-family: var(--font-stack);
 }
 
 /* --- Custom Modal Styles --- */
@@ -765,7 +768,7 @@ button:active,
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
-    transition: grid-template-columns 0.4s ease-in-out;
+    transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .insights-main-stats.journaled-expanded {
@@ -780,7 +783,7 @@ button:active,
     padding: 20px;
     border-radius: var(--border-radius-card);
     color: var(--color-background-primary); /* Dark text for light background */
-    transition: all 0.4s ease-in-out;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card.entries-year {
@@ -821,7 +824,7 @@ button:active,
 .stat-card-expanded {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-in-out;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     padding-top: 0; /* No padding when collapsed */
 }
 
@@ -837,6 +840,13 @@ button:active,
     font-weight: 700;
     line-height: 1;
     margin-bottom: 8px;
+    transition: font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reduce font size on the non-expanded card to prevent clipping */
+.insights-main-stats.journaled-expanded .stat-card.words-written .count,
+.insights-main-stats.written-expanded .stat-card.days-journaled .count {
+    font-size: 38px;
 }
 
 .stat-card[data-stat="journaled"] .label,
@@ -918,10 +928,12 @@ button:active,
 .expanded-stat-grid .detail-stat .count {
     font-size: 24px;
     font-weight: 700;
+    display: block;
 }
 .expanded-stat-grid .detail-stat .label {
     font-size: 14px;
     color: rgba(28, 28, 30, 0.7); /* Dark, slightly transparent text */
+    display: block;
 }
 
 
