@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-        mainTitle.textContent = "כל הרשומות";
+        mainTitle.textContent = "Ask me what I learned from all those years...";
         renderJournalFeed(allEntries, true);
         journalsListView.style.display = 'none';
         insightsView.style.display = 'none';
