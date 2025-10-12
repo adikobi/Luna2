@@ -337,6 +337,7 @@ body {
 }
 
 #password-submit-btn {
+    font-weight: 700;
     width: 100%;
     padding: 15px;
     margin-top: 20px;
