@@ -757,19 +757,20 @@ button:active,
     padding: 20px;
     border-radius: var(--border-radius-card);
     color: var(--color-text-primary);
+    transition: all 0.4s ease-in-out;
 }
 
 .stat-card.entries-year {
     grid-column: 1 / -1;
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    background: linear-gradient(135deg, #4b4b8a 0%, #2c2c54 100%);
 }
 
 .stat-card.days-journaled {
-    background-color: #3A3A3C;
+    background-color: #c44569;
 }
 
 .stat-card.words-written {
-    background-color: #C70039;
+    background-color: #c44569;
 }
 
 .stat-card .count {
@@ -806,38 +807,60 @@ button:active,
     padding-top: 20px; /* Add padding when expanded */
 }
 
-/* Bar Chart Styles */
-.year-selector {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
+/* Refined Font Styles */
+.stat-card[data-stat="journaled"] .count,
+.stat-card[data-stat="written"] .count {
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 8px;
 }
-.year-selector button {
-    background: none;
+
+.stat-card[data-stat="journaled"] .label,
+.stat-card[data-stat="written"] .label {
+    font-size: 17px;
+    font-weight: 500;
+    opacity: 0.8;
+}
+
+
+/* Bar Chart and Year Selector Styles */
+.year-selector-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.year-selector-tab {
+    background-color: rgba(255, 255, 255, 0.1);
     border: none;
     color: var(--color-text-primary);
-    font-size: 22px;
+    padding: 8px 16px;
+    border-radius: 20px;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
-.year-selector h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 500;
+
+.year-selector-tab.active {
+    background-color: var(--color-text-primary);
+    color: var(--color-background-primary);
+    font-weight: 700;
 }
+
 
 .bar-chart-container {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
     height: 120px;
-    border-bottom: 1px solid var(--color-text-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     padding-bottom: 5px;
 }
 
 .bar-chart-bar {
-    width: 8%;
-    background-color: var(--color-text-primary);
+    width: 6%;
+    background-color: rgba(255, 255, 255, 0.8);
     border-radius: 3px 3px 0 0;
     transition: height 0.3s ease-in-out;
 }
@@ -850,28 +873,31 @@ button:active,
     padding-top: 5px;
 }
 .bar-chart-labels span {
-    width: 8%;
+    width: 6%;
     text-align: center;
 }
 
 /* Expanded Detail Styles */
-.expanded-stat-details .detail-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.expanded-stat-details {
+    padding-top: 15px;
 }
-.expanded-stat-details .detail-stat:last-child {
-    border-bottom: none;
+
+.expanded-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
-.expanded-stat-details .detail-stat .label {
-    font-size: 15px;
-    font-weight: 500;
+
+.expanded-stat-grid .detail-stat {
+    text-align: center;
 }
-.expanded-stat-details .detail-stat .count {
-    font-size: 15px;
-    font-weight: 400;
+
+.expanded-stat-grid .detail-stat .count {
+    font-size: 24px;
+    font-weight: 700;
+}
+.expanded-stat-grid .detail-stat .label {
+    font-size: 14px;
     color: var(--color-text-secondary);
 }
 

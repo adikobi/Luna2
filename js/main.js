@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let calendarDate = new Date(); // State for the calendar's currently displayed month
     let insightsChart = {
         selectedYear: new Date().getFullYear(),
-        allTime: false,
+        allTime: true,
     };
 
     // --- Firebase Refs ---
@@ -166,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showInsightsView() {
+        insightsChart.selectedYear = new Date().getFullYear();
+        insightsChart.allTime = true;
         const stats = calculateInsights();
         renderInsightsDetailView(stats);
         renderCalendar(calendarDate);
@@ -397,20 +399,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const yearData = stats.byYear[insightsChart.selectedYear] || { totalEntries: 0 };
         const displayEntries = insightsChart.allTime ? stats.allTime.entries : yearData.totalEntries;
+        const displayYear = insightsChart.allTime ? '' : insightsChart.selectedYear;
 
         entriesCardMain.innerHTML = `
             <div class="count">${displayEntries}</div>
-            <div class="label">Entries</div>
+            <div class="label">Entries ${displayYear}</div>
         `;
 
         journaledCardMain.innerHTML = `
-            <div class="count">${stats.thisYear.days}</div>
-            <div class="label">Days Journaled</div>
+            <div class="count">${stats.allTime.days}</div>
+            <div class="label">Days</div>
         `;
 
         writtenCardMain.innerHTML = `
             <div class="count">${stats.allTime.words}</div>
-            <div class="label">Words Written</div>
+            <div class="label">Words</div>
         `;
     }
 
@@ -422,16 +425,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderBarChart(stats) {
         const container = document.querySelector('.stat-card[data-stat="entries"] .stat-card-expanded');
-        const allYears = Object.keys(stats.byYear).map(Number).sort((a, b) => b - a);
+        const allYears = [new Date().getFullYear(), ...Object.keys(stats.byYear).map(Number)].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a);
         const currentYear = insightsChart.selectedYear;
         const yearData = stats.byYear[currentYear];
 
         let monthlyEntries = Array(12).fill(0);
         if (insightsChart.allTime) {
             allYears.forEach(year => {
-                stats.byYear[year].byMonth.forEach((monthData, index) => {
-                    monthlyEntries[index] += monthData.entries;
-                });
+                if (stats.byYear[year]) {
+                    stats.byYear[year].byMonth.forEach((monthData, index) => {
+                        monthlyEntries[index] += monthData.entries;
+                    });
+                }
             });
         } else if (yearData) {
             monthlyEntries = yearData.byMonth.map(m => m.entries);
@@ -439,11 +444,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const maxEntries = Math.max(...monthlyEntries, 1);
 
+        const yearTabs = allYears.map(year =>
+            `<button class="year-selector-tab ${!insightsChart.allTime && insightsChart.selectedYear === year ? 'active' : ''}" data-year="${year}">${year}</button>`
+        ).join('');
+
         container.innerHTML = `
-            <div class="year-selector">
-                <button id="prev-year-btn" ${!insightsChart.allTime && allYears.indexOf(currentYear) >= allYears.length - 1 ? 'disabled' : ''}>&lt;</button>
-                <h3 id="year-display">${insightsChart.allTime ? 'All Time' : currentYear}</h3>
-                <button id="next-year-btn" ${insightsChart.allTime ? 'disabled' : ''}>&gt;</button>
+            <div class="year-selector-tabs">
+                <button class="year-selector-tab ${insightsChart.allTime ? 'active' : ''}" data-year="all-time">All-time</button>
+                ${yearTabs}
             </div>
             <div class="bar-chart-container">
                 ${monthlyEntries.map(count => `<div class="bar-chart-bar" style="height: ${(count / maxEntries) * 100}%"></div>`).join('')}
@@ -457,22 +465,20 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderExpandedDetails(stats, type) {
         const container = document.querySelector(`.stat-card[data-stat="${type}"] .stat-card-expanded`);
         const data = (type === 'journaled')
-            ? { thisMonth: stats.thisMonth.days, thisYear: stats.thisYear.days, allTime: stats.allTime.days }
-            : { thisMonth: stats.thisMonth.words, thisYear: stats.thisYear.words, allTime: stats.allTime.words };
+            ? { thisMonth: stats.thisMonth.days, thisYear: stats.thisYear.days }
+            : { thisMonth: stats.thisMonth.words, thisYear: stats.thisYear.words };
 
         container.innerHTML = `
             <div class="expanded-stat-details">
-                <div class="detail-stat">
-                    <span class="label">This Month</span>
-                    <span class="count">${data.thisMonth}</span>
-                </div>
-                <div class="detail-stat">
-                    <span class="label">This Year</span>
-                    <span class="count">${data.thisYear}</span>
-                </div>
-                <div class="detail-stat">
-                    <span class="label">All Time</span>
-                    <span class="count">${data.allTime}</span>
+                <div class="expanded-stat-grid">
+                     <div class="detail-stat">
+                        <span class="count">${data.thisMonth}</span>
+                        <span class="label">This Month</span>
+                    </div>
+                    <div class="detail-stat">
+                        <span class="count">${data.thisYear}</span>
+                        <span class="label">This Year</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -723,38 +729,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = e.target.closest('.stat-card.expandable');
         if (!card) return;
 
-        const prevBtn = e.target.closest('#prev-year-btn');
-        const nextBtn = e.target.closest('#next-year-btn');
-        if (prevBtn || nextBtn) {
+        const yearTab = e.target.closest('.year-selector-tab');
+        if (yearTab) {
+            const year = yearTab.dataset.year;
+            if (year === 'all-time') {
+                insightsChart.allTime = true;
+            } else {
+                insightsChart.allTime = false;
+                insightsChart.selectedYear = parseInt(year);
+            }
             const stats = calculateInsights();
-            const allYears = Object.keys(stats.byYear).map(Number).sort((a,b) => b-a);
-            const currentIndex = allYears.indexOf(insightsChart.selectedYear);
-
-            if (prevBtn) {
-                if (insightsChart.allTime) {
-                    insightsChart.selectedYear = allYears[0];
-                    insightsChart.allTime = false;
-                }
-                else if (currentIndex < allYears.length - 1) {
-                    insightsChart.selectedYear = allYears[currentIndex + 1];
-                } else {
-                    insightsChart.allTime = true;
-                }
-            }
-            if (nextBtn) {
-                 if (!insightsChart.allTime && currentIndex > 0) {
-                    insightsChart.selectedYear = allYears[currentIndex - 1];
-                 } else if (!insightsChart.allTime && currentIndex === 0) {
-                    insightsChart.allTime = true;
-                 }
-            }
             renderInsightsDetailView(stats);
             return;
         }
 
         const isExpanded = card.classList.contains('expanded');
 
-        // Remove all layout classes from the parent
         insightsStatsContainer.classList.remove('journaled-expanded', 'written-expanded');
         insightsStatsContainer.querySelectorAll('.stat-card.expandable').forEach(c => c.classList.remove('expanded'));
 
@@ -776,6 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (passwordInput.value.trim() === CORRECT_PASSWORD) {
             passwordView.style.display = 'none';
 
+            let isFirstLoad = true;
             journalsRef.on('value', (snapshot) => {
                 const journalsData = snapshot.val();
                 appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
@@ -800,10 +791,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showAllEntriesView();
                     }
-                } else {
-                    // Default action for initial load or if on the main page
+                } else if (isFirstLoad) {
                     showJournalsListView();
                 }
+                isFirstLoad = false;
             });
         } else {
             passwordInput.parentElement.classList.add('shake');
