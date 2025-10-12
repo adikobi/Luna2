@@ -70,6 +70,7 @@ body {
 }
 
 #main-title {
+    font-family: 'Bebas Neue', 'Heebo', sans-serif;
     font-size: var(--font-size-large-title);
     font-weight: var(--font-weight-large-title);
     padding: 10px 20px 20px;
