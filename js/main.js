@@ -58,6 +58,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return localDate.toISOString().slice(0, 16);
     }
 
+    function formatDateForComposerView(isoString) {
+        const date = new Date(isoString);
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return date.toLocaleDateString('he-IL', options);
+    }
+
     function linkify(text) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         // First, escape HTML to prevent XSS
@@ -82,11 +94,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
         container.innerHTML = '';
-         if (entries.length === 0 && container.id === 'entries-for-date-view') {
-            container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+        if (entries.length === 0) {
+            if (container.id === 'entries-for-date-view') {
+                container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+            }
             return;
         }
+
+        let lastMonth = null;
+
         entries.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            const currentMonth = entryDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+            if (currentMonth !== lastMonth) {
+                const monthHeader = document.createElement('h2');
+                monthHeader.className = 'month-header';
+                monthHeader.textContent = currentMonth;
+                container.appendChild(monthHeader);
+                lastMonth = currentMonth;
+            }
+
             const card = document.createElement('div');
             card.className = 'journal-card';
             card.dataset.id = entry.id; // Use the entry's Firebase key
@@ -191,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="composer-content">
                 <div class="composer-metadata">
                     <input type="text" id="entry-title" placeholder="${isEditing ? 'כותרת' : ''}" dir="rtl" ${!isEditing ? 'disabled' : ''}>
-                    <input type="datetime-local" id="entry-date" ${!isEditing ? 'disabled' : ''}>
+                    <div id="date-container"></div>
                 </div>
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
@@ -202,7 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const titleInput = document.getElementById('entry-title');
         const textInput = document.getElementById('entry-textarea');
-        const dateInput = document.getElementById('entry-date');
+        const dateContainer = document.getElementById('date-container');
+
+        if (isEditing) {
+            dateContainer.innerHTML = `<input type="datetime-local" id="entry-date">`;
+        }
+
+        const dateInput = document.getElementById('entry-date'); // May be null in view mode
 
         if (entry) {
             const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
@@ -214,8 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleInput.value = '';
                 textInput.innerHTML = linkify(entry.text);
             }
-            dateInput.value = formatISOForInput(entry.date);
-        } else {
+            if (isEditing) {
+                dateInput.value = formatISOForInput(entry.date);
+            } else {
+                dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
+            }
+        } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
@@ -223,22 +261,23 @@ document.addEventListener('DOMContentLoaded', () => {
             initialEntryState = {
                 title: titleInput.value,
                 text: textInput.innerText,
-                date: dateInput.value
+                date: dateInput.value,
             };
         } else {
             initialEntryState = null;
         }
 
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
-            if (initialEntryState) {
+            if (isEditing && initialEntryState) {
                 const currentState = {
                     title: document.getElementById('entry-title').value,
                     text: document.getElementById('entry-textarea').innerText,
-                    date: document.getElementById('entry-date').value
+                    date: document.getElementById('entry-date').value,
                 };
-                const hasChanged = currentState.title !== initialEntryState.title ||
-                                   currentState.text !== initialEntryState.text ||
-                                   currentState.date !== initialEntryState.date;
+                const hasChanged =
+                    currentState.title !== initialEntryState.title ||
+                    currentState.text !== initialEntryState.text ||
+                    currentState.date !== initialEntryState.date;
                 if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
                     return;
                 }
@@ -791,7 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showAllEntriesView();
                     }
-                } else if (isFirstLoad) {
+                } else if (isFirstLoad || journalsListView.style.display === 'block') {
                     showJournalsListView();
                 }
                 isFirstLoad = false;
