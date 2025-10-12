@@ -254,7 +254,7 @@ body {
     position: absolute;
     top: 10px;
     left: 10px;
-    color: #F0E68C; /* Khaki - more yellowish */
+    color: #FEFFC4; /* User-specified yellowish */
     opacity: 0.8;
     transform: rotate(-15deg);
 }
@@ -348,6 +348,7 @@ body {
     font-size: 18px;
     cursor: pointer;
     box-sizing: border-box;
+    font-family: 'Heebo', sans-serif; /* Use Heebo font */
 }
 
 /* Shake animation for wrong password */
