@@ -8,7 +8,7 @@
     --color-surface-card: #2C2C2E; /* Layered Dark Surface */
     --color-text-primary: #FFFFFF; /* White */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
-    --color-accent-system: #FFD700; /* Banana Yellow */
+    --color-accent-system: #9CAFAA; /* Sage Green from new palette */
     --primary-action: var(--color-accent-system);
     --tertiary-action: var(--color-text-secondary);
     --color-frosted-glass: rgba(44, 44, 46, 0.7);
