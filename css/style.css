@@ -722,8 +722,7 @@ button:active,
     /* Adjust graph view height and padding */
     .graph-content {
         padding: 0 15px 15px;
-        /* Adjust height calc for smaller padding */
-        height: calc(100vh - 65px - 15px);
+        /* Let content flow naturally */
     }
     .graph-title {
         padding-top: 0;
@@ -731,6 +730,7 @@ button:active,
     }
     .chart-container {
         margin-bottom: 10px;
+        max-height: 65vh; /* Constrain chart height on mobile */
     }
 }
 
