@@ -688,14 +688,14 @@ button:active,
 }
 
 .insights-widget {
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    background: linear-gradient(135deg, #9CAFAA 0%, #D6DAC8 100%);
     border-radius: var(--border-radius-card);
     padding: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    color: var(--color-text-primary);
+    color: var(--color-background-primary); /* Dark text for light background */
     transition: opacity 0.05s ease-in-out;
 }
 
@@ -741,7 +741,7 @@ button:active,
 
 .insights-widget .stat-item .text .label {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(28, 28, 30, 0.7); /* Dark, slightly transparent text */
 }
 
 /* Full Insights View */
@@ -776,21 +776,21 @@ button:active,
 .stat-card {
     padding: 20px;
     border-radius: var(--border-radius-card);
-    color: var(--color-text-primary);
+    color: var(--color-background-primary); /* Dark text for light background */
     transition: all 0.4s ease-in-out;
 }
 
 .stat-card.entries-year {
     grid-column: 1 / -1;
-    background: linear-gradient(135deg, #4b4b8a 0%, #2c2c54 100%);
+    background: linear-gradient(135deg, #D6A99D 0%, #9CAFAA 100%);
 }
 
 .stat-card.days-journaled {
-    background-color: #c44569;
+    background-color: #D6A99D;
 }
 
 .stat-card.words-written {
-    background-color: #c44569;
+    background-color: #9CAFAA;
 }
 
 .stat-card .count {
@@ -918,7 +918,7 @@ button:active,
 }
 .expanded-stat-grid .detail-stat .label {
     font-size: 14px;
-    color: var(--color-text-secondary);
+    color: rgba(28, 28, 30, 0.7); /* Dark, slightly transparent text */
 }
 
 
