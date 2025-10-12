@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const journalsListView = document.getElementById('journals-list-view');
     const timelineView = document.getElementById('timeline-view');
     const composerView = document.getElementById('composer-view');
+    const insightsView = document.getElementById('insights-view');
     const mainTitle = document.getElementById('main-title');
     const journalFeed = document.getElementById('journal-feed');
     const fab = document.getElementById('fab');
@@ -33,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
+    let calendarDate = new Date(); // State for the calendar's currently displayed month
+    let insightsChart = {
+        selectedYear: new Date().getFullYear(),
+        allTime: true,
+    };
 
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
@@ -67,10 +73,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return hebrewRegex.test(text);
     }
 
+    function countWords(str) {
+        const cleanString = str.replace(/<\/?[^>]+(>|$)/g, " ").trim();
+        if (cleanString === '') return 0;
+        return cleanString.split(/\s+/).length;
+    }
+
     // --- UI Rendering ---
-    function renderJournalFeed(entries, showJournalName = false) {
-        journalFeed.innerHTML = '';
-        // Note: 'entries' is now an array of objects, each with an 'id' property
+    function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
+        container.innerHTML = '';
+         if (entries.length === 0 && container.id === 'entries-for-date-view') {
+            container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+            return;
+        }
         entries.forEach(entry => {
             const card = document.createElement('div');
             card.className = 'journal-card';
@@ -85,10 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const title = match[1];
                 const body = match[2];
-                // Manually construct HTML, only linkifying the body part
                 bodyHtml = `<strong>${title}</strong><br>${linkify(body)}`;
             } else {
-                // If no title, linkify the whole text safely
                 bodyHtml = linkify(entry.text);
             }
 
@@ -97,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
-            journalFeed.appendChild(card);
+            container.appendChild(card);
         });
     }
 
@@ -111,12 +124,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'journal-list-item';
             item.textContent = journal.name;
-            item.dataset.id = journal.id; // Use Firebase key as ID
+            item.dataset.id = journal.id;
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
             deleteBtn.innerHTML = '&times;';
-            deleteBtn.dataset.id = journal.id; // Use Firebase key for deletion
+            deleteBtn.dataset.id = journal.id;
 
             wrapper.appendChild(item);
             wrapper.appendChild(deleteBtn);
@@ -133,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
 
-        // Entries in Firebase are objects, convert to array with IDs and sort
         const entriesArray = journal.entries
             ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
             : [];
@@ -141,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderJournalFeed(entriesArray);
         journalsListView.style.display = 'none';
+        insightsView.style.display = 'none';
         timelineView.style.display = 'block';
     }
 
@@ -148,7 +161,18 @@ document.addEventListener('DOMContentLoaded', () => {
         appData.currentJournalId = null;
         renderJournalsList(appData.journals);
         timelineView.style.display = 'none';
+        insightsView.style.display = 'none';
         journalsListView.style.display = 'block';
+    }
+
+    function showInsightsView() {
+        insightsChart.selectedYear = new Date().getFullYear();
+        insightsChart.allTime = true;
+        const stats = calculateInsights();
+        renderInsightsDetailView(stats);
+        renderCalendar(calendarDate);
+        journalsListView.style.display = 'none';
+        insightsView.style.display = 'block';
     }
 
     // --- Composer Logic ---
@@ -195,57 +219,36 @@ document.addEventListener('DOMContentLoaded', () => {
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
-        // Store the initial state for checking for unsaved changes if in edit mode
         if (isEditing) {
-            // For a new entry, the state is empty. For an existing one, it's the current content.
             initialEntryState = {
                 title: titleInput.value,
                 text: textInput.innerText,
                 date: dateInput.value
             };
         } else {
-            // No tracking needed for view mode
             initialEntryState = null;
         }
 
-        // Event Listeners
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
-            // Check for unsaved changes only if we were in edit mode
             if (initialEntryState) {
-                const titleInput = document.getElementById('entry-title');
-                const textInput = document.getElementById('entry-textarea');
-                const dateInput = document.getElementById('entry-date');
-
                 const currentState = {
-                    title: titleInput.value,
-                    text: textInput.innerText,
-                    date: dateInput.value
+                    title: document.getElementById('entry-title').value,
+                    text: document.getElementById('entry-textarea').innerText,
+                    date: document.getElementById('entry-date').value
                 };
-
                 const hasChanged = currentState.title !== initialEntryState.title ||
                                    currentState.text !== initialEntryState.text ||
                                    currentState.date !== initialEntryState.date;
-
-                if (hasChanged) {
-                    if (confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
-                        composerView.classList.remove('visible');
-                    }
-                } else {
-                    // No changes, close without confirmation
-                    composerView.classList.remove('visible');
+                if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
+                    return;
                 }
-            } else {
-                // Not in edit mode (view mode), just close
-                composerView.classList.remove('visible');
             }
+            composerView.classList.remove('visible');
         });
 
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
-            editBtn.addEventListener('click', () => {
-                // When switching from view to edit, we need to capture the state
-                populateComposerView(entry, 'edit');
-            });
+            editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
         }
 
         const saveBtn = document.getElementById('save-btn');
@@ -260,12 +263,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
-
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
                 if (isNewEntry) {
-                    const newEntryRef = journalEntriesRef.push();
-                    newEntryRef.set(entryData);
+                    journalEntriesRef.push(entryData);
                 } else {
                     journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
                 }
@@ -287,20 +288,292 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Insights Logic ---
+    function calculateInsights() {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        const stats = {
+            byYear: {},
+            allTime: { entries: 0, words: 0, days: new Set() },
+            thisMonth: { entries: 0, words: 0, days: new Set() },
+            thisYear: { entries: 0, words: 0, days: new Set() },
+        };
+
+        appData.journals.forEach(journal => {
+            if (!journal.entries) return;
+            Object.values(journal.entries).forEach(entry => {
+                const date = new Date(entry.date);
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const day = date.toISOString().split('T')[0];
+                const wordCount = countWords(entry.text);
+
+                if (!stats.byYear[year]) {
+                    stats.byYear[year] = {
+                        totalEntries: 0,
+                        totalWords: 0,
+                        totalDays: new Set(),
+                        byMonth: Array(12).fill(0).map(() => ({ entries: 0, words: 0, days: new Set() })),
+                    };
+                }
+
+                stats.byYear[year].totalEntries++;
+                stats.byYear[year].totalWords += wordCount;
+                stats.byYear[year].totalDays.add(day);
+                stats.byYear[year].byMonth[month].entries++;
+                stats.byYear[year].byMonth[month].words += wordCount;
+                stats.byYear[year].byMonth[month].days.add(day);
+
+                stats.allTime.entries++;
+                stats.allTime.words += wordCount;
+                stats.allTime.days.add(day);
+
+                if (year === currentYear) {
+                    stats.thisYear.entries++;
+                    stats.thisYear.words += wordCount;
+                    stats.thisYear.days.add(day);
+                    if (month === currentMonth) {
+                        stats.thisMonth.entries++;
+                        stats.thisMonth.words += wordCount;
+                        stats.thisMonth.days.add(day);
+                    }
+                }
+            });
+        });
+
+        Object.keys(stats.byYear).forEach(year => {
+            stats.byYear[year].totalDays = stats.byYear[year].totalDays.size;
+            stats.byYear[year].byMonth.forEach(month => {
+                month.days = month.days.size;
+            });
+        });
+
+        stats.allTime.days = stats.allTime.days.size;
+        stats.thisMonth.days = stats.thisMonth.days.size;
+        stats.thisYear.days = stats.thisYear.days.size;
+
+        return stats;
+    }
+
+
+    function renderInsightsWidget(stats) {
+        const container = document.getElementById('insights-widget-container');
+        container.innerHTML = `
+            <div class="insights-widget">
+                <div class="main-stat">
+                    <div class="count">${stats.thisYear.entries}</div>
+                    <div class="label">Entries This Year</div>
+                </div>
+                <div class="sub-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div class="text">
+                            <div class="count">${stats.allTime.days}</div>
+                            <div class="label">Days Journaled</div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-quote-left"></i>
+                        <div class="text">
+                            <div class="count">${stats.allTime.words}</div>
+                            <div class="label">Words All Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.querySelector('.insights-widget').addEventListener('click', showInsightsView);
+    }
+
+    function renderInsightsDetailView(stats) {
+        renderMainStatContent(stats);
+        renderExpandedStatContent(stats);
+    }
+
+    function renderMainStatContent(stats) {
+        const entriesCardMain = document.querySelector('.stat-card[data-stat="entries"] .stat-card-main');
+        const journaledCardMain = document.querySelector('.stat-card[data-stat="journaled"] .stat-card-main');
+        const writtenCardMain = document.querySelector('.stat-card[data-stat="written"] .stat-card-main');
+
+        const yearData = stats.byYear[insightsChart.selectedYear] || { totalEntries: 0 };
+        const displayEntries = insightsChart.allTime ? stats.allTime.entries : yearData.totalEntries;
+        const displayYear = insightsChart.allTime ? '' : insightsChart.selectedYear;
+
+        entriesCardMain.innerHTML = `
+            <div class="count">${displayEntries}</div>
+            <div class="label">Entries ${displayYear}</div>
+        `;
+
+        journaledCardMain.innerHTML = `
+            <div class="count">${stats.allTime.days}</div>
+            <div class="label">Days</div>
+        `;
+
+        writtenCardMain.innerHTML = `
+            <div class="count">${stats.allTime.words}</div>
+            <div class="label">Words</div>
+        `;
+    }
+
+    function renderExpandedStatContent(stats) {
+        renderBarChart(stats);
+        renderExpandedDetails(stats, 'journaled');
+        renderExpandedDetails(stats, 'written');
+    }
+
+    function renderBarChart(stats) {
+        const container = document.querySelector('.stat-card[data-stat="entries"] .stat-card-expanded');
+        const allYears = [new Date().getFullYear(), ...Object.keys(stats.byYear).map(Number)].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => b - a);
+        const currentYear = insightsChart.selectedYear;
+        const yearData = stats.byYear[currentYear];
+
+        let monthlyEntries = Array(12).fill(0);
+        if (insightsChart.allTime) {
+            allYears.forEach(year => {
+                if (stats.byYear[year]) {
+                    stats.byYear[year].byMonth.forEach((monthData, index) => {
+                        monthlyEntries[index] += monthData.entries;
+                    });
+                }
+            });
+        } else if (yearData) {
+            monthlyEntries = yearData.byMonth.map(m => m.entries);
+        }
+
+        const maxEntries = Math.max(...monthlyEntries, 1);
+
+        const yearTabs = allYears.map(year =>
+            `<button class="year-selector-tab ${!insightsChart.allTime && insightsChart.selectedYear === year ? 'active' : ''}" data-year="${year}">${year}</button>`
+        ).join('');
+
+        container.innerHTML = `
+            <div class="year-selector-tabs">
+                <button class="year-selector-tab ${insightsChart.allTime ? 'active' : ''}" data-year="all-time">All-time</button>
+                ${yearTabs}
+            </div>
+            <div class="bar-chart-container">
+                ${monthlyEntries.map(count => `<div class="bar-chart-bar" style="height: ${(count / maxEntries) * 100}%"></div>`).join('')}
+            </div>
+            <div class="bar-chart-labels">
+                ${['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(l => `<span>${l}</span>`).join('')}
+            </div>
+        `;
+    }
+
+    function renderExpandedDetails(stats, type) {
+        const container = document.querySelector(`.stat-card[data-stat="${type}"] .stat-card-expanded`);
+        const data = (type === 'journaled')
+            ? { thisMonth: stats.thisMonth.days, thisYear: stats.thisYear.days }
+            : { thisMonth: stats.thisMonth.words, thisYear: stats.thisYear.words };
+
+        container.innerHTML = `
+            <div class="expanded-stat-details">
+                <div class="expanded-stat-grid">
+                     <div class="detail-stat">
+                        <span class="count">${data.thisMonth}</span>
+                        <span class="label">This Month</span>
+                    </div>
+                    <div class="detail-stat">
+                        <span class="count">${data.thisYear}</span>
+                        <span class="label">This Year</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderCalendar(date) {
+        const grid = document.getElementById('calendar-grid');
+        const monthYearDisplay = document.getElementById('month-year-display');
+        grid.innerHTML = '';
+        document.getElementById('entries-for-date-view').innerHTML = '';
+
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        monthYearDisplay.textContent = date.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+        const firstDayOfMonth = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const entryDates = new Set();
+        appData.journals.forEach(journal => {
+            if (journal.entries) {
+                Object.values(journal.entries).forEach(entry => {
+                    entryDates.add(new Date(entry.date).toISOString().split('T')[0]);
+                });
+            }
+        });
+
+        const dayNames = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
+        dayNames.forEach(name => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day day-name';
+            dayEl.textContent = name;
+            grid.appendChild(dayEl);
+        });
+
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'calendar-day is-clickable'; // Always clickable
+            dayEl.textContent = i;
+            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+            if (entryDates.has(dateString)) {
+                dayEl.classList.add('has-entry');
+            }
+
+            dayEl.addEventListener('click', () => {
+                document.querySelectorAll('.calendar-day.is-selected').forEach(el => el.classList.remove('is-selected'));
+                dayEl.classList.add('is-selected');
+                renderEntriesForDate(dateString);
+            });
+
+            grid.appendChild(dayEl);
+        }
+    }
+
+    function renderEntriesForDate(dateString) {
+        const container = document.getElementById('entries-for-date-view');
+        let entriesForDate = [];
+        appData.journals.forEach(journal => {
+            if(journal.entries) {
+                Object.keys(journal.entries).forEach(key => {
+                    const entry = journal.entries[key];
+                    if (new Date(entry.date).toISOString().startsWith(dateString)) {
+                        entriesForDate.push({
+                            id: key,
+                            journalId: journal.id,
+                            journalName: journal.name,
+                            ...entry
+                        });
+                    }
+                });
+            }
+        });
+        entriesForDate.sort((a, b) => new Date(b.date) - new Date(a.date));
+        renderJournalFeed(entriesForDate, true, container);
+    }
+
     // --- Global Event Listeners ---
     fab.addEventListener('click', () => {
         currentlyEditingEntryId = null;
-        populateComposerView(null, 'edit'); // Open directly in edit mode for new entry
+        populateComposerView(null, 'edit');
         composerView.classList.add('visible');
     });
 
-    journalFeed.addEventListener('click', (e) => {
+    document.body.addEventListener('click', (e) => {
         const card = e.target.closest('.journal-card');
-        if (card) {
+        if (card && card.parentElement.id !== 'entries-for-date-view') {
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
-            appData.currentJournalId = journalId; // Set current journal for composer logic
+            appData.currentJournalId = journalId;
             const journal = appData.journals.find(j => j.id === journalId);
             const entry = journal.entries[entryId];
             populateComposerView({ id: entryId, ...entry }, 'view');
@@ -309,6 +582,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
+    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
+
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() - 1);
+        renderCalendar(calendarDate);
+    });
+
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+        calendarDate.setMonth(calendarDate.getMonth() + 1);
+        renderCalendar(calendarDate);
+    });
 
     const searchInput = document.getElementById('search-input');
     searchInput.addEventListener('input', () => {
@@ -317,31 +601,22 @@ document.addEventListener('DOMContentLoaded', () => {
         let showJournalName = false;
 
         if (appData.currentJournalId) {
-            // Search within a single journal
             const journal = appData.journals.find(j => j.id === appData.currentJournalId);
             if (journal && journal.entries) {
                 allEntries = Object.keys(journal.entries).map(key => ({ id: key, ...journal.entries[key] }));
             }
         } else {
-            // Search across all journals (we are in "All Entries" view)
             showJournalName = true;
             appData.journals.forEach(journal => {
                 if (journal.entries) {
                     const entriesArray = Object.keys(journal.entries).map(key => ({
-                        id: key,
-                        journalId: journal.id,
-                        journalName: journal.name,
-                        ...journal.entries[key]
+                        id: key, journalId: journal.id, journalName: journal.name, ...journal.entries[key]
                     }));
                     allEntries = allEntries.concat(entriesArray);
                 }
             });
         }
-
-        const filteredEntries = searchTerm.trim() === ''
-            ? allEntries
-            : allEntries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
-
+        const filteredEntries = searchTerm.trim() === '' ? allEntries : allEntries.filter(entry => entry.text.toLowerCase().includes(searchTerm));
         filteredEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
         renderJournalFeed(filteredEntries, showJournalName);
     });
@@ -367,36 +642,29 @@ document.addEventListener('DOMContentLoaded', () => {
         appData.journals.forEach(journal => {
             if (journal.entries) {
                 const entriesArray = Object.keys(journal.entries).map(key => ({
-                    id: key,
-                    journalId: journal.id,
-                    journalName: journal.name,
-                    ...journal.entries[key]
+                    id: key, journalId: journal.id, journalName: journal.name, ...journal.entries[key]
                 }));
                 allEntries = allEntries.concat(entriesArray);
             }
         });
-
         allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-
         mainTitle.textContent = "כל הרשומות";
-        renderJournalFeed(allEntries, true); // Pass true to show journal names
+        renderJournalFeed(allEntries, true);
         journalsListView.style.display = 'none';
+        insightsView.style.display = 'none';
         timelineView.style.display = 'block';
-        // In "All Entries" view, we don't have a single current journal
         appData.currentJournalId = null;
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
 
     lockAppBtn.addEventListener('click', () => {
-        // Hide all main views
         journalsListView.style.display = 'none';
         timelineView.style.display = 'none';
+        insightsView.style.display = 'none';
         composerView.classList.remove('visible');
-
-        // Show the password view
         passwordView.style.display = 'flex';
-        passwordInput.value = ''; // Clear password field
+        passwordInput.value = '';
         passwordInput.focus();
     });
 
@@ -456,38 +724,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const insightsStatsContainer = document.querySelector('.insights-main-stats');
+    insightsStatsContainer.addEventListener('click', (e) => {
+        const card = e.target.closest('.stat-card.expandable');
+        if (!card) return;
+
+        const yearTab = e.target.closest('.year-selector-tab');
+        if (yearTab) {
+            const year = yearTab.dataset.year;
+            if (year === 'all-time') {
+                insightsChart.allTime = true;
+            } else {
+                insightsChart.allTime = false;
+                insightsChart.selectedYear = parseInt(year);
+            }
+            const stats = calculateInsights();
+            renderInsightsDetailView(stats);
+            return;
+        }
+
+        const isExpanded = card.classList.contains('expanded');
+
+        insightsStatsContainer.classList.remove('journaled-expanded', 'written-expanded');
+        insightsStatsContainer.querySelectorAll('.stat-card.expandable').forEach(c => c.classList.remove('expanded'));
+
+        if (!isExpanded) {
+            card.classList.add('expanded');
+            const statType = card.dataset.stat;
+            if (statType === 'journaled' || statType === 'written') {
+                insightsStatsContainer.classList.add(`${statType}-expanded`);
+            }
+        }
+    });
+
     // --- Password Logic ---
     const passwordInput = document.getElementById('password-input');
     const passwordSubmitBtn = document.getElementById('password-submit-btn');
     const CORRECT_PASSWORD = '6417';
 
     function checkPassword() {
-        if (passwordInput.value === CORRECT_PASSWORD) {
+        if (passwordInput.value.trim() === CORRECT_PASSWORD) {
             passwordView.style.display = 'none';
 
-            // Initial load and listen for changes from Firebase
+            let isFirstLoad = true;
             journalsRef.on('value', (snapshot) => {
                 const journalsData = snapshot.val();
-                if (journalsData) {
-                    appData.journals = Object.keys(journalsData).map(key => ({
-                        id: key,
-                        ...journalsData[key]
-                    }));
-                } else {
-                    appData.journals = [];
-                }
+                appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
 
-                // If a journal is being viewed, refresh its view, otherwise show list
-                if (appData.currentJournalId) {
-                    const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
-                    if (currentJournalExists) {
-                        showTimelineView(appData.currentJournalId);
+                const stats = calculateInsights();
+                renderInsightsWidget(stats);
+
+                const isInsightsVisible = insightsView.style.display === 'block';
+                const isTimelineVisible = timelineView.style.display === 'block';
+
+                if (isInsightsVisible) {
+                    renderInsightsDetailView(stats);
+                    renderCalendar(calendarDate);
+                } else if (isTimelineVisible) {
+                    if (appData.currentJournalId) {
+                        const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
+                        if (currentJournalExists) {
+                            showTimelineView(appData.currentJournalId);
+                        } else {
+                            showJournalsListView();
+                        }
                     } else {
-                        showJournalsListView();
+                        showAllEntriesView();
                     }
-                } else {
+                } else if (isFirstLoad) {
                     showJournalsListView();
                 }
+                isFirstLoad = false;
             });
         } else {
             passwordInput.parentElement.classList.add('shake');

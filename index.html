@@ -50,6 +50,9 @@
             </button>
             <button id="journals-list-done-btn" class="header-action-btn" style="display: none;">סיום</button>
         </header>
+        <div id="insights-widget-container">
+            <!-- Insights widget will be dynamically inserted here -->
+        </div>
         <main>
             <div id="journals-list-container">
                 <!-- Dynamically populated -->
@@ -76,6 +79,64 @@
             <!-- Journal Entry Cards will be populated here -->
         </main>
         <button id="fab">+</button>
+    </div>
+
+    <!-- Insights View (hidden by default) -->
+    <div id="insights-view" class="view-screen" style="display: none;">
+        <header class="timeline-top-bar">
+             <button id="back-to-journals-from-insights-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <h1 class="insights-title">Insights</h1>
+             <span></span> <!-- Spacer -->
+        </header>
+        <main class="insights-content">
+            <div class="insights-main-stats">
+                <div class="stat-card expandable entries-year" data-stat="entries">
+                    <div class="stat-card-inner">
+                        <div class="stat-card-main">
+                            <!-- Default content populated by JS -->
+                        </div>
+                        <div class="stat-card-expanded">
+                            <!-- Expanded content populated by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card expandable days-journaled" data-stat="journaled">
+                     <div class="stat-card-inner">
+                        <div class="stat-card-main">
+                            <!-- Default content populated by JS -->
+                        </div>
+                        <div class="stat-card-expanded">
+                            <!-- Expanded content populated by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card expandable words-written" data-stat="written">
+                     <div class="stat-card-inner">
+                        <div class="stat-card-main">
+                            <!-- Default content populated by JS -->
+                        </div>
+                        <div class="stat-card-expanded">
+                            <!-- Expanded content populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="insights-calendar">
+                <div class="calendar-header">
+                    <button id="prev-month-btn">&lt;</button>
+                    <h2 id="month-year-display"></h2>
+                    <button id="next-month-btn">&gt;</button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Calendar days will be populated here -->
+                </div>
+            </div>
+             <div id="entries-for-date-view">
+                <!-- Entries for a selected date will be shown here -->
+            </div>
+        </main>
     </div>
 
     <!-- Entry Composer View (Initially hidden) -->
