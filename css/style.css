@@ -524,6 +524,16 @@ button:active,
     outline: none;
 }
 
+.date-display {
+    font-family: var(--font-stack);
+    font-size: var(--font-size-metadata);
+    font-weight: var(--font-weight-metadata);
+    color: var(--color-text-secondary);
+    padding: 0;
+    margin: 0 0 10px 0;
+    width: 100%;
+}
+
 .composer-content {
     flex-grow: 1;
     padding: 0 20px;
