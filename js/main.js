@@ -311,7 +311,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         },
                         y: {
                             beginAtZero: false,
-                            ticks: { color: 'rgba(235, 235, 245, 0.6)' },
+                            ticks: {
+                                color: 'rgba(235, 235, 245, 0.6)',
+                                stepSize: 0.2
+                            },
                             grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         }
                     },

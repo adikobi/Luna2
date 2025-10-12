@@ -682,6 +682,58 @@ button:active,
     font-weight: 700;
 }
 
+/* --- Mobile Responsive Styles --- */
+@media (max-width: 480px) {
+    /* Reduce top padding on the login screen */
+    #password-view {
+        padding-top: 10vh;
+    }
+
+    /* Reduce spacing for timeline view */
+    #main-title {
+        padding: 10px 15px 15px;
+    }
+    .month-header {
+        margin: 20px 0 10px 0;
+    }
+    .journal-card {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    #journal-feed {
+        padding: 0 15px;
+    }
+
+    /* Reduce spacing for journals grid */
+    #journals-list-container {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    /* Reduce spacing in insights view */
+    .insights-main-stats {
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .insights-content {
+        padding: 0 15px 15px;
+    }
+
+    /* Adjust graph view height and padding */
+    .graph-content {
+        padding: 0 15px 15px;
+        /* Adjust height calc for smaller padding */
+        height: calc(100vh - 65px - 15px);
+    }
+    .graph-title {
+        padding-top: 0;
+        padding-bottom: 10px;
+    }
+    .chart-container {
+        margin-bottom: 10px;
+    }
+}
+
 #cancel-new-journal-btn {
     background-color: #3A3A3C; /* A slightly lighter dark gray */
     font-family: var(--font-stack);
