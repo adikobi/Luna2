@@ -255,7 +255,6 @@ body {
     top: 10px;
     left: 10px;
     color: #FEFFC4; /* User-specified yellowish */
-    opacity: 0.8;
     transform: rotate(-15deg);
 }
 
