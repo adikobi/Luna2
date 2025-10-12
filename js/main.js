@@ -178,26 +178,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Add Graph Button dynamically ---
         const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
 
-        // Cleanup previous dynamic elements
+        // Cleanup previous dynamic elements from any state
         const existingGraphBtn = document.getElementById('show-graph-btn');
         if (existingGraphBtn) existingGraphBtn.remove();
-        const existingSpacer = document.querySelector('#timeline-view .timeline-top-bar .spacer');
+        const existingSpacer = timelineHeader.querySelector('.spacer');
         if (existingSpacer) existingSpacer.remove();
 
         if (journal.name === 'משקל') {
             const graphBtn = document.createElement('button');
             graphBtn.id = 'show-graph-btn';
-            graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>'; // Using Font Awesome
+            graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>';
 
             const spacer = document.createElement('div');
             spacer.className = 'spacer';
             spacer.style.flexGrow = '1';
 
             const searchBtn = document.getElementById('search-toggle-btn');
-            timelineHeader.insertBefore(spacer, searchBtn);
-
             const backBtn = document.getElementById('back-to-journals-btn');
-            backBtn.after(graphBtn);
+
+            // Insert spacer between the two groups
+            backBtn.after(spacer);
+            // Insert the graph button before the search button to group them on the left
+            searchBtn.before(graphBtn);
         }
         // ------------------------------------
 
@@ -252,6 +254,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sort by date ascending
         data.sort((a, b) => a.x - b.x);
+
+        alert("Parsed data being sent to chart: " + JSON.stringify(data));
 
         return data;
     }
@@ -333,6 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show the view first to isolate rendering errors from visibility logic
         timelineView.style.display = 'none';
         graphView.style.display = 'block';
+
+        alert("Raw entries being passed to parser: " + JSON.stringify(journal.entries));
 
         const data = parseWeightData(journal);
         renderWeightChart(data, '1m'); // Default to 1 month view
