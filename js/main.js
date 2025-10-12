@@ -94,11 +94,27 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
         container.innerHTML = '';
-         if (entries.length === 0 && container.id === 'entries-for-date-view') {
-            container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+        if (entries.length === 0) {
+            if (container.id === 'entries-for-date-view') {
+                container.innerHTML = '<p class="no-entries-message">אין רשומות בתאריך זה.</p>';
+            }
             return;
         }
+
+        let lastMonth = null;
+
         entries.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            const currentMonth = entryDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+            if (currentMonth !== lastMonth) {
+                const monthHeader = document.createElement('h2');
+                monthHeader.className = 'month-header';
+                monthHeader.textContent = currentMonth;
+                container.appendChild(monthHeader);
+                lastMonth = currentMonth;
+            }
+
             const card = document.createElement('div');
             card.className = 'journal-card';
             card.dataset.id = entry.id; // Use the entry's Firebase key
