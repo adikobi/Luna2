@@ -791,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showAllEntriesView();
                     }
-                } else if (isFirstLoad) {
+                } else if (isFirstLoad || journalsListView.style.display === 'block') {
                     showJournalsListView();
                 }
                 isFirstLoad = false;
