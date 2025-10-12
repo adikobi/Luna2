@@ -9,7 +9,7 @@
     --color-text-primary: #FFFFFF; /* White */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
     --color-accent-system: #D3EDE7; /* Lighter Sage Green from new palette */
-    --primary-action: var(--color-accent-system);
+    --primary-action: var(--cgolor-accent-system);
     --tertiary-action: var(--color-text-secondary);
     --color-frosted-glass: rgba(44, 44, 46, 0.7);
     --color-frosted-glass-border: rgba(255, 255, 255, 0.1);
@@ -785,7 +785,7 @@ button:active,
 
 .stat-card.entries-year {
     grid-column: 1 / -1;
-    background: linear-gradient(135deg, #D6A99D 0%, #D3EDE7 100%);
+    background: linear-gradient(35deg, #D6A99D 0%, #D3EDE7 100%);
 }
 
 .stat-card.days-journaled {
