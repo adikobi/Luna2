@@ -177,19 +177,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // --- Add Graph Button dynamically ---
         const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
+
+        // Cleanup previous dynamic elements
         const existingGraphBtn = document.getElementById('show-graph-btn');
-        if (existingGraphBtn) {
-            existingGraphBtn.remove();
-        }
+        if (existingGraphBtn) existingGraphBtn.remove();
+        const existingSpacer = document.querySelector('#timeline-view .timeline-top-bar .spacer');
+        if (existingSpacer) existingSpacer.remove();
 
         if (journal.name === 'משקל') {
             const graphBtn = document.createElement('button');
             graphBtn.id = 'show-graph-btn';
             graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>'; // Using Font Awesome
 
-            // Insert it before the search button
+            const spacer = document.createElement('div');
+            spacer.className = 'spacer';
+            spacer.style.flexGrow = '1';
+
             const searchBtn = document.getElementById('search-toggle-btn');
-            timelineHeader.insertBefore(graphBtn, searchBtn);
+            timelineHeader.insertBefore(spacer, searchBtn);
+
+            const backBtn = document.getElementById('back-to-journals-btn');
+            backBtn.after(graphBtn);
         }
         // ------------------------------------
 
@@ -288,10 +296,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     scales: {
                         x: {
                             type: 'time',
+                            adapters: {
+                                date: {
+                                    locale: 'en-US'
+                                }
+                            },
                             time: {
                                 unit: 'day',
                                 displayFormats: {
-                                    day: 'MMM D'
+                                    day: 'MMM d'
                                 }
                             },
                             ticks: { color: 'rgba(235, 235, 245, 0.6)' },
