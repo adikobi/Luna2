@@ -691,7 +691,7 @@ button:active,
 }
 
 .insights-widget {
-    background: linear-gradient(135deg, #9CAFAA 0%, #D6DAC8 100%);
+    background: linear-gradient(135deg, #D3EDE7 0%, #D6A99D 100%);
     border-radius: var(--border-radius-card);
     padding: 20px;
     display: flex;
