@@ -673,12 +673,14 @@ button:active,
 
 #create-new-journal-btn {
     background-color: var(--color-accent-system);
+    font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
 }
 
 #cancel-new-journal-btn {
     background-color: #3A3A3C; /* A slightly lighter dark gray */
+    font-family: var(--font-stack);
     color: var(--color-text-primary);
 }
 
