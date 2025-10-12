@@ -785,7 +785,7 @@ button:active,
 
 .stat-card.entries-year {
     grid-column: 1 / -1;
-    background: linear-gradient(135deg, #D6A99D 0%, #9CAFAA 100%);
+    background: linear-gradient(135deg, #D6A99D 0%, #D3EDE7 100%);
 }
 
 .stat-card.days-journaled {
