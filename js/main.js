@@ -241,8 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const entriesArray = Object.values(journal.entries);
 
         let data = entriesArray.map(entry => {
-            // Extract the first number (integer or float) from the text
-            const match = entry.text.match(/(\d+(\.\d+)?)/);
+            // Strip HTML tags from the text before parsing
+            const cleanText = entry.text.replace(/<[^>]*>?/gm, '');
+            // Extract the first number (integer or float) from the cleaned text
+            const match = cleanText.match(/(\d+(\.\d+)?)/);
             if (match) {
                 return {
                     x: new Date(entry.date),
@@ -254,8 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sort by date ascending
         data.sort((a, b) => a.x - b.x);
-
-        alert("Parsed data being sent to chart: " + JSON.stringify(data));
 
         return data;
     }
@@ -300,11 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     scales: {
                         x: {
                             type: 'time',
-                            adapters: {
-                                date: {
-                                    locale: 'en-US'
-                                }
-                            },
                             time: {
                                 unit: 'day',
                                 displayFormats: {
@@ -337,8 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show the view first to isolate rendering errors from visibility logic
         timelineView.style.display = 'none';
         graphView.style.display = 'block';
-
-        alert("Raw entries being passed to parser: " + JSON.stringify(journal.entries));
 
         const data = parseWeightData(journal);
         renderWeightChart(data, '1m'); // Default to 1 month view
