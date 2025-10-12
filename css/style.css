@@ -1016,3 +1016,58 @@ button:active,
 #entries-for-date-view {
     margin-top: 20px;
 }
+
+/* --- Graph View Styles --- */
+.graph-title {
+    font-size: 24px;
+    font-weight: var(--font-weight-large-title);
+    margin: 0;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.graph-content {
+    padding: 0 20px 20px;
+    display: flex;
+    flex-direction: column;
+    /* Use calc to subtract header height and padding */
+    height: calc(100vh - 65px - 20px);
+}
+
+.chart-container {
+    flex-grow: 1;
+    position: relative; /* Needed for Chart.js responsiveness */
+    margin-bottom: 20px;
+}
+
+.graph-filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+}
+
+.filter-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: var(--font-stack);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.filter-btn:active {
+    opacity: 0.7;
+}
+
+.filter-btn.active {
+    background-color: var(--color-accent-system);
+    color: var(--color-background-primary);
+    font-weight: 700;
+}

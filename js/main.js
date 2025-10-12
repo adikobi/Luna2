@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timelineView = document.getElementById('timeline-view');
     const composerView = document.getElementById('composer-view');
     const insightsView = document.getElementById('insights-view');
+    const graphView = document.getElementById('graph-view');
     const mainTitle = document.getElementById('main-title');
     const journalFeed = document.getElementById('journal-feed');
     const fab = document.getElementById('fab');
@@ -174,6 +175,24 @@ document.addEventListener('DOMContentLoaded', () => {
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
 
+        // --- Add Graph Button dynamically ---
+        const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
+        const existingGraphBtn = document.getElementById('show-graph-btn');
+        if (existingGraphBtn) {
+            existingGraphBtn.remove();
+        }
+
+        if (journal.name === 'משקל') {
+            const graphBtn = document.createElement('button');
+            graphBtn.id = 'show-graph-btn';
+            graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>'; // Using Font Awesome
+
+            // Insert it before the search button
+            const searchBtn = document.getElementById('search-toggle-btn');
+            timelineHeader.insertBefore(graphBtn, searchBtn);
+        }
+        // ------------------------------------
+
         const entriesArray = journal.entries
             ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
             : [];
@@ -202,6 +221,110 @@ document.addEventListener('DOMContentLoaded', () => {
         journalsListView.style.display = 'none';
         insightsView.style.display = 'block';
     }
+
+    // --- Graph View Logic ---
+    let weightChart = null; // To hold the Chart.js instance
+
+    function parseWeightData(journal) {
+        if (!journal || !journal.entries) return [];
+
+        const entriesArray = Object.values(journal.entries);
+
+        let data = entriesArray.map(entry => {
+            // Extract the first number (integer or float) from the text
+            const match = entry.text.match(/(\d+(\.\d+)?)/);
+            if (match) {
+                return {
+                    x: new Date(entry.date),
+                    y: parseFloat(match[1])
+                };
+            }
+            return null;
+        }).filter(item => item !== null); // Filter out entries that didn't have a valid number
+
+        // Sort by date ascending
+        data.sort((a, b) => a.x - b.x);
+
+        return data;
+    }
+
+    function renderWeightChart(data, range = '1m') {
+        const ctx = document.getElementById('weight-chart').getContext('2d');
+
+        const now = new Date();
+        let startDate = new Date();
+
+        switch (range) {
+            case '1m': startDate.setMonth(now.getMonth() - 1); break;
+            case '3m': startDate.setMonth(now.getMonth() - 3); break;
+            case '6m': startDate.setMonth(now.getMonth() - 6); break;
+            case '1y': startDate.setFullYear(now.getFullYear() - 1); break;
+            case 'all': startDate = new Date(0); break; // A very early date
+        }
+
+        const filteredData = data.filter(d => d.x >= startDate);
+
+        if (weightChart) {
+            weightChart.data.labels = filteredData.map(d => d.x);
+            weightChart.data.datasets[0].data = filteredData;
+            weightChart.update();
+        } else {
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Weight',
+                        data: filteredData,
+                        borderColor: 'rgba(211, 237, 231, 1)', // --color-accent-system
+                        backgroundColor: 'rgba(211, 237, 231, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'MMM D'
+                                }
+                            },
+                            ticks: { color: 'rgba(235, 235, 245, 0.6)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            ticks: { color: 'rgba(235, 235, 245, 0.6)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function showGraphView() {
+        const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+        if (!journal || journal.name !== 'משקל') return;
+
+        // Show the view first to isolate rendering errors from visibility logic
+        timelineView.style.display = 'none';
+        graphView.style.display = 'block';
+
+        const data = parseWeightData(journal);
+        renderWeightChart(data, '1m'); // Default to 1 month view
+    }
+
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
@@ -607,6 +730,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.body.addEventListener('click', (e) => {
+        // Use event delegation for multiple dynamic buttons
+        if (e.target.closest('#show-graph-btn')) {
+            showGraphView();
+            return; // Exit after handling
+        }
+
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
             const entryId = card.dataset.id;
@@ -844,5 +973,27 @@ document.addEventListener('DOMContentLoaded', () => {
     passwordSubmitBtn.addEventListener('click', checkPassword);
     passwordInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') checkPassword();
+    });
+
+    // --- Graph View Event Listeners ---
+    document.getElementById('back-to-timeline-from-graph-btn').addEventListener('click', () => {
+        graphView.style.display = 'none';
+        timelineView.style.display = 'block';
+    });
+
+    document.querySelector('.graph-filters').addEventListener('click', (e) => {
+        if (e.target.classList.contains('filter-btn')) {
+            // Update active button state
+            document.querySelectorAll('.graph-filters .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            e.target.classList.add('active');
+
+            // Re-render the chart with the new range
+            const range = e.target.dataset.range;
+            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+            const data = parseWeightData(journal);
+            renderWeightChart(data, range);
+        }
     });
 });
