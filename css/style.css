@@ -725,17 +725,9 @@ button:active,
     }
 
     /* Adjust graph view height and padding */
-    .graph-content {
-        padding: 0 15px 15px;
-        /* Let content flow naturally */
-    }
     .graph-title {
         padding-top: 0;
         padding-bottom: 10px;
-    }
-    .chart-container {
-        margin-bottom: 10px;
-        aspect-ratio: 16 / 9; /* Force a widescreen aspect ratio */
     }
 }
 
@@ -1075,26 +1067,36 @@ button:active,
 }
 
 /* --- Graph View Styles --- */
+#graph-view {
+    position: relative;
+    height: 100vh; /* Ensure it takes full height */
+}
+
 .graph-title {
     font-size: 24px;
     font-weight: var(--font-weight-large-title);
     margin: 0;
     text-align: center;
-    flex-grow: 1;
 }
 
 .graph-content {
-    padding: 0 10px 20px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    padding: 20px 10px;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    /* Use calc to subtract header height and padding */
-    height: calc(100vh - 65px - 20px);
+    align-items: center;
+    gap: 20px;
 }
 
 .chart-container {
-    flex-grow: 1;
     position: relative; /* Needed for Chart.js responsiveness */
-    margin-bottom: 20px;
+    width: 100%;
+    max-width: 500px; /* Constrain max width for larger screens */
 }
 
 .graph-filters {
