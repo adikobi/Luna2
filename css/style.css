@@ -69,6 +69,11 @@ body {
     stroke: var(--color-accent-system);
 }
 
+#show-graph-btn i {
+    font-size: 24px;
+    color: var(--color-accent-system);
+}
+
 #main-title {
     font-family: 'Bebas Neue', 'Heebo', sans-serif;
     font-size: var(--font-size-large-title);
@@ -135,6 +140,7 @@ body {
     padding: 5px;
     font-size: 17px;
     font-weight: 500;
+    font-family: var(--font-stack);
 }
 
 .header-action-btn svg {
@@ -489,6 +495,7 @@ button:active,
     color: var(--color-accent-system);
     font-size: 17px;
     cursor: pointer;
+    font-family: var(--font-stack);
 }
 
 .composer-metadata {
@@ -603,6 +610,7 @@ button:active,
     font-size: 17px;
     cursor: pointer;
     font-weight: 400;
+    font-family: var(--font-stack);
 }
 
 /* --- Custom Modal Styles --- */
@@ -677,6 +685,58 @@ button:active,
     font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
+}
+
+/* --- Mobile Responsive Styles --- */
+@media (max-width: 480px) {
+    /* Reduce top padding on the login screen */
+    #password-view {
+        padding-top: 10vh;
+    }
+
+    /* Reduce spacing for timeline view */
+    #main-title {
+        padding: 10px 15px 15px;
+    }
+    .month-header {
+        margin: 20px 0 10px 0;
+    }
+    .journal-card {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+    #journal-feed {
+        padding: 0 15px;
+    }
+
+    /* Reduce spacing for journals grid */
+    #journals-list-container {
+        gap: 15px;
+        padding: 15px;
+    }
+
+    /* Reduce spacing in insights view */
+    .insights-main-stats {
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .insights-content {
+        padding: 0 15px 15px;
+    }
+
+    /* Adjust graph view height and padding */
+    .graph-content {
+        padding: 0 15px 15px;
+        /* Let content flow naturally */
+    }
+    .graph-title {
+        padding-top: 0;
+        padding-bottom: 10px;
+    }
+    .chart-container {
+        margin-bottom: 10px;
+        aspect-ratio: 16 / 9; /* Force a widescreen aspect ratio */
+    }
 }
 
 #cancel-new-journal-btn {
@@ -765,7 +825,7 @@ button:active,
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
-    transition: grid-template-columns 0.4s ease-in-out;
+    transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .insights-main-stats.journaled-expanded {
@@ -780,7 +840,7 @@ button:active,
     padding: 20px;
     border-radius: var(--border-radius-card);
     color: var(--color-background-primary); /* Dark text for light background */
-    transition: all 0.4s ease-in-out;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card.entries-year {
@@ -821,7 +881,7 @@ button:active,
 .stat-card-expanded {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s ease-in-out;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     padding-top: 0; /* No padding when collapsed */
 }
 
@@ -837,6 +897,13 @@ button:active,
     font-weight: 700;
     line-height: 1;
     margin-bottom: 8px;
+    transition: font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reduce font size on the non-expanded card to prevent clipping */
+.insights-main-stats.journaled-expanded .stat-card.words-written .count,
+.insights-main-stats.written-expanded .stat-card.days-journaled .count {
+    font-size: 38px;
 }
 
 .stat-card[data-stat="journaled"] .label,
@@ -918,10 +985,12 @@ button:active,
 .expanded-stat-grid .detail-stat .count {
     font-size: 24px;
     font-weight: 700;
+    display: block;
 }
 .expanded-stat-grid .detail-stat .label {
     font-size: 14px;
     color: rgba(28, 28, 30, 0.7); /* Dark, slightly transparent text */
+    display: block;
 }
 
 
@@ -1003,4 +1072,59 @@ button:active,
 
 #entries-for-date-view {
     margin-top: 20px;
+}
+
+/* --- Graph View Styles --- */
+.graph-title {
+    font-size: 24px;
+    font-weight: var(--font-weight-large-title);
+    margin: 0;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.graph-content {
+    padding: 0 10px 20px;
+    display: flex;
+    flex-direction: column;
+    /* Use calc to subtract header height and padding */
+    height: calc(100vh - 65px - 20px);
+}
+
+.chart-container {
+    flex-grow: 1;
+    position: relative; /* Needed for Chart.js responsiveness */
+    margin-bottom: 20px;
+}
+
+.graph-filters {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+}
+
+.filter-btn {
+    background-color: transparent;
+    border: none;
+    color: var(--color-text-secondary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: var(--font-stack);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.filter-btn:active {
+    opacity: 0.7;
+}
+
+.filter-btn.active {
+    background-color: var(--color-accent-system);
+    color: var(--color-background-primary);
+    font-weight: 700;
 }

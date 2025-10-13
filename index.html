@@ -12,6 +12,10 @@
     <!-- Firebase SDKs (v9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <!-- Chart.js via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+    <!-- Chart.js Date Adapter (Bundled with a compatible date-fns) -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="js/main.js" defer></script>
 </head>
 <body>
@@ -155,6 +159,29 @@
                 <button id="create-new-journal-btn">צור</button>
             </div>
         </div>
+    </div>
+
+    <!-- Graph View (hidden by default) -->
+    <div id="graph-view" class="view-screen" style="display: none;">
+        <header class="timeline-top-bar">
+             <button id="back-to-timeline-from-graph-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-right"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <h1 class="graph-title">Weight Graph</h1>
+             <span></span> <!-- Spacer -->
+        </header>
+        <main class="graph-content">
+            <div class="chart-container">
+                <canvas id="weight-chart"></canvas>
+            </div>
+            <div class="graph-filters">
+                <button class="filter-btn active" data-range="1m">1M</button>
+                <button class="filter-btn" data-range="3m">3M</button>
+                <button class="filter-btn" data-range="6m">6M</button>
+                <button class="filter-btn" data-range="1y">1Y</button>
+                <button class="filter-btn" data-range="all">All</button>
+            </div>
+        </main>
     </div>
 </body>
 </html>
