@@ -735,7 +735,7 @@ button:active,
     }
     .chart-container {
         margin-bottom: 10px;
-        max-height: 50vh; /* Constrain chart height on mobile */
+        aspect-ratio: 16 / 9; /* Force a widescreen aspect ratio */
     }
 }
 
