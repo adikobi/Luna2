@@ -725,17 +725,9 @@ button:active,
     }
 
     /* Adjust graph view height and padding */
-    .graph-content {
-        padding: 0 15px 15px;
-        /* Let content flow naturally */
-    }
     .graph-title {
         padding-top: 0;
         padding-bottom: 10px;
-    }
-    .chart-container {
-        margin-bottom: 10px;
-        aspect-ratio: 16 / 9; /* Force a widescreen aspect ratio */
     }
 }
 
@@ -1085,23 +1077,26 @@ button:active,
     font-weight: var(--font-weight-large-title);
     margin: 0;
     text-align: center;
-    flex-grow: 1;
 }
 
 .graph-content {
-    padding: 20px 10px;
-    display: flex;
-    flex-direction: column-reverse;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
     flex-grow: 1;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-items: center;
+    padding: 20px 10px;
 }
 
 .chart-container {
     position: relative; /* Needed for Chart.js responsiveness */
     width: 100%;
     max-width: 500px; /* Constrain max width for larger screens */
+    margin: 0 auto;
+    grid-row: 2;
+}
+
+.graph-filters {
+    grid-row: 1;
 }
 
 .graph-filters {
