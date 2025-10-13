@@ -1084,17 +1084,18 @@ button:active,
 }
 
 .graph-content {
-    padding: 0 10px 20px;
+    padding: 20px 10px;
     display: flex;
-    flex-direction: column;
-    /* Use calc to subtract header height and padding */
-    height: calc(100vh - 65px - 20px);
+    flex-direction: column-reverse;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
 }
 
 .chart-container {
-    flex-grow: 1;
     position: relative; /* Needed for Chart.js responsiveness */
-    margin-bottom: 20px;
+    width: 100%;
+    max-width: 500px; /* Constrain max width for larger screens */
 }
 
 .graph-filters {
