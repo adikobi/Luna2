@@ -1075,6 +1075,11 @@ button:active,
 }
 
 /* --- Graph View Styles --- */
+#graph-view {
+    display: flex;
+    flex-direction: column;
+}
+
 .graph-title {
     font-size: 24px;
     font-weight: var(--font-weight-large-title);
@@ -1090,6 +1095,7 @@ button:active,
     justify-content: center;
     align-items: center;
     gap: 20px;
+    flex-grow: 1;
 }
 
 .chart-container {
