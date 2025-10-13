@@ -1068,8 +1068,8 @@ button:active,
 
 /* --- Graph View Styles --- */
 #graph-view {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    height: 100vh; /* Ensure it takes full height */
 }
 
 .graph-title {
@@ -1080,23 +1080,23 @@ button:active,
 }
 
 .graph-content {
-    flex-grow: 1;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    align-items: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
     padding: 20px 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
 
 .chart-container {
     position: relative; /* Needed for Chart.js responsiveness */
     width: 100%;
     max-width: 500px; /* Constrain max width for larger screens */
-    margin: 0 auto;
-    grid-row: 2;
-}
-
-.graph-filters {
-    grid-row: 1;
 }
 
 .graph-filters {
