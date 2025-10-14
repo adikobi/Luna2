@@ -72,13 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function linkify(text) {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
         // First, escape HTML to prevent XSS
         let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // Linkify URLs first
+        let linkifiedText = escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
         // Then, convert newlines to <br>
-        escapedText = escapedText.replace(/\n/g, '<br>');
-        // Finally, linkify URLs
-        return escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+        return linkifiedText.replace(/\n/g, '<br>');
     }
 
     function isHebrew(text) {
