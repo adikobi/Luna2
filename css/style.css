@@ -1068,8 +1068,10 @@ button:active,
 
 /* --- Graph View Styles --- */
 #graph-view {
-    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr; /* Header row, Content row */
     height: 100vh; /* Ensure it takes full height */
+    overflow: hidden; /* Prevent scrolling on the view itself */
 }
 
 .graph-title {
@@ -1080,17 +1082,15 @@ button:active,
 }
 
 .graph-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Vertical centering */
+    align-items: center;   /* Horizontal centering */
     width: 100%;
     padding: 20px 10px;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     gap: 20px;
+    overflow-y: auto; /* Allow content to scroll if it overflows */
 }
 
 .chart-container {
