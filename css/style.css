@@ -1068,8 +1068,11 @@ button:active,
 
 /* --- Graph View Styles --- */
 #graph-view {
-    position: relative;
-    height: 100vh; /* Ensure it takes full height */
+    position: relative; /* Establishes a positioning context */
+    height: 100vh;
+    display: flex; /* Use flex to manage header and content layout */
+    flex-direction: column;
+    direction: ltr; /* Override global RTL for this view to fix WebKit centering bug */
 }
 
 .graph-title {
@@ -1080,23 +1083,21 @@ button:active,
 }
 
 .graph-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    padding: 20px 10px;
-    box-sizing: border-box;
+    flex-grow: 1; /* Takes up remaining vertical space */
     display: flex;
     flex-direction: column;
-    align-items: center;
+    justify-content: center; /* Center content vertically */
+    padding: 20px 10px;
+    box-sizing: border-box;
     gap: 20px;
+    width: 100%; /* Ensure it spans the full width for alignment */
 }
 
 .chart-container {
     position: relative; /* Needed for Chart.js responsiveness */
     width: 100%;
     max-width: 500px; /* Constrain max width for larger screens */
+    margin: 0 auto; /* Classic horizontal centering */
 }
 
 .graph-filters {
@@ -1106,6 +1107,7 @@ button:active,
     padding: 10px;
     background-color: var(--color-surface-card);
     border-radius: var(--border-radius-card);
+    margin: 0 auto; /* Classic horizontal centering */
 }
 
 .filter-btn {
