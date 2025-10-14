@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
         allTime: true,
     };
 
+    const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '⚪'];
+
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
 
@@ -167,8 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderEmotionJournalView(journal) {
-        const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴']; // Predefined list of emojis
-
         journalFeed.innerHTML = ''; // Clear the feed
 
         // Get all dates to display, from the first entry until today
@@ -546,7 +546,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showEmojiPicker(date) {
-        const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '⚪']; // Add a clear/empty option
         const modal = document.getElementById('emoji-picker-modal');
         const optionsContainer = document.getElementById('emoji-options-container');
         optionsContainer.innerHTML = ''; // Clear previous options
