@@ -1072,6 +1072,7 @@ button:active,
     height: 100vh;
     display: flex; /* Use flex to manage header and content layout */
     flex-direction: column;
+    direction: ltr; /* Override global RTL for this view to fix WebKit centering bug */
 }
 
 .graph-title {
