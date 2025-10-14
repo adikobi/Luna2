@@ -1068,8 +1068,10 @@ button:active,
 
 /* --- Graph View Styles --- */
 #graph-view {
-    position: relative; /* This is the key for the child's absolute positioning */
+    position: relative; /* Establishes a positioning context */
     height: 100vh;
+    display: flex; /* Use flex to manage header and content layout */
+    flex-direction: column;
 }
 
 .graph-title {
@@ -1080,17 +1082,15 @@ button:active,
 }
 
 .graph-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100%;
-    padding: 20px 10px;
-    box-sizing: border-box;
+    flex-grow: 1; /* Takes up remaining vertical space */
     display: flex;
     flex-direction: column;
-    align-items: center;
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+    padding: 20px 10px;
+    box-sizing: border-box;
     gap: 20px;
+    width: 100%; /* Ensure it spans the full width for alignment */
 }
 
 .chart-container {
