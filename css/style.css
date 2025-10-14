@@ -687,6 +687,74 @@ button:active,
     font-weight: 700;
 }
 
+/* --- Emotion Journal View Styles --- */
+.emotion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 15px;
+    padding: 0 10px; /* Add some padding on the sides */
+}
+
+.emotion-day-card {
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.1s ease-in-out;
+}
+
+.emotion-day-card:active {
+    transform: scale(0.95);
+}
+
+.emotion-date-header {
+    margin-bottom: 8px;
+}
+
+.emotion-date-header .day-of-week {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    display: block;
+}
+
+.emotion-date-header .day-of-month {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.emotion-emoji-display {
+    font-size: 36px;
+    line-height: 1.2;
+}
+
+/* Emoji Picker Modal Styles */
+#emoji-options-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.emoji-option-btn {
+    background: none;
+    border: none;
+    font-size: 48px;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out;
+}
+
+.emoji-option-btn:hover {
+    transform: scale(1.1);
+}
+
+#cancel-emoji-picker-btn {
+    grid-column: 1 / -1; /* Make cancel button span full width */
+    background-color: #3A3A3C;
+    font-family: var(--font-stack);
+    color: var(--color-text-primary);
+}
+
 /* --- Mobile Responsive Styles --- */
 @media (max-width: 480px) {
     /* Reduce top padding on the login screen */
