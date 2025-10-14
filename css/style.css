@@ -1086,7 +1086,6 @@ button:active,
     display: flex;
     flex-direction: column;
     justify-content: center; /* Center content vertically */
-    align-items: center; /* Center content horizontally */
     padding: 20px 10px;
     box-sizing: border-box;
     gap: 20px;
@@ -1097,6 +1096,7 @@ button:active,
     position: relative; /* Needed for Chart.js responsiveness */
     width: 100%;
     max-width: 500px; /* Constrain max width for larger screens */
+    margin: 0 auto; /* Classic horizontal centering */
 }
 
 .graph-filters {
@@ -1106,6 +1106,7 @@ button:active,
     padding: 10px;
     background-color: var(--color-surface-card);
     border-radius: var(--border-radius-card);
+    margin: 0 auto; /* Classic horizontal centering */
 }
 
 .filter-btn {
