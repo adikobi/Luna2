@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
         allTime: true,
     };
 
+    const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '🥸', '😋', '😖', '😢', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '🏊', '⚪'];
+
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
 
@@ -166,6 +168,81 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function renderEmotionJournalView(journal) {
+        journalFeed.innerHTML = ''; // Clear the feed
+
+        // --- Calculate Date Range ---
+        // To fix the bug, we must consider both text entries and emoji-only entries
+        // to find the true start date of the journal.
+        const textEntryDates = journal.entries ? Object.values(journal.entries).map(e => new Date(e.date)) : [];
+        const emojiEntryDates = journal.emojis ? Object.keys(journal.emojis).map(d => new Date(d)) : [];
+
+        const allEntryDates = [...textEntryDates, ...emojiEntryDates];
+        allEntryDates.sort((a, b) => a - b); // Sort dates ascending to find the earliest
+
+        const startDate = allEntryDates.length > 0 ? new Date(allEntryDates[0]) : new Date();
+        startDate.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let allDates = [];
+        let currentDate = new Date(startDate);
+
+        while (currentDate <= today) {
+            allDates.push(new Date(currentDate));
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        allDates.reverse(); // Show most recent dates first
+
+        // Get saved emoji data from the journal object
+        const savedEmojis = journal.emojis || {};
+
+        // Group dates by month for rendering
+        const datesByMonth = allDates.reduce((acc, date) => {
+            const monthYear = date.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+            if (!acc[monthYear]) {
+                acc[monthYear] = [];
+            }
+            acc[monthYear].push(date);
+            return acc;
+        }, {});
+
+        // Render the HTML for the emotion tracker
+        for (const monthYear in datesByMonth) {
+            const monthHeader = document.createElement('h2');
+            monthHeader.className = 'month-header';
+            monthHeader.textContent = monthYear;
+            journalFeed.appendChild(monthHeader);
+
+            const gridContainer = document.createElement('div');
+            gridContainer.className = 'emotion-grid';
+            journalFeed.appendChild(gridContainer);
+
+            const dates = datesByMonth[monthYear];
+            dates.forEach(date => {
+                const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const selectedEmoji = savedEmojis[dateString] || '⚪';
+
+                const dayCard = document.createElement('div');
+                dayCard.className = 'emotion-day-card';
+                dayCard.dataset.date = dateString;
+
+                const dayOfWeek = date.toLocaleDateString('he-IL', { weekday: 'short' });
+                const dayOfMonth = date.getDate();
+
+                dayCard.innerHTML = `
+                    <div class="emotion-date-header">
+                        <span class="day-of-week">${dayOfWeek}</span>
+                        <span class="day-of-month">${dayOfMonth}</span>
+                    </div>
+                    <div class="emotion-emoji-display">${selectedEmoji}</div>
+                `;
+                gridContainer.appendChild(dayCard);
+            });
+        }
+    }
+
     // --- Screen Navigation ---
     function showTimelineView(journalId) {
         appData.currentJournalId = journalId;
@@ -203,12 +280,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // ------------------------------------
 
-        const entriesArray = journal.entries
-            ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
-            : [];
-        entriesArray.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (journal.name === 'רגשות') {
+            renderEmotionJournalView(journal);
+            fab.style.display = 'none';
+        } else {
+            const entriesArray = journal.entries
+                ? Object.keys(journal.entries).map(key => ({ id: key, journalId: journal.id, ...journal.entries[key] }))
+                : [];
+            entriesArray.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        renderJournalFeed(entriesArray);
+            renderJournalFeed(entriesArray);
+            fab.style.display = 'block';
+        }
+
         journalsListView.style.display = 'none';
         insightsView.style.display = 'none';
         timelineView.style.display = 'block';
@@ -466,6 +550,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function showEmojiPicker(date) {
+        const modal = document.getElementById('emoji-picker-modal');
+        const optionsContainer = document.getElementById('emoji-options-container');
+        optionsContainer.innerHTML = ''; // Clear previous options
+
+        EMOTIONS.forEach(emoji => {
+            const button = document.createElement('button');
+            button.className = 'emoji-option-btn';
+            button.textContent = emoji;
+            button.addEventListener('click', () => {
+                const journalId = appData.currentJournalId;
+                if (journalId) {
+                    const emojiRef = journalsRef.child(journalId).child('emojis').child(date);
+                    if (emoji === '⚪') {
+                        emojiRef.remove(); // Remove from Firebase if "empty" is chosen
+                    } else {
+                        emojiRef.set(emoji); // Set the emoji in Firebase
+                    }
+                }
+                modal.style.display = 'none'; // Close modal on selection
+            });
+            optionsContainer.appendChild(button);
+        });
+
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('cancel-emoji-picker-btn').addEventListener('click', () => {
+        document.getElementById('emoji-picker-modal').style.display = 'none';
+    });
     // --- Insights Logic ---
     function calculateInsights() {
         const today = new Date();
@@ -762,6 +876,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const entry = journal.entries[entryId];
             populateComposerView({ id: entryId, ...entry }, 'view');
             composerView.classList.add('visible');
+            return;
+        }
+
+        const emotionCard = e.target.closest('.emotion-day-card');
+        if (emotionCard) {
+            const date = emotionCard.dataset.date;
+            showEmojiPicker(date);
         }
     });
 
