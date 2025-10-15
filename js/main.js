@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         allTime: true,
     };
 
-    const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '⚪'];
+    const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '🥸', '😋', '😖', '😢', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '⚪'];
 
     // --- Firebase Refs ---
     const journalsRef = database.ref('journals');
