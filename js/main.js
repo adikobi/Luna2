@@ -171,11 +171,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderEmotionJournalView(journal) {
         journalFeed.innerHTML = ''; // Clear the feed
 
-        // Get all dates to display, from the first entry until today
-        const entries = journal.entries ? Object.values(journal.entries) : [];
-        entries.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort ascending
+        // --- Calculate Date Range ---
+        // To fix the bug, we must consider both text entries and emoji-only entries
+        // to find the true start date of the journal.
+        const textEntryDates = journal.entries ? Object.values(journal.entries).map(e => new Date(e.date)) : [];
+        const emojiEntryDates = journal.emojis ? Object.keys(journal.emojis).map(d => new Date(d)) : [];
 
-        const startDate = entries.length > 0 ? new Date(entries[0].date) : new Date();
+        const allEntryDates = [...textEntryDates, ...emojiEntryDates];
+        allEntryDates.sort((a, b) => a - b); // Sort dates ascending to find the earliest
+
+        const startDate = allEntryDates.length > 0 ? new Date(allEntryDates[0]) : new Date();
         startDate.setHours(0, 0, 0, 0);
 
         const today = new Date();

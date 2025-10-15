@@ -731,9 +731,12 @@ button:active,
 /* Emoji Picker Modal Styles */
 #emoji-options-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 15px;
     margin-top: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
 }
 
 .emoji-option-btn {
