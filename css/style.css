@@ -38,6 +38,10 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+body.loading .view-screen {
+    display: none !important;
+}
+
 .view-screen {
     height: 100vh;
     overflow-y: auto;
@@ -308,7 +312,7 @@ body {
     text-align: right; /* RTL text alignment */
 }
 
-#pin-input {
+#pin-input, #pin-setup-input {
     text-align: center;
     letter-spacing: 5px;
 }

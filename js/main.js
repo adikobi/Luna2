@@ -1272,6 +1272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth State Change Listener ---
     auth.onAuthStateChanged(user => {
+        document.body.classList.remove('loading'); // Remove loading class once auth state is known
         if (user) {
             appData.currentUser = user;
             const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
