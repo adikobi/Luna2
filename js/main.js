@@ -461,15 +461,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
-                <div class="tools-menu-container">
-                    <button id="tools-btn" class="toolbar-btn" title="כלים">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-more-vertical"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
-                    </button>
-                    <div class="tools-menu" style="display: none;">
-                        <button id="add-checklist-btn" class="menu-item">הוסף צ'קליסט</button>
-                        <button id="delete-entry-btn" class="menu-item destructive">מחק רשומה</button>
-                    </div>
-                </div>
+                <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-square"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </button>
+                <button id="delete-entry-btn" class="toolbar-btn destructive" title="מחק רשומה">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
             </div>
         `;
 
@@ -560,21 +557,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (isEditing) {
-            const toolsBtn = document.getElementById('tools-btn');
-            const toolsMenu = document.querySelector('.tools-menu');
             const addChecklistBtn = document.getElementById('add-checklist-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
-
-            toolsBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toolsMenu.style.display = toolsMenu.style.display === 'none' ? 'block' : 'none';
-            });
 
             addChecklistBtn.addEventListener('click', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 document.execCommand('insertText', false, '\n- [ ] ');
-                toolsMenu.style.display = 'none';
             });
 
             deleteBtn.addEventListener('click', () => {
@@ -583,13 +572,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
                         composerView.classList.remove('visible');
                     }
-                }
-                toolsMenu.style.display = 'none';
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!toolsMenu.contains(e.target) && !toolsBtn.contains(e.target)) {
-                    toolsMenu.style.display = 'none';
                 }
             });
         }

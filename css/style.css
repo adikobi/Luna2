@@ -590,53 +590,44 @@ button:active,
 
 .composer-toolbar {
     position: fixed;
-    bottom: 30px; /* Position it a bit up from the bottom */
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    width: auto; /* Let the content define the width */
+    width: auto;
     background-color: var(--color-surface-card);
-    border-radius: 25px; /* Fully rounded corners */
+    border-radius: 25px;
     padding: 8px;
     display: flex;
+    gap: 8px; /* Add gap between the buttons */
     justify-content: center;
     align-items: center;
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    z-index: 2010; /* Ensure it's above other content */
+    z-index: 2010;
 }
 
-.tools-menu-container {
-    position: relative;
-}
-
-.tools-menu {
-    position: absolute;
-    bottom: 100%; /* Position above the toolbar */
-    left: 0;
-    background-color: var(--color-surface-card);
-    border-radius: var(--border-radius-card);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-    padding: 8px;
-    width: 200px;
-    z-index: 11; /* Above the toolbar */
-}
-
-.tools-menu .menu-item {
-    display: block;
-    width: 100%;
-    padding: 12px;
+.toolbar-btn {
     background: none;
     border: none;
-    color: var(--color-text-primary);
-    text-align: right;
-    font-size: 16px;
+    color: var(--color-text-secondary);
     cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.tools-menu .menu-item:hover {
+.toolbar-btn:hover {
     background-color: #3a3a3c;
+    color: var(--color-text-primary);
 }
 
-.tools-menu .menu-item.destructive {
+.toolbar-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+.toolbar-btn.destructive:hover {
     color: #ff453a;
 }
 
