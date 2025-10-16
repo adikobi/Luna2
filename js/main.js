@@ -987,7 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
-            const journalsDataRef = database.ref('journals'); // Read from the root
+            const journalsDataRef = database.ref(`users/${appData.currentUser.uid}/journals`);
             journalsDataRef.once('value', (snapshot) => {
                 const dataToBackup = snapshot.val();
                 if (dataToBackup) {
