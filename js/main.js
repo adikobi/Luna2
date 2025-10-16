@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
                 // Disable checkboxes when not in edit mode
-                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+                // textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
@@ -508,6 +508,54 @@ document.addEventListener('DOMContentLoaded', () => {
             composerView.classList.remove('visible');
         });
 
+        // --- Checklist Interaction Logic ---
+        const checklistItems = textInput.querySelectorAll('.checklist-item');
+        checklistItems.forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            const label = item.querySelector('label');
+
+            const clickHandler = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                checkbox.checked = !checkbox.checked;
+
+                // In view mode, we need a "save" function that doesn't close the view
+                const silentSave = () => {
+                    // Before saving, synchronize the `checked` attribute with the `checked` property
+                    textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        if (cb.checked) {
+                            cb.setAttribute('checked', '');
+                        } else {
+                            cb.removeAttribute('checked');
+                        }
+                    });
+
+                    const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
+                    const entryContent = textInput.innerHTML;
+                    const titleContent = titleInput.value;
+                    const fullEntryHtml = (titleContent ? `<strong>${titleContent}</strong><br>` : '') + entryContent;
+
+                    const entryData = {
+                        text: fullEntryHtml,
+                        date: entry.date // Use the original date
+                    };
+                    journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
+                };
+
+                // If not in edit mode, save immediately
+                if (!isEditing) {
+                    silentSave();
+                }
+            };
+
+            // Attach the listener to the label, which is what the user actually clicks
+            label.addEventListener('click', clickHandler);
+            // Also attach to the checkbox for robustness, though it's visually hidden
+            checkbox.addEventListener('click', clickHandler);
+        });
+
+
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
@@ -516,6 +564,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
+                // Before saving, synchronize the `checked` attribute with the `checked` property
+                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    if (cb.checked) {
+                        cb.setAttribute('checked', 'true');
+                    } else {
+                        cb.removeAttribute('checked');
+                    }
+                });
+
                 const title = titleInput.value;
                 const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
