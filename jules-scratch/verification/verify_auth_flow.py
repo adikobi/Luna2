@@ -44,8 +44,8 @@ async def main():
             await page.locator("#logout-btn").click()
 
             # --- Login ---
-            await expect(page.locator("#auth-view")).to_be_visible()
-            await page.locator("#login-email-username").fill(username)
+            await expect(page.locator("#auth-view")).to_be_visible(timeout=15000)
+            await page.locator("#login-email-username").fill(email) # Use email to log in
             await page.locator("#login-password").fill(password)
             await page.locator("#login-btn").click()
 
