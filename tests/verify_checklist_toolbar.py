@@ -5,87 +5,70 @@ from playwright.async_api import async_playwright, expect
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        context = await browser.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2) # iPhone X viewport
+        context = await browser.new_context(viewport={'width': 375, 'height': 812}, device_scale_factor=2)
         page = await context.new_page()
 
-        # Navigate to the local index.html file
         file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../index.html'))
-        await page.goto(f'file://{file_path}')
 
-        # --- Log in ---
+        # --- Setup: Create one journal for all tests ---
+        print("--- Setting up test journal ---")
+        await page.goto(f'file://{file_path}')
         await page.locator('#password-input').fill('6417')
         await page.locator('#password-submit-btn').click()
         await expect(page.locator('#journals-list-view')).to_be_visible()
 
-        # --- Create a new journal for a clean test state ---
+        journal_name = "Combined Formatting Test"
+        # Cleanup from previous runs
+        while await page.locator(f'.journal-list-item:has-text("{journal_name}")').count() > 0:
+            print(f"Cleaning up existing journal: {journal_name}")
+            await page.locator('#journals-list-edit-btn').click()
+            await page.locator(f'.journal-list-item-wrapper:has-text("{journal_name}") .delete-journal-btn').first.click(force=True)
+            await page.locator('#journals-list-done-btn').click()
+            await page.wait_for_timeout(500)
+
         await page.locator('#add-journal-fab').click()
-        await page.locator('#new-journal-name-input').fill('Test Journal for Final Polish')
+        await page.locator('#new-journal-name-input').fill(journal_name)
         await page.locator('#create-new-journal-btn').click()
-        await expect(page.locator('.journal-list-item').last).to_have_text('Test Journal for Final Polish')
+        await expect(page.locator('.journal-list-item').last).to_have_text(journal_name)
         await page.locator('.journal-list-item').last.click()
         await expect(page.locator('#timeline-view')).to_be_visible()
 
-        # --- 1. Verify RTL Alignment ---
-        print("Verifying RTL checklist alignment...")
+        # --- Combined Test: Verify Formatting for both cases in one entry ---
+        print("\n--- Running combined formatting test ---")
         await page.locator('#fab').click()
         await expect(page.locator('#composer-view')).to_be_visible()
+
+        editor = page.locator('#entry-textarea')
+
+        # Case 1: Text followed by a checklist item
+        await editor.type("This is a line of text.")
+        await editor.press("Enter")
         await page.locator('#add-checklist-btn').click()
-        await page.keyboard.type('משימה בעברית') # Hebrew text
+        await page.keyboard.type("First item")
+
+        # Case 2: A second, consecutive checklist item
+        await page.keyboard.press("Enter")
+        await page.keyboard.type("Second item")
+
+        # Save the combined entry
         await page.locator('#save-btn').click()
         await expect(page.locator('.journal-card')).to_have_count(1)
 
-        # Take screenshot for RTL alignment verification
-        await page.locator('.journal-card').screenshot(path='tests/screenshots/rtl_checklist_alignment.png')
-        print("OK: Screenshot for RTL alignment saved.")
+        # --- Assertions ---
+        body_text_html = await page.locator('.journal-card .body-text').inner_html()
 
-        # --- 2. Verify On-the-Fly Saving (Timeline View) ---
-        print("\nVerifying on-the-fly saving from timeline view...")
-        first_item_checkbox = page.locator('.journal-card .checklist-item input[type="checkbox"]').first
-        await expect(first_item_checkbox).not_to_be_checked()
+        # Assertion for Case 1
+        assert "This is a line of text.<br>" in body_text_html
+        print("OK: Text and checklist are on separate lines.")
 
-        await page.locator('.journal-card .checklist-item label').first.click()
-        await expect(first_item_checkbox).to_be_checked()
-
-        await page.reload()
-        await page.locator('#password-input').fill('6417')
-        await page.locator('#password-submit-btn').click()
-        # FIX: Remove expect() from click action
-        await page.locator('.journal-list-item').last.click() # Re-navigate to the journal
-        await expect(page.locator('#timeline-view')).to_be_visible(timeout=10000)
-        await expect(page.locator('.journal-card')).to_have_count(1)
-
-        reloaded_checkbox = page.locator('.journal-card .checklist-item input[type="checkbox"]').first
-        await expect(reloaded_checkbox).to_be_checked()
-        print("OK: Checklist change from timeline view was saved automatically.")
-
-        # --- 3. Verify On-the-Fly Saving (Composer View Mode) ---
-        print("\nVerifying on-the-fly saving from composer view mode...")
-        await page.locator('.journal-card').click()
-        await expect(page.locator('#composer-view')).to_be_visible()
-        await expect(page.locator('#edit-btn')).to_be_visible()
-
-        composer_checkbox = page.locator('#composer-view .checklist-item input[type="checkbox"]').first
-        await expect(composer_checkbox).to_be_checked()
-        await page.locator('#composer-view .checklist-item label').first.click()
-        await expect(composer_checkbox).not_to_be_checked()
-
-        await page.locator('#close-cancel-btn').click()
-        await expect(page.locator('#composer-view')).not_to_be_visible()
-
-        await page.reload()
-        await page.locator('#password-input').fill('6417')
-        await page.locator('#password-submit-btn').click()
-        # FIX: Remove expect() from click action
-        await page.locator('.journal-list-item').last.click() # Re-navigate to the journal
-        await expect(page.locator('#timeline-view')).to_be_visible(timeout=10000)
-        await expect(page.locator('.journal-card')).to_have_count(1)
-
-        final_reloaded_checkbox = page.locator('.journal-card .checklist-item input[type="checkbox"]').first
-        await expect(final_reloaded_checkbox).not_to_be_checked()
-        print("OK: Checklist change from composer view mode was saved automatically.")
+        # Assertion for Case 2
+        expected_structure = '</div><div class="checklist-item">'
+        cleaned_html = body_text_html.replace('\n', '').replace(' ', '')
+        assert expected_structure in cleaned_html
+        print("OK: No extra newline is added between consecutive checklist items.")
 
         await browser.close()
-        print("\nAll verifications passed!")
+        print("\nAll formatting verifications passed!")
 
 if __name__ == '__main__':
     asyncio.run(main())

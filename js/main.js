@@ -76,26 +76,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function linkify(text, isInteractive = true) {
         const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
 
-        // 1. Process checklists first to create raw HTML
-        let processedText = text.split('\n').map((line, index) => {
+        const lines = text.split('\n');
+        const htmlBlocks = lines.map((line, index) => {
             const checklistRegex = /^- \[([ x])] /;
             const match = line.match(checklistRegex);
+
             if (match) {
                 const isChecked = match[1] === 'x';
-                const textContent = line.substring(match[0].length).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const textContent = line.substring(match[0].length);
+                const escapedText = textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const linkedText = escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+
                 const inputId = `checklist-item-${Date.now()}-${index}`;
                 const disabledAttr = isInteractive ? '' : 'disabled';
-                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}" ${disabledAttr}><label for="${inputId}">${textContent}</label></div>`;
+
+                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}" ${disabledAttr}><label for="${inputId}">${linkedText}</label></div>`;
+            } else {
+                // Plain text lines are NOT wrapped in a div.
+                const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return escapedLine.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
             }
-            // For non-checklist lines, escape them now
-            return line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }).join('\n');
+        });
 
-        // 2. Linkify URLs (this won't affect the checklist HTML)
-        let linkifiedText = processedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-
-        // 3. Convert remaining newlines to <br>
-        return linkifiedText.replace(/\n/g, '<br>');
+        // Join the blocks with <br>. This will correctly create line breaks between
+        // plain text lines and checklist divs.
+        return htmlBlocks.join('<br>');
     }
 
     function isHebrew(text) {
@@ -105,7 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function editorContentToText(editor) {
         const lines = [];
-        editor.childNodes.forEach(node => {
+        const childNodes = Array.from(editor.childNodes);
+
+        for (let i = 0; i < childNodes.length; i++) {
+            const node = childNodes[i];
+
             if (node.nodeName === 'DIV') {
                 if (node.classList.contains('checklist-item')) {
                     const checkbox = node.querySelector('input[type="checkbox"]');
@@ -113,19 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const text = label ? label.textContent.trim() : '';
                     lines.push(`- [${checkbox.checked ? 'x' : ' '}] ${text}`);
                 } else {
-                    // Convert <br> to \n for multiline content within a single div, then add to lines
+                    // This handles divs that contain plain text, possibly with <br> for internal newlines
                     lines.push(node.innerHTML.replace(/<br\s*\/?>/gi, '\n'));
                 }
-            } else if (node.nodeType === Node.TEXT_NODE) {
-                // Handle text nodes that might just be newlines or spaces
-                if (node.textContent.trim() !== '') {
-                    lines.push(node.textContent);
-                }
+            } else if (node.nodeName === '#text' && node.textContent.trim() !== '') {
+                // This handles plain text nodes that are not wrapped in a div
+                lines.push(node.textContent);
             }
-        });
+        }
 
-        // Join with \n and then trim any final trailing newline
-        return lines.join('\n').trim();
+        // Join all processed lines. This prevents blank lines between checklist items
+        // and correctly separates text blocks from checklist blocks.
+        return lines.join('\n');
     }
 
     function countWords(str) {
