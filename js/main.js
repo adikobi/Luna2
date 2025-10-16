@@ -73,16 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleDateString('he-IL', options);
     }
 
-    function linkify(text) {
-        const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
-        // First, escape HTML to prevent XSS
-        let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        // Linkify URLs first
-        let linkifiedText = escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        // Then, convert newlines to <br>
-        return linkifiedText.replace(/\n/g, '<br>');
-    }
-
     function isHebrew(text) {
         const hebrewRegex = /[\u0590-\u05FF]/;
         return hebrewRegex.test(text);
@@ -124,17 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
-            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
-            const match = entry.text.match(titleRegex);
-            let bodyHtml = '';
-
-            if (match) {
-                const title = match[1];
-                const body = match[2];
-                bodyHtml = `<strong>${title}</strong><br>${linkify(body)}`;
-            } else {
-                bodyHtml = linkify(entry.text);
-            }
+            // The entire entry text is now treated as HTML.
+            const bodyHtml = entry.text;
 
             card.innerHTML = `
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
@@ -446,8 +427,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
-            <div class="composer-toolbar" style="justify-content: flex-end; display: ${isEditing && !isNewEntry ? 'flex' : 'none'};">
-                <button id="delete-entry-btn">מחק רשומה</button>
+            <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
+                <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-square"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </button>
+                <button id="delete-entry-btn" class="toolbar-btn destructive" title="מחק רשומה">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
             </div>
         `;
 
@@ -462,19 +448,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateInput = document.getElementById('entry-date'); // May be null in view mode
 
         if (entry) {
-            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
-            const match = entry.text.match(titleRegex);
-            if (match) {
-                titleInput.value = match[1];
-                textInput.innerHTML = linkify(match[2]);
+            // New logic to handle raw HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = entry.text;
+
+            const strongTag = tempDiv.querySelector('strong');
+            let bodyContent = '';
+
+            if (strongTag && tempDiv.firstChild.nodeName === 'STRONG') {
+                titleInput.value = strongTag.textContent;
+                strongTag.remove(); // Remove title from body
+                 // Remove the <br> that immediately follows the title
+                if (tempDiv.firstChild.nodeName === 'BR') {
+                    tempDiv.firstChild.remove();
+                }
             } else {
                 titleInput.value = '';
-                textInput.innerHTML = linkify(entry.text);
             }
+
+            bodyContent = tempDiv.innerHTML;
+            textInput.innerHTML = bodyContent;
+
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
+                // Disable checkboxes when not in edit mode
+                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isEditing) {
             initialEntryState = {
                 title: titleInput.value,
-                text: textInput.innerText,
+                html: textInput.innerHTML, // Compare raw HTML
                 date: dateInput.value,
             };
         } else {
@@ -494,12 +494,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
                     title: document.getElementById('entry-title').value,
-                    text: document.getElementById('entry-textarea').innerText,
+                    html: textInput.innerHTML, // Compare raw HTML
                     date: document.getElementById('entry-date').value,
                 };
                 const hasChanged =
                     currentState.title !== initialEntryState.title ||
-                    currentState.text !== initialEntryState.text ||
+                    currentState.html !== initialEntryState.html ||
                     currentState.date !== initialEntryState.date;
                 if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
                     return;
@@ -517,12 +517,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const text = textInput.innerText;
+                const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
 
-                if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
+                if (bodyHtml.trim() === '' && title.trim() === '') return;
 
-                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
+                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
@@ -537,9 +537,58 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const deleteBtn = document.getElementById('delete-entry-btn');
-        if (deleteBtn) {
+        if (isEditing) {
+            const addChecklistBtn = document.getElementById('add-checklist-btn');
+            const deleteBtn = document.getElementById('delete-entry-btn');
+
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    const currentNode = range.startContainer;
+                    const parentDiv = currentNode.nodeType === 3 ? currentNode.parentNode : currentNode;
+
+                    // If inside a checklist item, create a new one on Enter
+                    if (parentDiv.classList.contains('checklist-item') || parentDiv.closest('.checklist-item')) {
+                        e.preventDefault();
+                        const newChecklistItem = document.createElement('div');
+                        const inputId = `checklist-item-${Date.now()}`;
+                        newChecklistItem.className = 'checklist-item';
+                        // data-line-index is no longer needed
+                        newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
+
+                        const container = parentDiv.closest('.checklist-item') || parentDiv;
+                        container.after(newChecklistItem);
+
+                        // Move cursor to the new checklist item's label
+                        const label = newChecklistItem.querySelector('label');
+                        label.setAttribute('contenteditable', 'true'); // Make the label editable
+                        label.focus();
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(label);
+                        selection.removeAllRanges();
+                        selection.addRange(newRange);
+                    }
+                }
+            });
+
+            addChecklistBtn.addEventListener('click', () => {
+                const textInput = document.getElementById('entry-textarea');
+                textInput.focus();
+                const inputId = `checklist-item-${Date.now()}`;
+                // data-line-index is no longer needed
+                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                document.execCommand('insertHTML', false, htmlToInsert);
+            });
+
             deleteBtn.addEventListener('click', () => {
+                // If it's a new entry that hasn't been saved, just close the composer.
+                if (isNewEntry) {
+                    composerView.classList.remove('visible');
+                    return;
+                }
+
+                // For existing entries, ask for confirmation.
                 if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
                     if (currentlyEditingEntryId) {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
@@ -883,8 +932,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emotionCard) {
             const date = emotionCard.dataset.date;
             showEmojiPicker(date);
+            return; // Exit after handling
         }
     });
+
 
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
     document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);

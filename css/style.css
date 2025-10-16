@@ -590,27 +590,45 @@ button:active,
 
 .composer-toolbar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--color-frosted-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-top: 1px solid var(--color-frosted-glass-border);
-    padding: 10px 20px;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    background-color: var(--color-surface-card);
+    border-radius: 25px;
+    padding: 8px;
     display: flex;
-    justify-content: flex-end;
+    gap: 8px; /* Add gap between the buttons */
+    justify-content: center;
     align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 2010;
 }
 
-#delete-entry-btn {
+.toolbar-btn {
     background: none;
     border: none;
-    color: #ff453a;
-    font-size: 17px;
+    color: var(--color-text-secondary);
     cursor: pointer;
-    font-weight: 400;
-    font-family: var(--font-stack);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn:hover {
+    background-color: #3a3a3c;
+    color: var(--color-text-primary);
+}
+
+.toolbar-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+.toolbar-btn.destructive:hover {
+    color: #ff453a;
 }
 
 /* --- Custom Modal Styles --- */
@@ -685,6 +703,87 @@ button:active,
     font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
+}
+
+/* --- Modern Checklist Styles --- */
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Increased gap for better spacing */
+    margin: 8px 0;
+}
+
+.checklist-item input[type="checkbox"] {
+    /* Hide the default checkbox */
+    opacity: 0;
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.checklist-item label {
+    position: relative;
+    padding-left: 30px; /* Space for the custom checkbox */
+    cursor: pointer;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+    transition: color 0.2s ease;
+}
+
+/* Custom checkbox square */
+.checklist-item label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-accent-system);
+    border-radius: 4px;
+    background-color: transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Checkmark style (using an SVG for a sharp look) */
+.checklist-item input[type="checkbox"]:checked + label::after {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 50%;
+    width: 6px;
+    height: 12px;
+    border: solid var(--color-background-primary);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-65%) rotate(45deg); /* Fine-tune position */
+}
+
+
+/* Style for the checked state */
+.checklist-item input[type="checkbox"]:checked + label {
+    color: var(--color-text-secondary);
+    text-decoration: line-through;
+}
+
+.checklist-item input[type="checkbox"]:checked + label::before {
+    background-color: var(--color-accent-system);
+    border-color: var(--color-accent-system);
+}
+
+/* RTL-specific styles for checklist */
+[dir="rtl"] .checklist-item label {
+    padding-left: 0;
+    padding-right: 30px; /* Space for the checkbox on the right */
+}
+
+[dir="rtl"] .checklist-item label::before {
+    left: auto;
+    right: 0; /* Position the checkbox on the right */
+}
+
+[dir="rtl"] .checklist-item input[type="checkbox"]:checked + label::after {
+    left: auto;
+    right: 7px; /* Position the checkmark on the right */
 }
 
 /* --- Emotion Journal View Styles --- */
