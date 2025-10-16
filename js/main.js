@@ -989,6 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const lockAppBtn = document.getElementById('lock-app-btn');
+    const backupBtn = document.getElementById('backup-btn');
     const showAllEntriesBtn = document.getElementById('show-all-entries-btn');
     const editJournalsBtn = document.getElementById('journals-list-edit-btn');
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
@@ -1013,6 +1014,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
+
+    backupBtn.addEventListener('click', () => {
+        if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
+            const journalsDataRef = database.ref('journals');
+            journalsDataRef.once('value', (snapshot) => {
+                const dataToBackup = snapshot.val();
+                if (dataToBackup) {
+                    const backupRef = database.ref('journals_backup');
+                    backupRef.set(dataToBackup)
+                        .then(() => {
+                            alert('הגיבוי נוצר בהצלחה!');
+                        })
+                        .catch((error) => {
+                            console.error("Backup failed: ", error);
+                            alert('יצירת הגיבוי נכשלה. בדוק את ה-console לפרטים נוספים.');
+                        });
+                } else {
+                    alert('אין מידע לגבות.');
+                }
+            });
+        }
+    });
 
     lockAppBtn.addEventListener('click', () => {
         journalsListView.style.display = 'none';
