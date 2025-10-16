@@ -498,38 +498,6 @@ button:active,
     font-family: var(--font-stack);
 }
 
-.composer-actions-toolbar {
-    display: flex;
-    padding: 4px 8px;
-    background-color: #1c1c1e; /* Match primary background */
-    border-top: 1px solid #3a3a3c;
-    gap: 8px;
-    justify-content: flex-start;
-    position: sticky; /* Keep it at the bottom of the composer */
-    bottom: 0;
-    z-index: 10;
-}
-
-.toolbar-btn {
-    background: none;
-    border: none;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 4px;
-}
-
-.toolbar-btn:hover {
-    background-color: #3a3a3c;
-    color: var(--color-text-primary);
-}
-
-.toolbar-btn svg {
-    width: 22px;
-    height: 22px;
-    pointer-events: none; /* Make sure clicks go to the button */
-}
-
 .composer-metadata {
     padding-bottom: 15px;
 }
@@ -631,18 +599,44 @@ button:active,
     border-top: 1px solid var(--color-frosted-glass-border);
     padding: 10px 20px;
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start; /* Change to flex-start */
     align-items: center;
 }
 
-#delete-entry-btn {
+.tools-menu-container {
+    position: relative;
+}
+
+.tools-menu {
+    position: absolute;
+    bottom: 100%; /* Position above the toolbar */
+    left: 0;
+    background-color: var(--color-surface-card);
+    border-radius: var(--border-radius-card);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    padding: 8px;
+    width: 200px;
+    z-index: 11; /* Above the toolbar */
+}
+
+.tools-menu .menu-item {
+    display: block;
+    width: 100%;
+    padding: 12px;
     background: none;
     border: none;
-    color: #ff453a;
-    font-size: 17px;
+    color: var(--color-text-primary);
+    text-align: right;
+    font-size: 16px;
     cursor: pointer;
-    font-weight: 400;
-    font-family: var(--font-stack);
+}
+
+.tools-menu .menu-item:hover {
+    background-color: #3a3a3c;
+}
+
+.tools-menu .menu-item.destructive {
+    color: #ff453a;
 }
 
 /* --- Custom Modal Styles --- */

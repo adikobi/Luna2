@@ -75,11 +75,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function linkify(text) {
         const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
-        // First, escape HTML to prevent XSS
-        let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        // Linkify URLs first
-        let linkifiedText = escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        // Then, convert newlines to <br>
+
+        // 1. Process checklists first to create raw HTML
+        let processedText = text.split('\n').map((line, index) => {
+            const checklistRegex = /^- \[([ x])] /;
+            const match = line.match(checklistRegex);
+            if (match) {
+                const isChecked = match[1] === 'x';
+                // IMPORTANT: Escape the text content of the checklist item itself before embedding
+                const textContent = line.substring(match[0].length).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<div class="checklist-item"><input type="checkbox" ${isChecked ? 'checked' : ''} data-line-index="${index}">${textContent}</div>`;
+            }
+            // For non-checklist lines, escape them now
+            return line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }).join('\n');
+
+        // 2. Linkify URLs (this won't affect the checklist HTML)
+        let linkifiedText = processedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+
+        // 3. Convert remaining newlines to <br>
         return linkifiedText.replace(/\n/g, '<br>');
     }
 
@@ -446,13 +460,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
-            <div class="composer-actions-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
-                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-square"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-                </button>
-            </div>
-            <div class="composer-toolbar" style="justify-content: flex-end; display: ${isEditing && !isNewEntry ? 'flex' : 'none'};">
-                <button id="delete-entry-btn">מחק רשומה</button>
+            <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
+                <div class="tools-menu-container">
+                    <button id="tools-btn" class="toolbar-btn" title="כלים">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-more-vertical"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </button>
+                    <div class="tools-menu" style="display: none;">
+                        <button id="add-checklist-btn" class="menu-item">הוסף צ'קליסט</button>
+                        <button id="delete-entry-btn" class="menu-item destructive">מחק רשומה</button>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -542,8 +559,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        const deleteBtn = document.getElementById('delete-entry-btn');
-        if (deleteBtn) {
+        if (isEditing) {
+            const toolsBtn = document.getElementById('tools-btn');
+            const toolsMenu = document.querySelector('.tools-menu');
+            const addChecklistBtn = document.getElementById('add-checklist-btn');
+            const deleteBtn = document.getElementById('delete-entry-btn');
+
+            toolsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toolsMenu.style.display = toolsMenu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            addChecklistBtn.addEventListener('click', () => {
+                const textInput = document.getElementById('entry-textarea');
+                textInput.focus();
+                document.execCommand('insertText', false, '\n- [ ] ');
+                toolsMenu.style.display = 'none';
+            });
+
             deleteBtn.addEventListener('click', () => {
                 if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
                     if (currentlyEditingEntryId) {
@@ -551,15 +584,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         composerView.classList.remove('visible');
                     }
                 }
+                toolsMenu.style.display = 'none';
             });
-        }
 
-        if (isEditing) {
-            const addChecklistBtn = document.getElementById('add-checklist-btn');
-            addChecklistBtn.addEventListener('click', () => {
-                const textInput = document.getElementById('entry-textarea');
-                textInput.focus();
-                document.execCommand('insertText', false, '- [ ] ');
+            document.addEventListener('click', (e) => {
+                if (!toolsMenu.contains(e.target) && !toolsBtn.contains(e.target)) {
+                    toolsMenu.style.display = 'none';
+                }
             });
         }
     }
