@@ -84,15 +84,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return cleanString.split(/\s+/).length;
     }
 
-    function linkify(text) {
-        const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-        return text.replace(urlRegex, function(url) {
-            let href = url;
-            if (!href.match(/^(https?|ftp|file):\/\//)) {
-                href = 'http://' + href;
+    function linkify(html) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+
+        const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        const nodesToReplace = [];
+        while(node = walker.nextNode()) {
+            if (node.parentElement.tagName !== 'A') {
+                nodesToReplace.push(node);
             }
-            return `<a href="${href}" target="_blank">${url}</a>`;
+        }
+
+        nodesToReplace.forEach(node => {
+            const newHtml = node.nodeValue.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, function(url) {
+                let href = url;
+                if (!href.match(/^(https?|ftp|file):\/\//)) {
+                    href = 'http://' + href;
+                }
+                return `<a href="${href}" target="_blank">${url}</a>`;
+            });
+            const span = document.createElement('span');
+            span.innerHTML = newHtml;
+            node.parentNode.replaceChild(span, node);
         });
+
+        return tempDiv.innerHTML;
     }
 
     // --- UI Rendering ---
@@ -485,7 +503,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
                 // Disable checkboxes when not in edit mode
-                // textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
@@ -567,7 +585,6 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.addEventListener('click', clickHandler);
         });
 
-
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
@@ -576,15 +593,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
-                // Before saving, synchronize the `checked` attribute with the `checked` property
-                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                    if (cb.checked) {
-                        cb.setAttribute('checked', 'true');
-                    } else {
-                        cb.removeAttribute('checked');
-                    }
-                });
-
                 const title = titleInput.value;
                 const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
@@ -987,10 +995,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
-            // Prevent opening the composer if a link or a checklist label was clicked
-            if (e.target.tagName === 'A' || e.target.closest('.checklist-item label')) {
-                return;
-            }
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
@@ -1063,7 +1067,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const lockAppBtn = document.getElementById('lock-app-btn');
-    const backupBtn = document.getElementById('backup-btn');
     const showAllEntriesBtn = document.getElementById('show-all-entries-btn');
     const editJournalsBtn = document.getElementById('journals-list-edit-btn');
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
@@ -1088,28 +1091,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
-
-    backupBtn.addEventListener('click', () => {
-        if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
-            const journalsDataRef = database.ref('journals');
-            journalsDataRef.once('value', (snapshot) => {
-                const dataToBackup = snapshot.val();
-                if (dataToBackup) {
-                    const backupRef = database.ref('journals_backup');
-                    backupRef.set(dataToBackup)
-                        .then(() => {
-                            alert('הגיבוי נוצר בהצלחה!');
-                        })
-                        .catch((error) => {
-                            console.error("Backup failed: ", error);
-                            alert('יצירת הגיבוי נכשלה. בדוק את ה-console לפרטים נוספים.');
-                        });
-                } else {
-                    alert('אין מידע לגבות.');
-                }
-            });
-        }
-    });
 
     lockAppBtn.addEventListener('click', () => {
         journalsListView.style.display = 'none';
