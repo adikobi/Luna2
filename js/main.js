@@ -73,67 +73,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleDateString('he-IL', options);
     }
 
-    function linkify(text, isInteractive = true) {
-        const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
-
-        const lines = text.split('\n');
-        const htmlBlocks = lines.map((line, index) => {
-            const checklistRegex = /^- \[([ x])] /;
-            const match = line.match(checklistRegex);
-
-            if (match) {
-                const isChecked = match[1] === 'x';
-                const textContent = line.substring(match[0].length);
-                const escapedText = textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                const linkedText = escapedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-
-                const inputId = `checklist-item-${Date.now()}-${index}`;
-                const disabledAttr = isInteractive ? '' : 'disabled';
-
-                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}" ${disabledAttr}><label for="${inputId}">${linkedText}</label></div>`;
-            } else {
-                // Plain text lines are NOT wrapped in a div.
-                const escapedLine = line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return escapedLine.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-            }
-        });
-
-        // Join the blocks with <br>. This will correctly create line breaks between
-        // plain text lines and checklist divs.
-        return htmlBlocks.join('<br>');
-    }
-
     function isHebrew(text) {
         const hebrewRegex = /[\u0590-\u05FF]/;
         return hebrewRegex.test(text);
-    }
-
-    function editorContentToText(editor) {
-        const lines = [];
-        const childNodes = Array.from(editor.childNodes);
-
-        for (let i = 0; i < childNodes.length; i++) {
-            const node = childNodes[i];
-
-            if (node.nodeName === 'DIV') {
-                if (node.classList.contains('checklist-item')) {
-                    const checkbox = node.querySelector('input[type="checkbox"]');
-                    const label = node.querySelector('label');
-                    const text = label ? label.textContent.trim() : '';
-                    lines.push(`- [${checkbox.checked ? 'x' : ' '}] ${text}`);
-                } else {
-                    // This handles divs that contain plain text, possibly with <br> for internal newlines
-                    lines.push(node.innerHTML.replace(/<br\s*\/?>/gi, '\n'));
-                }
-            } else if (node.nodeName === '#text' && node.textContent.trim() !== '') {
-                // This handles plain text nodes that are not wrapped in a div
-                lines.push(node.textContent);
-            }
-        }
-
-        // Join all processed lines. This prevents blank lines between checklist items
-        // and correctly separates text blocks from checklist blocks.
-        return lines.join('\n');
     }
 
     function countWords(str) {
@@ -172,20 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
-            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
-            const match = entry.text.match(titleRegex);
-            let bodyHtml = '';
-
-            if (match) {
-                const title = match[1];
-                const body = match[2];
-                // Pass the isInteractive flag based on the container.
-                const isInteractive = container.id !== 'entries-for-date-view';
-                bodyHtml = `<strong>${title}</strong><br>${linkify(body, isInteractive)}`;
-            } else {
-                const isInteractive = container.id !== 'entries-for-date-view';
-                bodyHtml = linkify(entry.text, isInteractive);
-            }
+            // The entire entry text is now treated as HTML.
+            const bodyHtml = entry.text;
 
             card.innerHTML = `
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
@@ -518,29 +448,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateInput = document.getElementById('entry-date'); // May be null in view mode
 
         if (entry) {
-            const titleRegex = /<strong>(.*?)<\/strong><br>(.*)/s;
-            const match = entry.text.match(titleRegex);
-            if (match) {
-                titleInput.value = match[1];
-                textInput.innerHTML = linkify(match[2], !isEditing);
+            // New logic to handle raw HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = entry.text;
+
+            const strongTag = tempDiv.querySelector('strong');
+            let bodyContent = '';
+
+            if (strongTag && tempDiv.firstChild.nodeName === 'STRONG') {
+                titleInput.value = strongTag.textContent;
+                strongTag.remove(); // Remove title from body
+                 // Remove the <br> that immediately follows the title
+                if (tempDiv.firstChild.nodeName === 'BR') {
+                    tempDiv.firstChild.remove();
+                }
             } else {
                 titleInput.value = '';
-                textInput.innerHTML = linkify(entry.text, !isEditing);
             }
+
+            bodyContent = tempDiv.innerHTML;
+            textInput.innerHTML = bodyContent;
+
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
+                // Disable checkboxes when not in edit mode
+                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
         }
 
         if (isEditing) {
-            // Use the new function to get an accurate representation of the initial state
             initialEntryState = {
                 title: titleInput.value,
-                text: editorContentToText(textInput),
+                html: textInput.innerHTML, // Compare raw HTML
                 date: dateInput.value,
             };
         } else {
@@ -551,12 +494,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
                     title: document.getElementById('entry-title').value,
-                    text: editorContentToText(textInput), // Use the new function here as well
+                    html: textInput.innerHTML, // Compare raw HTML
                     date: document.getElementById('entry-date').value,
                 };
                 const hasChanged =
                     currentState.title !== initialEntryState.title ||
-                    currentState.text !== initialEntryState.text ||
+                    currentState.html !== initialEntryState.html ||
                     currentState.date !== initialEntryState.date;
                 if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
                     return;
@@ -574,12 +517,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const text = editorContentToText(textInput);
+                const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
 
-                if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
+                if (bodyHtml.trim() === '' && title.trim() === '') return;
 
-                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + text;
+                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
@@ -611,8 +554,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         const newChecklistItem = document.createElement('div');
                         const inputId = `checklist-item-${Date.now()}`;
                         newChecklistItem.className = 'checklist-item';
-                        // This now matches the structure created by linkify
-                        newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}" data-line-index="0"><label for="${inputId}">&nbsp;</label>`;
+                        // data-line-index is no longer needed
+                        newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
 
                         const container = parentDiv.closest('.checklist-item') || parentDiv;
                         container.after(newChecklistItem);
@@ -633,8 +576,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 const inputId = `checklist-item-${Date.now()}`;
-                // This now matches the structure created by linkify
-                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}" data-line-index="0"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                // data-line-index is no longer needed
+                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
             });
 
@@ -993,60 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.body.addEventListener('change', (e) => {
-        const checkbox = e.target.closest('.checklist-item input[type="checkbox"]');
-        if (!checkbox || checkbox.disabled) return;
-
-        const composerContent = checkbox.closest('.composer-content');
-        const journalCard = checkbox.closest('.journal-card');
-
-        let entryId, journalId;
-
-        if (composerContent) {
-            entryId = currentlyEditingEntryId;
-            journalId = appData.currentJournalId;
-        } else if (journalCard) {
-            entryId = journalCard.dataset.id;
-            journalId = journalCard.dataset.journalId;
-        } else {
-            return; // Not a context we can save from
-        }
-
-        if (!entryId || !journalId) return;
-
-        const journal = appData.journals.find(j => j.id === journalId);
-        if (!journal || !journal.entries || !journal.entries[entryId]) return;
-
-        const originalText = journal.entries[entryId].text;
-        const lineIndex = parseInt(checkbox.dataset.lineIndex, 10);
-
-        if (isNaN(lineIndex)) return;
-
-        const titleMatch = originalText.match(/^(<strong>.*?<\/strong><br>)(.*)/s);
-        let titlePart = '';
-        let bodyPart = originalText;
-
-        if (titleMatch) {
-            titlePart = titleMatch[1];
-            bodyPart = titleMatch[2];
-        }
-
-        const lines = bodyPart.split('\n');
-
-        if (lines[lineIndex] !== undefined) {
-            const isChecked = checkbox.checked;
-            const checklistRegex = /^- \[([ x])] /;
-            if (lines[lineIndex].match(checklistRegex)) {
-                lines[lineIndex] = lines[lineIndex].replace(checklistRegex, `- [${isChecked ? 'x' : ' '}] `);
-            }
-        }
-
-        const newBodyText = lines.join('\n');
-        const newEntryText = titlePart + newBodyText;
-
-        const entryRef = journalsRef.child(journalId).child('entries').child(entryId);
-        entryRef.update({ text: newEntryText });
-    });
 
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
     document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
