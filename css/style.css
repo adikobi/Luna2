@@ -590,17 +590,18 @@ button:active,
 
 .composer-toolbar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--color-frosted-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-top: 1px solid var(--color-frosted-glass-border);
-    padding: 10px 20px;
+    bottom: 30px; /* Position it a bit up from the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto; /* Let the content define the width */
+    background-color: var(--color-surface-card);
+    border-radius: 25px; /* Fully rounded corners */
+    padding: 8px;
     display: flex;
-    justify-content: flex-start; /* Change to flex-start */
+    justify-content: center;
     align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 2010; /* Ensure it's above other content */
 }
 
 .tools-menu-container {
