@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/style.css?v=1728935092">
     <!-- Firebase SDKs (v9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <!-- Chart.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
@@ -20,9 +21,45 @@
     <script src="js/main.js" defer></script>
 </head>
 <body>
-    <!-- Password View -->
-    <div id="password-view" class="view-screen">
-        <div id="splash-screen">
+    <!-- Auth View -->
+    <div id="auth-view" class="view-screen">
+        <div id="auth-container">
+            <div class="auth-toggle">
+                <button id="show-login-btn" class="active">כניסה</button>
+                <button id="show-signup-btn">הרשמה</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form">
+                <input type="text" id="login-email-username" placeholder="אימייל או שם משתמש" autocomplete="email">
+                <input type="password" id="login-password" placeholder="סיסמה" autocomplete="current-password">
+                <button id="login-btn">כניסה</button>
+                <a href="#" id="forgot-password-link">שכחתי סיסמה</a>
+            </div>
+
+            <!-- Signup Form (hidden by default) -->
+            <div id="signup-form" style="display: none;">
+                <input type="text" id="signup-username" placeholder="שם משתמש" autocomplete="username">
+                <input type="email" id="signup-email" placeholder="אימייל" autocomplete="email">
+                <input type="password" id="signup-password" placeholder="סיסמה" autocomplete="new-password">
+                <button id="signup-btn">הרשמה</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PIN Setup View -->
+    <div id="pin-setup-view" class="view-screen" style="display: none;">
+        <div class="pin-container">
+            <h2>הגדר קוד PIN</h2>
+            <p>הזן קוד בן 4 ספרות לכניסה מהירה.</p>
+            <input type="password" id="pin-setup-input" inputmode="numeric" pattern="[0-9]*" maxlength="4">
+            <button id="pin-setup-btn">הגדר</button>
+        </div>
+    </div>
+
+    <!-- PIN View -->
+    <div id="pin-view" class="view-screen" style="display: none;">
+         <div id="splash-screen">
             <div class="logo-container">
                 <i class="fas fa-moon moon-icon"></i>
                 <div class="stars">
@@ -35,9 +72,10 @@
             <p class="splash-subtitle">זיכרונות ורגעים</p>
         </div>
         <div class="password-container">
-            <input type="password" id="password-input" inputmode="numeric" pattern="[0-9]*">
-            <button id="password-submit-btn">כניסה</button>
+            <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+            <button id="pin-submit-btn">כניסה</button>
         </div>
+        <button id="logout-btn" class="text-btn">התנתק</button>
     </div>
 
     <!-- Journals List View (hidden by default) -->
