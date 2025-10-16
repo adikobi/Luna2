@@ -82,9 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const match = line.match(checklistRegex);
             if (match) {
                 const isChecked = match[1] === 'x';
-                // IMPORTANT: Escape the text content of the checklist item itself before embedding
                 const textContent = line.substring(match[0].length).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return `<div class="checklist-item"><input type="checkbox" ${isChecked ? 'checked' : ''} data-line-index="${index}">${textContent}</div>`;
+                // Use a unique ID for the input and a label for accessibility and styling.
+                const inputId = `checklist-item-${Date.now()}-${index}`;
+                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}"><label for="${inputId}">${textContent}</label></div>`;
             }
             // For non-checklist lines, escape them now
             return line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -100,6 +101,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function isHebrew(text) {
         const hebrewRegex = /[\u0590-\u05FF]/;
         return hebrewRegex.test(text);
+    }
+
+    function editorContentToText(editor) {
+        const lines = [];
+        editor.childNodes.forEach(node => {
+            if (node.nodeName === 'DIV') {
+                if (node.classList.contains('checklist-item')) {
+                    const checkbox = node.querySelector('input[type="checkbox"]');
+                    const label = node.querySelector('label');
+                    const text = label ? label.textContent.trim() : '';
+                    lines.push(`- [${checkbox.checked ? 'x' : ' '}] ${text}`);
+                } else {
+                    // Convert <br> to \n for multiline content within a single div, then add to lines
+                    lines.push(node.innerHTML.replace(/<br\s*\/?>/gi, '\n'));
+                }
+            } else if (node.nodeType === Node.TEXT_NODE) {
+                // Handle text nodes that might just be newlines or spaces
+                if (node.textContent.trim() !== '') {
+                    lines.push(node.textContent);
+                }
+            }
+        });
+
+        // Join with \n and then trim any final trailing newline
+        return lines.join('\n').trim();
     }
 
     function countWords(str) {
@@ -500,9 +526,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (isEditing) {
+            // Use the new function to get an accurate representation of the initial state
             initialEntryState = {
                 title: titleInput.value,
-                text: textInput.innerText,
+                text: editorContentToText(textInput),
                 date: dateInput.value,
             };
         } else {
@@ -513,7 +540,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
                     title: document.getElementById('entry-title').value,
-                    text: document.getElementById('entry-textarea').innerText,
+                    text: editorContentToText(textInput), // Use the new function here as well
                     date: document.getElementById('entry-date').value,
                 };
                 const hasChanged =
@@ -536,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const text = textInput.innerText;
+                const text = editorContentToText(textInput);
                 const dateValue = dateInput.value;
 
                 if ((text.trim() === '' && title.trim() === '') || !dateValue) return;
@@ -560,13 +587,54 @@ document.addEventListener('DOMContentLoaded', () => {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
 
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    const currentNode = range.startContainer;
+                    const parentDiv = currentNode.nodeType === 3 ? currentNode.parentNode : currentNode;
+
+                    // If inside a checklist item, create a new one on Enter
+                    if (parentDiv.classList.contains('checklist-item') || parentDiv.closest('.checklist-item')) {
+                        e.preventDefault();
+                        const newChecklistItem = document.createElement('div');
+                        const inputId = `checklist-item-${Date.now()}`;
+                        newChecklistItem.className = 'checklist-item';
+                        // This now matches the structure created by linkify
+                        newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}" data-line-index="0"><label for="${inputId}">&nbsp;</label>`;
+
+                        const container = parentDiv.closest('.checklist-item') || parentDiv;
+                        container.after(newChecklistItem);
+
+                        // Move cursor to the new checklist item's label
+                        const label = newChecklistItem.querySelector('label');
+                        label.setAttribute('contenteditable', 'true'); // Make the label editable
+                        label.focus();
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(label);
+                        selection.removeAllRanges();
+                        selection.addRange(newRange);
+                    }
+                }
+            });
+
             addChecklistBtn.addEventListener('click', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
-                document.execCommand('insertText', false, '\n- [ ] ');
+                const inputId = `checklist-item-${Date.now()}`;
+                // This now matches the structure created by linkify
+                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}" data-line-index="0"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                document.execCommand('insertHTML', false, htmlToInsert);
             });
 
             deleteBtn.addEventListener('click', () => {
+                // If it's a new entry that hasn't been saved, just close the composer.
+                if (isNewEntry) {
+                    composerView.classList.remove('visible');
+                    return;
+                }
+
+                // For existing entries, ask for confirmation.
                 if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
                     if (currentlyEditingEntryId) {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
