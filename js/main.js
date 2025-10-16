@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return date.toLocaleDateString('he-IL', options);
     }
 
-    function linkify(text) {
+    function linkify(text, isInteractive = true) {
         const urlRegex = /(https?:\/\/[^\s\u0590-\u05FF]+)/g;
 
         // 1. Process checklists first to create raw HTML
@@ -83,9 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const isChecked = match[1] === 'x';
                 const textContent = line.substring(match[0].length).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                // Use a unique ID for the input and a label for accessibility and styling.
                 const inputId = `checklist-item-${Date.now()}-${index}`;
-                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}"><label for="${inputId}">${textContent}</label></div>`;
+                const disabledAttr = isInteractive ? '' : 'disabled';
+                return `<div class="checklist-item"><input type="checkbox" id="${inputId}" ${isChecked ? 'checked' : ''} data-line-index="${index}" ${disabledAttr}><label for="${inputId}">${textContent}</label></div>`;
             }
             // For non-checklist lines, escape them now
             return line.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -171,9 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (match) {
                 const title = match[1];
                 const body = match[2];
-                bodyHtml = `<strong>${title}</strong><br>${linkify(body)}`;
+                // Pass the isInteractive flag based on the container.
+                const isInteractive = container.id !== 'entries-for-date-view';
+                bodyHtml = `<strong>${title}</strong><br>${linkify(body, isInteractive)}`;
             } else {
-                bodyHtml = linkify(entry.text);
+                const isInteractive = container.id !== 'entries-for-date-view';
+                bodyHtml = linkify(entry.text, isInteractive);
             }
 
             card.innerHTML = `
@@ -511,10 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const match = entry.text.match(titleRegex);
             if (match) {
                 titleInput.value = match[1];
-                textInput.innerHTML = linkify(match[2]);
+                textInput.innerHTML = linkify(match[2], !isEditing);
             } else {
                 titleInput.value = '';
-                textInput.innerHTML = linkify(entry.text);
+                textInput.innerHTML = linkify(entry.text, !isEditing);
             }
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
@@ -978,7 +981,63 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emotionCard) {
             const date = emotionCard.dataset.date;
             showEmojiPicker(date);
+            return; // Exit after handling
         }
+    });
+
+    document.body.addEventListener('change', (e) => {
+        const checkbox = e.target.closest('.checklist-item input[type="checkbox"]');
+        if (!checkbox || checkbox.disabled) return;
+
+        const composerContent = checkbox.closest('.composer-content');
+        const journalCard = checkbox.closest('.journal-card');
+
+        let entryId, journalId;
+
+        if (composerContent) {
+            entryId = currentlyEditingEntryId;
+            journalId = appData.currentJournalId;
+        } else if (journalCard) {
+            entryId = journalCard.dataset.id;
+            journalId = journalCard.dataset.journalId;
+        } else {
+            return; // Not a context we can save from
+        }
+
+        if (!entryId || !journalId) return;
+
+        const journal = appData.journals.find(j => j.id === journalId);
+        if (!journal || !journal.entries || !journal.entries[entryId]) return;
+
+        const originalText = journal.entries[entryId].text;
+        const lineIndex = parseInt(checkbox.dataset.lineIndex, 10);
+
+        if (isNaN(lineIndex)) return;
+
+        const titleMatch = originalText.match(/^(<strong>.*?<\/strong><br>)(.*)/s);
+        let titlePart = '';
+        let bodyPart = originalText;
+
+        if (titleMatch) {
+            titlePart = titleMatch[1];
+            bodyPart = titleMatch[2];
+        }
+
+        const lines = bodyPart.split('\n');
+
+        if (lines[lineIndex] !== undefined) {
+            const isChecked = checkbox.checked;
+            const checklistRegex = /^- \[([ x])] /;
+            if (lines[lineIndex].match(checklistRegex)) {
+                lines[lineIndex] = lines[lineIndex].replace(checklistRegex, `- [${isChecked ? 'x' : ' '}] `);
+            }
+        }
+
+        const newBodyText = lines.join('\n');
+        const newEntryText = titlePart + newBodyText;
+
+        const entryRef = journalsRef.child(journalId).child('entries').child(entryId);
+        entryRef.update({ text: newEntryText });
     });
 
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);

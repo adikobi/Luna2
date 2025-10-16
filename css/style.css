@@ -770,6 +770,22 @@ button:active,
     border-color: var(--color-accent-system);
 }
 
+/* RTL-specific styles for checklist */
+[dir="rtl"] .checklist-item label {
+    padding-left: 0;
+    padding-right: 30px; /* Space for the checkbox on the right */
+}
+
+[dir="rtl"] .checklist-item label::before {
+    left: auto;
+    right: 0; /* Position the checkbox on the right */
+}
+
+[dir="rtl"] .checklist-item input[type="checkbox"]:checked + label::after {
+    left: auto;
+    right: 7px; /* Position the checkmark on the right */
+}
+
 /* --- Emotion Journal View Styles --- */
 .emotion-grid {
     display: grid;
