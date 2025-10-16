@@ -788,6 +788,11 @@ button:active,
     right: 7px; /* Position the checkmark on the right */
 }
 
+/* Remove the default focus outline which can look jarring */
+.checklist-item label:focus, .checklist-item input:focus {
+    outline: none;
+}
+
 /* --- Emotion Journal View Styles --- */
 .emotion-grid {
     display: grid;

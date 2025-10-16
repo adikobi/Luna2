@@ -84,6 +84,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return cleanString.split(/\s+/).length;
     }
 
+    function linkify(text) {
+        const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+        return text.replace(urlRegex, function(url) {
+            let href = url;
+            if (!href.match(/^(https?|ftp|file):\/\//)) {
+                href = 'http://' + href;
+            }
+            return `<a href="${href}" target="_blank">${url}</a>`;
+        });
+    }
+
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
         container.innerHTML = '';
@@ -534,7 +545,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
                     const entryContent = textInput.innerHTML;
                     const titleContent = titleInput.value;
-                    const fullEntryHtml = (titleContent ? `<strong>${titleContent}</strong><br>` : '') + entryContent;
+                    const linkedEntryContent = linkify(entryContent);
+                    const fullEntryHtml = (titleContent ? `<strong>${titleContent}</strong><br>` : '') + linkedEntryContent;
 
                     const entryData = {
                         text: fullEntryHtml,
@@ -579,7 +591,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (bodyHtml.trim() === '' && title.trim() === '') return;
 
-                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
+                const linkedBodyHtml = linkify(bodyHtml);
+                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + linkedBodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
@@ -974,6 +987,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
+            // Prevent opening the composer if a link or a checklist label was clicked
+            if (e.target.tagName === 'A' || e.target.closest('.checklist-item label')) {
+                return;
+            }
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
