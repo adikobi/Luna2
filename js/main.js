@@ -991,7 +991,7 @@ document.addEventListener('DOMContentLoaded', () => {
             journalsDataRef.once('value', (snapshot) => {
                 const dataToBackup = snapshot.val();
                 if (dataToBackup) {
-                    const backupRef = database.ref(`${appData.currentUser.uid}/journals_backup`);
+                    const backupRef = database.ref(`users/${appData.currentUser.uid}/journals_backup`);
                     backupRef.set(dataToBackup)
                         .then(() => {
                             alert('הגיבוי נוצר בהצלחה!');
@@ -1145,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         auth.createUserWithEmailAndPassword(email, password)
             .then((userCredential) => {
                 const user = userCredential.user;
-                database.ref(`${user.uid}/profile`).set({
+                database.ref(`users/${user.uid}/profile`).set({
                     username: username,
                     email: email
                 });
@@ -1162,13 +1162,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Login by username is not feasible with the new DB structure without a separate username->uid lookup table.
-        // For now, we only support login by email.
-        auth.signInWithEmailAndPassword(emailOrUsername, password)
-            .catch((error) => {
-                alert("Login failed. Please check your email and password.");
-                console.error(error);
+        if (emailOrUsername.includes('@')) {
+            auth.signInWithEmailAndPassword(emailOrUsername, password)
+                .catch((error) => alert(error.message));
+        } else {
+            database.ref('users').orderByChild('profile/username').equalTo(emailOrUsername).once('value', snapshot => {
+                if (snapshot.exists()) {
+                    const uid = Object.keys(snapshot.val())[0];
+                    const email = snapshot.val()[uid].profile.email;
+                    auth.signInWithEmailAndPassword(email, password)
+                        .catch((error) => alert(error.message));
+                } else {
+                    alert("User not found.");
+                }
             });
+        }
     });
 
     forgotPasswordLink.addEventListener('click', (e) => {
@@ -1223,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Main App Logic ---
     function initializeData(user) {
         appData.currentUser = user;
-        journalsRef = database.ref(`${user.uid}/journals`);
+        journalsRef = database.ref(`users/${user.uid}/journals`);
 
         hideAllViews();
 

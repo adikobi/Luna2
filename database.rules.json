@@ -1,8 +1,17 @@
 {
   "rules": {
-    "$uid": {
-      ".read": "auth != null && auth.uid == $uid",
-      ".write": "auth != null && auth.uid == $uid"
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && auth.uid == $uid"
+      }
+    },
+    "journals": {
+        // This is now legacy data, no new writes should be allowed.
+        // Read access can be maintained for migration purposes if needed,
+        // but for now, we will lock it down.
+        ".read": false,
+        ".write": false
     }
   }
 }

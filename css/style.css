@@ -308,6 +308,11 @@ body {
     text-align: right; /* RTL text alignment */
 }
 
+#pin-input {
+    text-align: center;
+    letter-spacing: 5px;
+}
+
 #login-form input:focus, #signup-form input:focus, #pin-setup-input:focus, #pin-input:focus {
     outline: none;
     border-color: var(--color-accent-system);
