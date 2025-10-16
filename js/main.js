@@ -84,35 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return cleanString.split(/\s+/).length;
     }
 
-    function linkify(html) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-
-        const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        const nodesToReplace = [];
-        while(node = walker.nextNode()) {
-            if (node.parentElement.tagName !== 'A') {
-                nodesToReplace.push(node);
-            }
-        }
-
-        nodesToReplace.forEach(node => {
-            const newHtml = node.nodeValue.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, function(url) {
-                let href = url;
-                if (!href.match(/^(https?|ftp|file):\/\//)) {
-                    href = 'http://' + href;
-                }
-                return `<a href="${href}" target="_blank">${url}</a>`;
-            });
-            const span = document.createElement('span');
-            span.innerHTML = newHtml;
-            node.parentNode.replaceChild(span, node);
-        });
-
-        return tempDiv.innerHTML;
-    }
-
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
         container.innerHTML = '';
@@ -537,54 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
             composerView.classList.remove('visible');
         });
 
-        // --- Checklist Interaction Logic ---
-        const checklistItems = textInput.querySelectorAll('.checklist-item');
-        checklistItems.forEach(item => {
-            const checkbox = item.querySelector('input[type="checkbox"]');
-            const label = item.querySelector('label');
-
-            const clickHandler = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                checkbox.checked = !checkbox.checked;
-
-                // In view mode, we need a "save" function that doesn't close the view
-                const silentSave = () => {
-                    // Before saving, synchronize the `checked` attribute with the `checked` property
-                    textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                        if (cb.checked) {
-                            cb.setAttribute('checked', '');
-                        } else {
-                            cb.removeAttribute('checked');
-                        }
-                    });
-
-                    const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
-                    const entryContent = textInput.innerHTML;
-                    const titleContent = titleInput.value;
-                    const linkedEntryContent = linkify(entryContent);
-                    const fullEntryHtml = (titleContent ? `<strong>${titleContent}</strong><br>` : '') + linkedEntryContent;
-
-                    const entryData = {
-                        text: fullEntryHtml,
-                        date: entry.date // Use the original date
-                    };
-                    journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
-                };
-
-                // If not in edit mode, save immediately
-                if (!isEditing) {
-                    silentSave();
-                }
-            };
-
-            // Attach the listener to the label, which is what the user actually clicks
-            label.addEventListener('click', clickHandler);
-            // Also attach to the checkbox for robustness, though it's visually hidden
-            checkbox.addEventListener('click', clickHandler);
-        });
-
         const editBtn = document.getElementById('edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
@@ -599,8 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (bodyHtml.trim() === '' && title.trim() === '') return;
 
-                const linkedBodyHtml = linkify(bodyHtml);
-                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + linkedBodyHtml;
+                const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');

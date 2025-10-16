@@ -16,6 +16,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
     <!-- Chart.js Date Adapter (Bundled with a compatible date-fns) -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/main.js" defer></script>
 </head>
 <body>
@@ -43,17 +44,17 @@
     <div id="journals-list-view" class="view-screen" style="display: none;">
         <header class="journals-list-header">
             <button id="lock-app-btn" class="header-action-btn">
-                <i class="fas fa-lock"></i>
+                <i data-lucide="lock"></i>
             </button>
             <h1 class="journals-list-title"></h1>
             <button id="backup-btn" class="header-action-btn">
-                <i class="fas fa-save"></i>
+                <i data-lucide="save"></i>
             </button>
             <button id="show-all-entries-btn" class="header-action-btn">
-                <i class="fas fa-list"></i>
+                <i data-lucide="list"></i>
             </button>
             <button id="journals-list-edit-btn" class="header-action-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                <i data-lucide="pencil"></i>
             </button>
             <button id="journals-list-done-btn" class="header-action-btn" style="display: none;">סיום</button>
         </header>
@@ -199,5 +200,8 @@
             </div>
         </div>
     </div>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

@@ -147,8 +147,6 @@ body {
      width: 24px;
     height: 24px;
     stroke: var(--color-accent-system);
-    font-size: 22px; /* For font-awesome icons */
-    line-height: 24px; /* Align icon vertically */
 }
 
 
@@ -786,11 +784,6 @@ button:active,
 [dir="rtl"] .checklist-item input[type="checkbox"]:checked + label::after {
     left: auto;
     right: 7px; /* Position the checkmark on the right */
-}
-
-/* Remove the default focus outline which can look jarring */
-.checklist-item label:focus, .checklist-item input:focus {
-    outline: none;
 }
 
 /* --- Emotion Journal View Styles --- */
