@@ -542,9 +542,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteBtn = document.getElementById('delete-entry-btn');
 
             // Prevent clicks on checklist items from bubbling up and closing the composer.
+            // Also, manually handle the toggle since default behavior can be unreliable in contenteditable.
             textInput.addEventListener('click', (e) => {
-                if (e.target.closest('.checklist-item')) {
-                    e.stopPropagation();
+                const label = e.target.closest('.checklist-item label');
+                if (label) {
+                    e.stopPropagation(); // Stop the composer from closing.
+                    e.preventDefault();  // Stop the browser's default label action.
+
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        const checkbox = document.getElementById(inputId);
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked; // Manually toggle the state.
+                        }
+                    }
                 }
             });
 
