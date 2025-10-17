@@ -1230,6 +1230,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const pinSetupBtn = document.getElementById('pin-setup-btn');
     const pinSubmitBtn = document.getElementById('pin-submit-btn');
 
+    // --- Enter Key Listeners for Auth Forms ---
+    document.querySelectorAll('#login-form input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loginBtn.click();
+        });
+    });
+
+    document.querySelectorAll('#signup-form input').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') signupBtn.click();
+        });
+    });
+
+    document.getElementById('pin-setup-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') pinSetupBtn.click();
+    });
+
+
     showLoginBtn.addEventListener('click', () => {
         loginForm.style.display = 'block';
         signupForm.style.display = 'none';
