@@ -251,6 +251,11 @@ body.loading .view-screen {
     box-sizing: border-box;
 }
 
+#auth-view {
+    justify-content: flex-start;
+    padding-top: 15vh;
+}
+
 #pin-view {
     justify-content: flex-start;
     padding-top: 10vh;
@@ -340,7 +345,6 @@ body.loading .view-screen {
 }
 
 #login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
-    margin-top: 10px;
     font-weight: 700;
     width: 100%;
     padding: 15px;
@@ -352,6 +356,10 @@ body.loading .view-screen {
     cursor: pointer;
     box-sizing: border-box;
     font-family: 'Heebo', sans-serif;
+}
+
+#pin-submit-btn {
+    margin-top: 10px;
 }
 
 #forgot-password-link {
@@ -429,7 +437,7 @@ body.loading .view-screen {
 .splash-title {
     font-size: 5rem;
     color: var(--text-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
     font-family: 'Bebas Neue', 'Heebo', sans-serif;
 }
 
@@ -437,7 +445,7 @@ body.loading .view-screen {
     font-size: 1.25rem;
     color: var(--text-primary);
     opacity: 0.8;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .password-container {
