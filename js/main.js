@@ -506,6 +506,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
+                // Manually sync checkbox state to the DOM before saving
+                const checkboxes = textInput.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        cb.setAttribute('checked', 'checked');
+                    } else {
+                        cb.removeAttribute('checked');
+                    }
+                });
+
                 const title = titleInput.value;
                 const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
