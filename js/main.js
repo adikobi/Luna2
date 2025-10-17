@@ -12,13 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const database = firebase.database();
 
     // Ensure composer is a direct child of body to avoid stacking context issues
     document.body.appendChild(document.getElementById('composer-view'));
 
     // --- View Elements ---
-    const passwordView = document.getElementById('password-view');
+    const authView = document.getElementById('auth-view');
+    const pinSetupView = document.getElementById('pin-setup-view');
+    const pinView = document.getElementById('pin-view');
     const journalsListView = document.getElementById('journals-list-view');
     const timelineView = document.getElementById('timeline-view');
     const composerView = document.getElementById('composer-view');
@@ -32,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let appData = {
         journals: [],
         currentJournalId: null,
+        currentUser: null,
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
@@ -40,11 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedYear: new Date().getFullYear(),
         allTime: true,
     };
+    let journalsRef = null;
 
     const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '🥸', '😋', '😖', '😢', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '🏊', '⚪'];
-
-    // --- Firebase Refs ---
-    const journalsRef = database.ref('journals');
 
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
@@ -84,6 +86,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return cleanString.split(/\s+/).length;
     }
 
+    function hideAllViews() {
+        document.querySelectorAll('.view-screen').forEach(view => {
+            view.style.display = 'none';
+        });
+    }
+
+    async function hashPin(pin) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(pin);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
         container.innerHTML = '';
@@ -114,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
-            // The entire entry text is now treated as HTML.
             const bodyHtml = entry.text;
 
             card.innerHTML = `
@@ -152,14 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderEmotionJournalView(journal) {
         journalFeed.innerHTML = ''; // Clear the feed
 
-        // --- Calculate Date Range ---
-        // To fix the bug, we must consider both text entries and emoji-only entries
-        // to find the true start date of the journal.
         const textEntryDates = journal.entries ? Object.values(journal.entries).map(e => new Date(e.date)) : [];
         const emojiEntryDates = journal.emojis ? Object.keys(journal.emojis).map(d => new Date(d)) : [];
 
         const allEntryDates = [...textEntryDates, ...emojiEntryDates];
-        allEntryDates.sort((a, b) => a - b); // Sort dates ascending to find the earliest
+        allEntryDates.sort((a, b) => a - b);
 
         const startDate = allEntryDates.length > 0 ? new Date(allEntryDates[0]) : new Date();
         startDate.setHours(0, 0, 0, 0);
@@ -174,12 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
             allDates.push(new Date(currentDate));
             currentDate.setDate(currentDate.getDate() + 1);
         }
-        allDates.reverse(); // Show most recent dates first
+        allDates.reverse();
 
-        // Get saved emoji data from the journal object
         const savedEmojis = journal.emojis || {};
 
-        // Group dates by month for rendering
         const datesByMonth = allDates.reduce((acc, date) => {
             const monthYear = date.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
             if (!acc[monthYear]) {
@@ -189,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return acc;
         }, {});
 
-        // Render the HTML for the emotion tracker
         for (const monthYear in datesByMonth) {
             const monthHeader = document.createElement('h2');
             monthHeader.className = 'month-header';
@@ -233,10 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
 
-        // --- Add Graph Button dynamically ---
         const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
-
-        // Cleanup previous dynamic elements from any state
         const existingGraphBtn = document.getElementById('show-graph-btn');
         if (existingGraphBtn) existingGraphBtn.remove();
         const existingSpacer = timelineHeader.querySelector('.spacer');
@@ -254,12 +261,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchBtn = document.getElementById('search-toggle-btn');
             const backBtn = document.getElementById('back-to-journals-btn');
 
-            // Insert spacer between the two groups
             backBtn.after(spacer);
-            // Insert the graph button before the search button to group them on the left
             searchBtn.before(graphBtn);
         }
-        // ------------------------------------
 
         if (journal.name === 'רגשות') {
             renderEmotionJournalView(journal);
@@ -273,17 +277,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderJournalFeed(entriesArray);
             fab.style.display = 'block';
         }
-
-        journalsListView.style.display = 'none';
-        insightsView.style.display = 'none';
+        hideAllViews();
         timelineView.style.display = 'block';
     }
 
     function showJournalsListView() {
         appData.currentJournalId = null;
         renderJournalsList(appData.journals);
-        timelineView.style.display = 'none';
-        insightsView.style.display = 'none';
+        hideAllViews();
         journalsListView.style.display = 'block';
     }
 
@@ -293,12 +294,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const stats = calculateInsights();
         renderInsightsDetailView(stats);
         renderCalendar(calendarDate);
-        journalsListView.style.display = 'none';
+        hideAllViews();
         insightsView.style.display = 'block';
     }
 
     // --- Graph View Logic ---
-    let weightChart = null; // To hold the Chart.js instance
+    let weightChart = null;
 
     function parseWeightData(journal) {
         if (!journal || !journal.entries) return [];
@@ -306,9 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const entriesArray = Object.values(journal.entries);
 
         let data = entriesArray.map(entry => {
-            // Strip HTML tags from the text before parsing
             const cleanText = entry.text.replace(/<[^>]*>?/gm, '');
-            // Extract the first number (integer or float) from the cleaned text
             const match = cleanText.match(/(\d+(\.\d+)?)/);
             if (match) {
                 return {
@@ -317,9 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
             return null;
-        }).filter(item => item !== null); // Filter out entries that didn't have a valid number
+        }).filter(item => item !== null);
 
-        // Sort by date ascending
         data.sort((a, b) => a.x - b.x);
 
         return data;
@@ -336,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case '3m': startDate.setMonth(now.getMonth() - 3); break;
             case '6m': startDate.setMonth(now.getMonth() - 6); break;
             case '1y': startDate.setFullYear(now.getFullYear() - 1); break;
-            case 'all': startDate = new Date(0); break; // A very early date
+            case 'all': startDate = new Date(0); break;
         }
 
         const filteredData = data.filter(d => d.x >= startDate);
@@ -352,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: 'Weight',
                         data: filteredData,
-                        borderColor: 'rgba(211, 237, 231, 1)', // --color-accent-system
+                        borderColor: 'rgba(211, 237, 231, 1)',
                         backgroundColor: 'rgba(211, 237, 231, 0.2)',
                         borderWidth: 2,
                         tension: 0.1,
@@ -366,29 +364,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     scales: {
                         x: {
                             type: 'time',
-                            time: {
-                                unit: 'day',
-                                displayFormats: {
-                                    day: 'MMM d'
-                                }
-                            },
+                            time: { unit: 'day', displayFormats: { day: 'MMM d' }},
                             ticks: { color: 'rgba(235, 235, 245, 0.6)' },
                             grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         },
                         y: {
                             beginAtZero: false,
-                            ticks: {
-                                color: 'rgba(235, 235, 245, 0.6)',
-                                stepSize: 0.2
-                            },
+                            ticks: { color: 'rgba(235, 235, 245, 0.6)', stepSize: 0.2 },
                             grid: { color: 'rgba(255, 255, 255, 0.1)' }
                         }
                     },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -398,14 +384,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal || journal.name !== 'משקל') return;
 
-        // Show the view first to isolate rendering errors from visibility logic
-        timelineView.style.display = 'none';
+        hideAllViews();
         graphView.style.display = 'block';
 
         const data = parseWeightData(journal);
-        renderWeightChart(data, '1m'); // Default to 1 month view
+        renderWeightChart(data, '1m');
     }
-
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
@@ -445,20 +429,16 @@ document.addEventListener('DOMContentLoaded', () => {
             dateContainer.innerHTML = `<input type="datetime-local" id="entry-date">`;
         }
 
-        const dateInput = document.getElementById('entry-date'); // May be null in view mode
+        const dateInput = document.getElementById('entry-date');
 
         if (entry) {
-            // New logic to handle raw HTML
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = entry.text;
 
             const strongTag = tempDiv.querySelector('strong');
-            let bodyContent = '';
-
             if (strongTag && tempDiv.firstChild.nodeName === 'STRONG') {
                 titleInput.value = strongTag.textContent;
-                strongTag.remove(); // Remove title from body
-                 // Remove the <br> that immediately follows the title
+                strongTag.remove();
                 if (tempDiv.firstChild.nodeName === 'BR') {
                     tempDiv.firstChild.remove();
                 }
@@ -466,14 +446,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleInput.value = '';
             }
 
-            bodyContent = tempDiv.innerHTML;
-            textInput.innerHTML = bodyContent;
+            textInput.innerHTML = tempDiv.innerHTML;
 
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
-                // Disable checkboxes when not in edit mode
                 textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
@@ -483,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isEditing) {
             initialEntryState = {
                 title: titleInput.value,
-                html: textInput.innerHTML, // Compare raw HTML
+                html: textInput.innerHTML,
                 date: dateInput.value,
             };
         } else {
@@ -494,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
                     title: document.getElementById('entry-title').value,
-                    html: textInput.innerHTML, // Compare raw HTML
+                    html: textInput.innerHTML,
                     date: document.getElementById('entry-date').value,
                 };
                 const hasChanged =
@@ -548,21 +526,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const currentNode = range.startContainer;
                     const parentDiv = currentNode.nodeType === 3 ? currentNode.parentNode : currentNode;
 
-                    // If inside a checklist item, create a new one on Enter
                     if (parentDiv.classList.contains('checklist-item') || parentDiv.closest('.checklist-item')) {
                         e.preventDefault();
                         const newChecklistItem = document.createElement('div');
                         const inputId = `checklist-item-${Date.now()}`;
                         newChecklistItem.className = 'checklist-item';
-                        // data-line-index is no longer needed
                         newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
 
                         const container = parentDiv.closest('.checklist-item') || parentDiv;
                         container.after(newChecklistItem);
 
-                        // Move cursor to the new checklist item's label
                         const label = newChecklistItem.querySelector('label');
-                        label.setAttribute('contenteditable', 'true'); // Make the label editable
+                        label.setAttribute('contenteditable', 'true');
                         label.focus();
                         const newRange = document.createRange();
                         newRange.selectNodeContents(label);
@@ -576,19 +551,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 const inputId = `checklist-item-${Date.now()}`;
-                // data-line-index is no longer needed
                 const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
             });
 
             deleteBtn.addEventListener('click', () => {
-                // If it's a new entry that hasn't been saved, just close the composer.
                 if (isNewEntry) {
                     composerView.classList.remove('visible');
                     return;
                 }
-
-                // For existing entries, ask for confirmation.
                 if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
                     if (currentlyEditingEntryId) {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
@@ -602,7 +573,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showEmojiPicker(date) {
         const modal = document.getElementById('emoji-picker-modal');
         const optionsContainer = document.getElementById('emoji-options-container');
-        optionsContainer.innerHTML = ''; // Clear previous options
+        optionsContainer.innerHTML = '';
 
         EMOTIONS.forEach(emoji => {
             const button = document.createElement('button');
@@ -613,12 +584,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (journalId) {
                     const emojiRef = journalsRef.child(journalId).child('emojis').child(date);
                     if (emoji === '⚪') {
-                        emojiRef.remove(); // Remove from Firebase if "empty" is chosen
+                        emojiRef.remove();
                     } else {
-                        emojiRef.set(emoji); // Set the emoji in Firebase
+                        emojiRef.set(emoji);
                     }
                 }
-                modal.style.display = 'none'; // Close modal on selection
+                modal.style.display = 'none';
             });
             optionsContainer.appendChild(button);
         });
@@ -629,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancel-emoji-picker-btn').addEventListener('click', () => {
         document.getElementById('emoji-picker-modal').style.display = 'none';
     });
+
     // --- Insights Logic ---
     function calculateInsights() {
         const today = new Date();
@@ -697,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return stats;
     }
-
 
     function renderInsightsWidget(stats) {
         const container = document.getElementById('insights-widget-container');
@@ -861,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 1; i <= daysInMonth; i++) {
             const dayEl = document.createElement('div');
-            dayEl.className = 'calendar-day is-clickable'; // Always clickable
+            dayEl.className = 'calendar-day is-clickable';
             dayEl.textContent = i;
             const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
@@ -909,10 +880,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.body.addEventListener('click', (e) => {
-        // Use event delegation for multiple dynamic buttons
         if (e.target.closest('#show-graph-btn')) {
             showGraphView();
-            return; // Exit after handling
+            return;
         }
 
         const card = e.target.closest('.journal-card');
@@ -932,19 +902,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (emotionCard) {
             const date = emotionCard.dataset.date;
             showEmojiPicker(date);
-            return; // Exit after handling
+            return;
         }
     });
 
-
     document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
     document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
-
     document.getElementById('prev-month-btn').addEventListener('click', () => {
         calendarDate.setMonth(calendarDate.getMonth() - 1);
         renderCalendar(calendarDate);
     });
-
     document.getElementById('next-month-btn').addEventListener('click', () => {
         calendarDate.setMonth(calendarDate.getMonth() + 1);
         renderCalendar(calendarDate);
@@ -995,6 +962,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
 
     function showAllEntriesView() {
+        // Clear out any journal-specific buttons from the header
+        const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
+        const existingGraphBtn = document.getElementById('show-graph-btn');
+        if (existingGraphBtn) existingGraphBtn.remove();
+        const existingSpacer = timelineHeader.querySelector('.spacer');
+        if (existingSpacer) existingSpacer.remove();
+
         let allEntries = [];
         appData.journals.forEach(journal => {
             if (journal.entries) {
@@ -1007,21 +981,25 @@ document.addEventListener('DOMContentLoaded', () => {
         allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
         mainTitle.textContent = "Ask me what I learned from all those years...";
         renderJournalFeed(allEntries, true);
-        journalsListView.style.display = 'none';
-        insightsView.style.display = 'none';
+        hideAllViews();
         timelineView.style.display = 'block';
         appData.currentJournalId = null;
+        fab.style.display = 'none'; // Hide FAB in this aggregate view
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
 
     backupBtn.addEventListener('click', () => {
+        if (!appData.currentUser) {
+            alert("Please log in to create a backup.");
+            return;
+        }
         if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
-            const journalsDataRef = database.ref('journals');
+            const journalsDataRef = database.ref(`users/${appData.currentUser.uid}/journals`);
             journalsDataRef.once('value', (snapshot) => {
                 const dataToBackup = snapshot.val();
                 if (dataToBackup) {
-                    const backupRef = database.ref('journals_backup');
+                    const backupRef = database.ref(`users/${appData.currentUser.uid}/journals_backup`);
                     backupRef.set(dataToBackup)
                         .then(() => {
                             alert('הגיבוי נוצר בהצלחה!');
@@ -1038,13 +1016,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     lockAppBtn.addEventListener('click', () => {
-        journalsListView.style.display = 'none';
-        timelineView.style.display = 'none';
-        insightsView.style.display = 'none';
+        hideAllViews();
         composerView.classList.remove('visible');
-        passwordView.style.display = 'flex';
-        passwordInput.value = '';
-        passwordInput.focus();
+        pinView.style.display = 'flex';
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-input').focus();
     });
 
     editJournalsBtn.addEventListener('click', () => {
@@ -1061,6 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const journalsListContainer = document.getElementById('journals-list-container');
     journalsListContainer.addEventListener('click', (e) => {
+        if (!journalsRef) return;
         if (journalsListView.classList.contains('edit-mode')) {
             const deleteBtn = e.target.closest('.delete-journal-btn');
             if (deleteBtn) {
@@ -1096,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelNewJournalBtn.addEventListener('click', closeNewJournalModal);
 
     createNewJournalBtn.addEventListener('click', () => {
+        if (!journalsRef) return;
         const newName = newJournalNameInput.value.trim();
         if (newName) {
             journalsRef.push({ name: newName, entries: {} });
@@ -1136,71 +1114,223 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Password Logic ---
-    const passwordInput = document.getElementById('password-input');
-    const passwordSubmitBtn = document.getElementById('password-submit-btn');
-    const CORRECT_PASSWORD = '6417';
+    // --- Authentication & PIN Logic ---
+    const showLoginBtn = document.getElementById('show-login-btn');
+    const showSignupBtn = document.getElementById('show-signup-btn');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const loginBtn = document.getElementById('login-btn');
+    const signupBtn = document.getElementById('signup-btn');
+    const forgotPasswordLink = document.getElementById('forgot-password-link');
+    const logoutBtn = document.getElementById('logout-btn');
+    const pinSetupBtn = document.getElementById('pin-setup-btn');
+    const pinSubmitBtn = document.getElementById('pin-submit-btn');
 
-    function checkPassword() {
-        if (passwordInput.value.trim() === CORRECT_PASSWORD) {
-            passwordView.style.display = 'none';
+    showLoginBtn.addEventListener('click', () => {
+        loginForm.style.display = 'block';
+        signupForm.style.display = 'none';
+        showLoginBtn.classList.add('active');
+        showSignupBtn.classList.remove('active');
+    });
 
-            let isFirstLoad = true;
-            journalsRef.on('value', (snapshot) => {
-                const journalsData = snapshot.val();
-                appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
+    showSignupBtn.addEventListener('click', () => {
+        loginForm.style.display = 'none';
+        signupForm.style.display = 'block';
+        showLoginBtn.classList.remove('active');
+        showSignupBtn.classList.add('active');
+    });
 
-                const stats = calculateInsights();
-                renderInsightsWidget(stats);
+    signupBtn.addEventListener('click', () => {
+        try {
+            const username = document.getElementById('signup-username').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
 
-                const isInsightsVisible = insightsView.style.display === 'block';
-                const isTimelineVisible = timelineView.style.display === 'block';
+            if (!username || !email || !password) {
+                alert("Please fill all fields.");
+                return;
+            }
 
-                if (isInsightsVisible) {
-                    renderInsightsDetailView(stats);
-                    renderCalendar(calendarDate);
-                } else if (isTimelineVisible) {
-                    if (appData.currentJournalId) {
-                        const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
-                        if (currentJournalExists) {
-                            showTimelineView(appData.currentJournalId);
-                        } else {
-                            showJournalsListView();
-                        }
-                    } else {
-                        showAllEntriesView();
-                    }
-                } else if (isFirstLoad || journalsListView.style.display === 'block') {
-                    showJournalsListView();
-                }
-                isFirstLoad = false;
-            });
-        } else {
-            passwordInput.parentElement.classList.add('shake');
-            passwordInput.value = '';
-            setTimeout(() => passwordInput.parentElement.classList.remove('shake'), 500);
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    // Also return the promise from the set operation
+                    return database.ref(`users/${user.uid}/profile`).set({
+                        username: username,
+                        email: email
+                    });
+                })
+                .catch((error) => {
+                    console.error("Firebase auth error:", error);
+                    alert(error.message)
+                });
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
         }
+    });
+
+    loginBtn.addEventListener('click', () => {
+        try {
+            const emailOrUsername = document.getElementById('login-email-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            if (!emailOrUsername || !password) {
+                alert("Please fill all fields.");
+                return;
+            }
+
+            if (emailOrUsername.includes('@')) {
+                auth.signInWithEmailAndPassword(emailOrUsername, password)
+                    .catch((error) => alert(error.message));
+            } else {
+                database.ref('users').orderByChild('profile/username').equalTo(emailOrUsername).once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        const uid = Object.keys(snapshot.val())[0];
+                        const email = snapshot.val()[uid].profile.email;
+                        auth.signInWithEmailAndPassword(email, password)
+                            .catch((error) => alert(error.message));
+                    } else {
+                        alert("User not found.");
+                    }
+                });
+            }
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
+        }
+    });
+
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        try {
+            const email = prompt("Please enter your email address to reset your password:");
+            if (email) {
+                auth.sendPasswordResetEmail(email)
+                    .then(() => alert("Password reset email sent!"))
+                    .catch((error) => alert(error.message));
+            }
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
+        }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+    });
+
+    pinSetupBtn.addEventListener('click', async () => {
+        const pinInput = document.getElementById('pin-setup-input');
+        const pin = pinInput.value;
+        if (pin.length === 4 && /^\d{4}$/.test(pin)) {
+            const pinHash = await hashPin(pin);
+            localStorage.setItem(`luna_pin_${appData.currentUser.uid}`, pinHash);
+            initializeData(appData.currentUser);
+        } else {
+            alert("Please enter a 4-digit PIN.");
+            pinInput.value = '';
+        }
+    });
+
+    const verifyPin = async () => {
+        const pinInput = document.getElementById('pin-input');
+        const pin = pinInput.value;
+        if (pin.length === 4) {
+            const storedHash = localStorage.getItem(`luna_pin_${appData.currentUser.uid}`);
+            const enteredHash = await hashPin(pin);
+            if (enteredHash === storedHash) {
+                initializeData(appData.currentUser);
+            } else {
+                pinView.querySelector('.password-container').classList.add('shake');
+                pinInput.value = '';
+                setTimeout(() => pinView.querySelector('.password-container').classList.remove('shake'), 500);
+            }
+        }
+    };
+
+    pinSubmitBtn.addEventListener('click', verifyPin);
+    document.getElementById('pin-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') verifyPin();
+    });
+
+
+    // --- Main App Logic ---
+    function initializeData(user) {
+        appData.currentUser = user;
+        journalsRef = database.ref(`users/${user.uid}/journals`);
+
+        hideAllViews();
+
+        let isFirstLoad = true;
+        journalsRef.on('value', (snapshot) => {
+            const journalsData = snapshot.val();
+            appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
+
+            const stats = calculateInsights();
+            renderInsightsWidget(stats);
+
+            const isInsightsVisible = insightsView.style.display === 'block';
+            const isTimelineVisible = timelineView.style.display === 'block';
+
+            if (isInsightsVisible) {
+                renderInsightsDetailView(stats);
+                renderCalendar(calendarDate);
+            } else if (isTimelineVisible) {
+                if (appData.currentJournalId) {
+                    const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
+                    if (currentJournalExists) {
+                        showTimelineView(appData.currentJournalId);
+                    } else {
+                        showJournalsListView();
+                    }
+                } else {
+                    showAllEntriesView();
+                }
+            } else if (isFirstLoad || journalsListView.style.display === 'block') {
+                showJournalsListView();
+            }
+            isFirstLoad = false;
+        }, (error) => {
+            console.error("Firebase read failed: " + error.code);
+            alert("Could not read data. Check security rules and network connection.");
+        });
     }
-    passwordSubmitBtn.addEventListener('click', checkPassword);
-    passwordInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') checkPassword();
+
+    // --- Auth State Change Listener ---
+    auth.onAuthStateChanged(user => {
+        document.body.classList.remove('loading'); // Remove loading class once auth state is known
+        if (user) {
+            appData.currentUser = user;
+            const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
+            hideAllViews();
+            if (pinHash) {
+                pinView.style.display = 'flex';
+                document.getElementById('pin-input').focus();
+            } else {
+                pinSetupView.style.display = 'flex';
+                document.getElementById('pin-setup-input').focus();
+            }
+        } else {
+            appData.currentUser = null;
+            if (journalsRef) {
+                journalsRef.off();
+            }
+            hideAllViews();
+            authView.style.display = 'flex';
+        }
     });
 
     // --- Graph View Event Listeners ---
     document.getElementById('back-to-timeline-from-graph-btn').addEventListener('click', () => {
-        graphView.style.display = 'none';
+        hideAllViews();
         timelineView.style.display = 'block';
     });
 
     document.querySelector('.graph-filters').addEventListener('click', (e) => {
         if (e.target.classList.contains('filter-btn')) {
-            // Update active button state
             document.querySelectorAll('.graph-filters .filter-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             e.target.classList.add('active');
 
-            // Re-render the chart with the new range
             const range = e.target.dataset.range;
             const journal = appData.journals.find(j => j.id === appData.currentJournalId);
             const data = parseWeightData(journal);

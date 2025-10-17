@@ -1,0 +1,22 @@
+{
+  "rules": {
+    "users": {
+      ".read": "true",
+      "$uid": {
+        ".write": "auth != null && auth.uid == $uid",
+        "journals": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid"
+        },
+        "journals_backup": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid"
+        },
+        "profile": {
+            ".read": "true"
+
+        }
+      }
+    }
+  }
+}
