@@ -251,6 +251,11 @@ body.loading .view-screen {
     box-sizing: border-box;
 }
 
+#pin-view {
+    justify-content: flex-start;
+    padding-top: 15vh;
+}
+
 #pin-view .password-container {
     margin-top: 2.5rem;
 }
@@ -265,6 +270,14 @@ body.loading .view-screen {
 }
 
 /* Auth View Specifics */
+.auth-title {
+    font-family: 'Bebas Neue', 'Heebo', sans-serif;
+    font-size: 5rem;
+    color: var(--color-text-primary);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
 #auth-container {
     width: 100%;
     max-width: 320px;
@@ -327,6 +340,7 @@ body.loading .view-screen {
 }
 
 #login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
+    margin-top: 10px;
     font-weight: 700;
     width: 100%;
     padding: 15px;
