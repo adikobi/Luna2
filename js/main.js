@@ -541,6 +541,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
 
+            // Prevent clicks on checklist items from bubbling up and closing the composer.
+            textInput.addEventListener('click', (e) => {
+                if (e.target.closest('.checklist-item')) {
+                    e.stopPropagation();
+                }
+            });
+
             textInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const selection = window.getSelection();
@@ -918,6 +925,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.body.addEventListener('click', (e) => {
+        // Handle checklist item clicks directly in the timeline view for quick toggling.
+        const checklistLabel = e.target.closest('.journal-card .checklist-item label');
+        if (checklistLabel) {
+            e.stopPropagation(); // Prevent the composer from opening.
+            e.preventDefault(); // Prevent default label behavior, we handle it manually.
+
+            const card = e.target.closest('.journal-card');
+            const entryId = card.dataset.id;
+            const journalId = card.dataset.journalId;
+            const journal = appData.journals.find(j => j.id === journalId);
+            if (!journal || !journal.entries || !journal.entries[entryId] || !journalsRef) return;
+
+            // Find the checkbox and toggle its state.
+            const inputId = checklistLabel.getAttribute('for');
+            const checkbox = card.querySelector(`#${inputId}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked; // Manually toggle the state
+                // Sync the attribute for saving
+                if (checkbox.checked) {
+                    checkbox.setAttribute('checked', 'checked');
+                } else {
+                    checkbox.removeAttribute('checked');
+                }
+
+                // Now, save the entire updated body text.
+                const bodyTextElement = card.querySelector('.body-text');
+                const updatedHtml = bodyTextElement.innerHTML;
+                const entryRef = journalsRef.child(journalId).child('entries').child(entryId);
+                entryRef.update({ text: updatedHtml });
+            }
+            return; // Stop further processing
+        }
+
         if (e.target.closest('#show-graph-btn')) {
             showGraphView();
             return;
@@ -925,6 +965,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
+            // Do not open composer if a link was clicked
+            if (e.target.tagName === 'A') return;
+
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
