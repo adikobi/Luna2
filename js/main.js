@@ -46,7 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let journalsRef = null;
 
-    const EMOTIONS = ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '🥸', '😋', '😖', '😢', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '🏊', '⚪'];
+    const EMOTION_SETS = {
+        'רגשות': ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '🥸', '😋', '😖', '😢', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '⚪'],
+        'בריכה': ['🏊', '❌', '😊', '😫', '⚪']
+    };
 
     // --- Helper Functions ---
     function formatISODateForDisplay(isoString) {
@@ -265,7 +268,8 @@ document.addEventListener('DOMContentLoaded', () => {
             searchBtn.before(graphBtn);
         }
 
-        if (journal.name === 'רגשות') {
+        const emotionJournalNames = ['רגשות', 'בריכה'];
+        if (emotionJournalNames.includes(journal.name)) {
             renderEmotionJournalView(journal);
             fab.style.display = 'none';
         } else {
@@ -456,6 +460,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
+            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+            if (journal && journal.name === 'ויטמינים') {
+                const now = Date.now();
+                textInput.innerHTML = `
+<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-1"><label for="checklist-item-${now}-1">ויטמין D</label></div>
+<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-2"><label for="checklist-item-${now}-2">ויטמין B12</label></div>
+<div>&nbsp;</div>`;
+            }
         }
 
         if (isEditing) {
@@ -575,7 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const optionsContainer = document.getElementById('emoji-options-container');
         optionsContainer.innerHTML = '';
 
-        EMOTIONS.forEach(emoji => {
+        const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+        if (!journal) return;
+
+        const emojiSet = EMOTION_SETS[journal.name] || [];
+
+        emojiSet.forEach(emoji => {
             const button = document.createElement('button');
             button.className = 'emoji-option-btn';
             button.textContent = emoji;
@@ -867,6 +884,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
+            // Find emoji for the date for any emotion-based journal
+            const emotionJournalNames = ['רגשות', 'בריכה'];
+            if (emotionJournalNames.includes(journal.name) && journal.emojis && journal.emojis[dateString]) {
+                entriesForDate.push({
+                    id: `emoji-${dateString}-${journal.id}`,
+                    journalId: journal.id,
+                    journalName: journal.name,
+                    date: new Date(dateString + "T12:00:00Z").toISOString(), // Consistent with timeline view
+                    text: journal.emojis[dateString]
+                });
+            }
         });
         entriesForDate.sort((a, b) => new Date(b.date) - new Date(a.date));
         renderJournalFeed(entriesForDate, true, container);
@@ -976,6 +1004,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: key, journalId: journal.id, journalName: journal.name, ...journal.entries[key]
                 }));
                 allEntries = allEntries.concat(entriesArray);
+            }
+            const emotionJournalNames = ['רגשות', 'בריכה'];
+            if (emotionJournalNames.includes(journal.name) && journal.emojis) {
+                const emojiEntries = Object.keys(journal.emojis).map(dateString => ({
+                    id: `emoji-${dateString}-${journal.id}`,
+                    journalId: journal.id,
+                    journalName: journal.name,
+                    date: new Date(dateString + "T12:00:00Z").toISOString(), // Set to midday to avoid timezone issues
+                    text: journal.emojis[dateString]
+                }));
+                allEntries = allEntries.concat(emojiEntries);
             }
         });
         allEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
