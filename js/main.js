@@ -506,6 +506,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
+                // Manually sync checkbox state to the DOM before saving
+                const checkboxes = textInput.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        cb.setAttribute('checked', 'checked');
+                    } else {
+                        cb.removeAttribute('checked');
+                    }
+                });
+
                 const title = titleInput.value;
                 const bodyHtml = textInput.innerHTML;
                 const dateValue = dateInput.value;
@@ -530,6 +540,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isEditing) {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
+
+            // Prevent clicks on checklist items from bubbling up and closing the composer.
+            // Also, manually handle the toggle since default behavior can be unreliable in contenteditable.
+            textInput.addEventListener('click', (e) => {
+                const label = e.target.closest('.checklist-item label');
+                if (label) {
+                    e.stopPropagation(); // Stop the composer from closing.
+                    e.preventDefault();  // Stop the browser's default label action.
+
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        // Scope the search to the textInput element to avoid ID collisions
+                        const checkbox = textInput.querySelector(`#${inputId}`);
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked; // Manually toggle the state.
+                        }
+                    }
+                }
+            });
 
             textInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -908,6 +937,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.body.addEventListener('click', (e) => {
+        // Handle checklist item clicks directly in the timeline view for quick toggling.
+        const checklistLabel = e.target.closest('.journal-card .checklist-item label');
+        if (checklistLabel) {
+            e.stopPropagation(); // Prevent the composer from opening.
+            e.preventDefault(); // Prevent default label behavior, we handle it manually.
+
+            const card = e.target.closest('.journal-card');
+            const entryId = card.dataset.id;
+            const journalId = card.dataset.journalId;
+            const journal = appData.journals.find(j => j.id === journalId);
+            if (!journal || !journal.entries || !journal.entries[entryId] || !journalsRef) return;
+
+            // Find the checkbox and toggle its state.
+            const inputId = checklistLabel.getAttribute('for');
+            const checkbox = card.querySelector(`#${inputId}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked; // Manually toggle the state
+                // Sync the attribute for saving
+                if (checkbox.checked) {
+                    checkbox.setAttribute('checked', 'checked');
+                } else {
+                    checkbox.removeAttribute('checked');
+                }
+
+                // Now, save the entire updated body text.
+                const bodyTextElement = card.querySelector('.body-text');
+                const updatedHtml = bodyTextElement.innerHTML;
+                const entryRef = journalsRef.child(journalId).child('entries').child(entryId);
+                entryRef.update({ text: updatedHtml });
+            }
+            return; // Stop further processing
+        }
+
         if (e.target.closest('#show-graph-btn')) {
             showGraphView();
             return;
@@ -915,6 +977,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
+            // Do not open composer if a link was clicked
+            if (e.target.tagName === 'A') return;
+
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
