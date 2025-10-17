@@ -1318,6 +1318,44 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Temporary Migration Logic ---
+    const migrateDataBtn = document.getElementById('migrate-data-btn');
+    migrateDataBtn.addEventListener('click', () => {
+        const usernameToMigrate = 'עדי';
+        const legacyPath = 'journals';
+
+        // 1. Find the user's UID
+        database.ref('users').orderByChild('profile/username').equalTo(usernameToMigrate).once('value', snapshot => {
+            if (snapshot.exists()) {
+                const uid = Object.keys(snapshot.val())[0];
+                const userJournalsPath = `users/${uid}/journals`;
+
+                // 2. Read data from the legacy path
+                database.ref(legacyPath).once('value', legacySnapshot => {
+                    const legacyData = legacySnapshot.val();
+                    if (legacyData) {
+                        // 3. Write data to the new user-specific path
+                        database.ref(userJournalsPath).set(legacyData)
+                            .then(() => {
+                                alert(`Data successfully migrated for ${usernameToMigrate}!`);
+                                // Optional: remove the old data
+                                // database.ref(legacyPath).remove();
+                            })
+                            .catch(error => {
+                                console.error("Migration failed:", error);
+                                alert(`Migration failed for ${usernameToMigrate}. Check console for details.`);
+                            });
+                    } else {
+                        alert('No legacy data found at /journals.');
+                    }
+                });
+            } else {
+                alert(`User '${usernameToMigrate}' not found.`);
+            }
+        });
+    });
+
+
     // --- Graph View Event Listeners ---
     document.getElementById('back-to-timeline-from-graph-btn').addEventListener('click', () => {
         hideAllViews();
