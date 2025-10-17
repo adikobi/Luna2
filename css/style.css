@@ -253,7 +253,7 @@ body.loading .view-screen {
 
 #pin-view {
     justify-content: flex-start;
-    padding-top: 15vh;
+    padding-top: 10vh;
 }
 
 #pin-view .password-container {
@@ -372,7 +372,7 @@ body.loading .view-screen {
     position: relative;
     width: 150px;
     height: 150px;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .moon-icon {
@@ -429,7 +429,7 @@ body.loading .view-screen {
 .splash-title {
     font-size: 5rem;
     color: var(--text-primary);
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
     font-family: 'Bebas Neue', 'Heebo', sans-serif;
 }
 
@@ -437,7 +437,7 @@ body.loading .view-screen {
     font-size: 1.25rem;
     color: var(--text-primary);
     opacity: 0.8;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .password-container {
