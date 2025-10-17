@@ -42,6 +42,10 @@ body.loading .view-screen {
     display: none !important;
 }
 
+body.loading .view-screen {
+    display: none !important;
+}
+
 .view-screen {
     height: 100vh;
     overflow-y: auto;

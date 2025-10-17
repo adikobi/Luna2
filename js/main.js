@@ -962,6 +962,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
 
     function showAllEntriesView() {
+        // Clear out any journal-specific buttons from the header
+        const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
+        const existingGraphBtn = document.getElementById('show-graph-btn');
+        if (existingGraphBtn) existingGraphBtn.remove();
+        const existingSpacer = timelineHeader.querySelector('.spacer');
+        if (existingSpacer) existingSpacer.remove();
+
         let allEntries = [];
         appData.journals.forEach(journal => {
             if (journal.entries) {
@@ -977,6 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideAllViews();
         timelineView.style.display = 'block';
         appData.currentJournalId = null;
+        fab.style.display = 'none'; // Hide FAB in this aggregate view
     }
 
     showAllEntriesBtn.addEventListener('click', showAllEntriesView);
@@ -1146,12 +1154,16 @@ document.addEventListener('DOMContentLoaded', () => {
             auth.createUserWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     const user = userCredential.user;
-                    database.ref(`users/${user.uid}/profile`).set({
+                    // Also return the promise from the set operation
+                    return database.ref(`users/${user.uid}/profile`).set({
                         username: username,
                         email: email
                     });
                 })
-                .catch((error) => alert(error.message));
+                .catch((error) => {
+                    console.error("Firebase auth error:", error);
+                    alert(error.message)
+                });
         } catch (error) {
             alert(`An unexpected error occurred: ${error.message}`);
         }
