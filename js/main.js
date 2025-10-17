@@ -551,7 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const inputId = label.getAttribute('for');
                     if (inputId) {
-                        const checkbox = document.getElementById(inputId);
+                        // Scope the search to the textInput element to avoid ID collisions
+                        const checkbox = textInput.querySelector(`#${inputId}`);
                         if (checkbox) {
                             checkbox.checked = !checkbox.checked; // Manually toggle the state.
                         }
