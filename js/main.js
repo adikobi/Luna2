@@ -1133,59 +1133,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     signupBtn.addEventListener('click', () => {
-        const username = document.getElementById('signup-username').value.trim();
-        const email = document.getElementById('signup-email').value.trim();
-        const password = document.getElementById('signup-password').value;
+        try {
+            const username = document.getElementById('signup-username').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const password = document.getElementById('signup-password').value;
 
-        if (!username || !email || !password) {
-            alert("Please fill all fields.");
-            return;
+            if (!username || !email || !password) {
+                alert("Please fill all fields.");
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    database.ref(`users/${user.uid}/profile`).set({
+                        username: username,
+                        email: email
+                    });
+                })
+                .catch((error) => alert(error.message));
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
         }
-
-        auth.createUserWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                const user = userCredential.user;
-                database.ref(`users/${user.uid}/profile`).set({
-                    username: username,
-                    email: email
-                });
-            })
-            .catch((error) => alert(error.message));
     });
 
     loginBtn.addEventListener('click', () => {
-        const emailOrUsername = document.getElementById('login-email-username').value.trim();
-        const password = document.getElementById('login-password').value;
+        try {
+            const emailOrUsername = document.getElementById('login-email-username').value.trim();
+            const password = document.getElementById('login-password').value;
 
-        if (!emailOrUsername || !password) {
-            alert("Please fill all fields.");
-            return;
-        }
+            if (!emailOrUsername || !password) {
+                alert("Please fill all fields.");
+                return;
+            }
 
-        if (emailOrUsername.includes('@')) {
-            auth.signInWithEmailAndPassword(emailOrUsername, password)
-                .catch((error) => alert(error.message));
-        } else {
-            database.ref('users').orderByChild('profile/username').equalTo(emailOrUsername).once('value', snapshot => {
-                if (snapshot.exists()) {
-                    const uid = Object.keys(snapshot.val())[0];
-                    const email = snapshot.val()[uid].profile.email;
-                    auth.signInWithEmailAndPassword(email, password)
-                        .catch((error) => alert(error.message));
-                } else {
-                    alert("User not found.");
-                }
-            });
+            if (emailOrUsername.includes('@')) {
+                auth.signInWithEmailAndPassword(emailOrUsername, password)
+                    .catch((error) => alert(error.message));
+            } else {
+                database.ref('users').orderByChild('profile/username').equalTo(emailOrUsername).once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        const uid = Object.keys(snapshot.val())[0];
+                        const email = snapshot.val()[uid].profile.email;
+                        auth.signInWithEmailAndPassword(email, password)
+                            .catch((error) => alert(error.message));
+                    } else {
+                        alert("User not found.");
+                    }
+                });
+            }
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
         }
     });
 
     forgotPasswordLink.addEventListener('click', (e) => {
         e.preventDefault();
-        const email = prompt("Please enter your email address to reset your password:");
-        if (email) {
-            auth.sendPasswordResetEmail(email)
-                .then(() => alert("Password reset email sent!"))
-                .catch((error) => alert(error.message));
+        try {
+            const email = prompt("Please enter your email address to reset your password:");
+            if (email) {
+                auth.sendPasswordResetEmail(email)
+                    .then(() => alert("Password reset email sent!"))
+                    .catch((error) => alert(error.message));
+            }
+        } catch (error) {
+            alert(`An unexpected error occurred: ${error.message}`);
         }
     });
 
