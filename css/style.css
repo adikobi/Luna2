@@ -445,7 +445,8 @@ body.loading .view-screen {
     font-size: 1.25rem;
     color: var(--text-primary);
     opacity: 0.8;
-    margin-bottom: 2rem;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
 }
 
 .password-container {
