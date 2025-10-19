@@ -710,6 +710,38 @@ button:active,
     display: block;
 }
 
+/* --- Weight Adjuster Styles --- */
+.weight-adjuster {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+}
+
+#weight-display {
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    min-width: 120px;
+    text-align: center;
+}
+
+.weight-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 2px solid var(--color-accent-system);
+    background-color: transparent;
+    color: var(--color-accent-system);
+    font-size: 32px;
+    line-height: 46px; /* Adjust for vertical alignment */
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 #entry-textarea a,
 .body-text a {
     color: var(--color-accent-system);
