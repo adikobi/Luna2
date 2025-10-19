@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderEmotionJournalView(journal) {
+        window.scrollTo(0, 0);
         journalFeed.innerHTML = ''; // Clear the feed
 
         const textEntryDates = journal.entries ? Object.values(journal.entries).map(e => new Date(e.date)) : [];
@@ -385,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showGraphView() {
+        window.scrollTo(0, 0);
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal || journal.name !== 'משקל') return;
 
@@ -397,6 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
+        window.scrollTo(0, 0);
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
 

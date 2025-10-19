@@ -251,6 +251,16 @@ body.loading .view-screen {
     box-sizing: border-box;
 }
 
+#auth-view {
+    justify-content: flex-start;
+    padding-top: 15vh;
+}
+
+#pin-view {
+    justify-content: flex-start;
+    padding-top: 10vh;
+}
+
 #pin-view .password-container {
     margin-top: 2.5rem;
 }
@@ -265,6 +275,14 @@ body.loading .view-screen {
 }
 
 /* Auth View Specifics */
+.auth-title {
+    font-family: 'Bebas Neue', 'Heebo', sans-serif;
+    font-size: 5rem;
+    color: var(--color-text-primary);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
 #auth-container {
     width: 100%;
     max-width: 320px;
@@ -340,6 +358,10 @@ body.loading .view-screen {
     font-family: 'Heebo', sans-serif;
 }
 
+#pin-submit-btn {
+    margin-top: 10px;
+}
+
 #forgot-password-link {
     color: var(--color-text-secondary);
     text-decoration: none;
@@ -358,7 +380,7 @@ body.loading .view-screen {
     position: relative;
     width: 150px;
     height: 150px;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 .moon-icon {
@@ -423,7 +445,8 @@ body.loading .view-screen {
     font-size: 1.25rem;
     color: var(--text-primary);
     opacity: 0.8;
-    margin-bottom: 2.5rem;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
 }
 
 .password-container {
