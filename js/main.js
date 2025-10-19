@@ -312,7 +312,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const entriesArray = Object.values(journal.entries);
 
         let data = entriesArray.map(entry => {
-            const cleanText = entry.text.replace(/<[^>]*>?/gm, '');
+            const cleanText = entry.text.replace(/<[^>]*>?/gm, '').trim();
+            const isNumeric = /^\d+(\.\d+)?$/.test(cleanText);
+
+            if (isNumeric) {
+                return {
+                    x: new Date(entry.date),
+                    y: parseFloat(cleanText)
+                };
+            }
+
             const match = cleanText.match(/(\d+(\.\d+)?)/);
             if (match) {
                 return {
@@ -402,6 +411,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo(0, 0);
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
+        const journal = appData.journals.find(j => j.id === appData.currentJournalId);
+        const isWeightJournal = journal && journal.name === 'משקל';
+
+        let weightAdjusterHTML = '';
+        if (isNewEntry && isWeightJournal) {
+            weightAdjusterHTML = `
+            <div class="weight-adjuster">
+                <button id="weight-minus-btn" class="weight-btn">-</button>
+                <span id="weight-display">--.-</span>
+                <button id="weight-plus-btn" class="weight-btn">+</button>
+            </div>
+            `;
+        }
 
         composerView.innerHTML = `
             <div class="composer-header">
@@ -416,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <input type="text" id="entry-title" placeholder="${isEditing ? 'כותרת' : ''}" dir="rtl" ${!isEditing ? 'disabled' : ''}>
                     <div id="date-container"></div>
                 </div>
+                ${weightAdjusterHTML}
                 <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
@@ -463,7 +486,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
-            const journal = appData.journals.find(j => j.id === appData.currentJournalId);
             if (journal && journal.name === 'ויטמינים') {
                 const now = Date.now();
                 textInput.innerHTML = `
@@ -472,6 +494,25 @@ document.addEventListener('DOMContentLoaded', () => {
 <div>&nbsp;</div>`;
             }
         }
+
+        if (isNewEntry && isWeightJournal) {
+            const weightDisplay = document.getElementById('weight-display');
+            const data = parseWeightData(journal);
+            let lastWeight = data.length > 0 ? data[data.length - 1].y : 70.0; // Default if no entries
+
+            const updateWeight = (newWeight) => {
+                lastWeight = newWeight;
+                const formattedWeight = newWeight.toFixed(1);
+                weightDisplay.textContent = formattedWeight;
+                textInput.innerHTML = formattedWeight; // Update the main text area
+            };
+
+            updateWeight(lastWeight);
+
+            document.getElementById('weight-plus-btn').addEventListener('click', () => updateWeight(lastWeight + 0.1));
+            document.getElementById('weight-minus-btn').addEventListener('click', () => updateWeight(lastWeight - 0.1));
+        }
+
 
         if (isEditing) {
             initialEntryState = {
