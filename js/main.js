@@ -408,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
-        window.scrollTo(0, 0);
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
@@ -522,6 +521,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         } else {
             initialEntryState = null;
+        }
+
+        // Scroll the composer's content area to the top, not the whole window
+        const composerContent = composerView.querySelector('.composer-content');
+        if (composerContent) {
+            composerContent.scrollTop = 0;
         }
 
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
