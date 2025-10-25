@@ -169,7 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderEmotionJournalView(journal) {
-        window.scrollTo(0, 0);
         journalFeed.innerHTML = ''; // Clear the feed
 
         const textEntryDates = journal.entries ? Object.values(journal.entries).map(e => new Date(e.date)) : [];
@@ -284,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         hideAllViews();
         timelineView.style.display = 'block';
+        timelineView.scrollTop = 0;
     }
 
     function showJournalsListView() {
