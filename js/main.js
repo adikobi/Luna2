@@ -1450,33 +1450,51 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!journalsRef) return;
 
         appData.journals.forEach(journal => {
-            if (typeof journal.type === 'undefined' || journal.type === '') {
-                let type = 'default';
-                let subtype = '';
+            let updatePayload = {};
+            let needsUpdate = false;
 
-                switch (journal.name) {
-                    case 'משקל':
-                        type = 'graph';
-                        break;
-                    case 'רגשות':
-                        type = 'emotion';
-                        subtype = 'emotion_default';
-                        break;
-                    case 'בריכה':
-                        type = 'emotion';
-                        subtype = 'emotion_pool';
-                        break;
-                    case 'ויטמינים':
-                        type = 'template';
-                        break;
-                }
+            switch (journal.name) {
+                case 'משקל':
+                    if (journal.type !== 'graph') {
+                        updatePayload.type = 'graph';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'רגשות':
+                    if (journal.type !== 'emotion' || journal.subtype !== 'emotion_default') {
+                        updatePayload.type = 'emotion';
+                        updatePayload.subtype = 'emotion_default';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'בריכה':
+                    if (journal.type !== 'emotion' || journal.subtype !== 'emotion_pool') {
+                        updatePayload.type = 'emotion';
+                        updatePayload.subtype = 'emotion_pool';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'ויטמינים':
+                    const originalTemplate = "ויטמין D\nויטמין B12";
+                    if (journal.type !== 'template' || journal.template !== originalTemplate) {
+                        updatePayload.type = 'template';
+                        updatePayload.template = originalTemplate;
+                        needsUpdate = true;
+                    }
+                    break;
+                default:
+                    // For any other journal, if it doesn't have a type, set it to default.
+                    if (typeof journal.type === 'undefined' || journal.type === '') {
+                        updatePayload.type = 'default';
+                        updatePayload.subtype = '';
+                        updatePayload.template = '';
+                        needsUpdate = true;
+                    }
+                    break;
+            }
 
-                if (type !== 'default') {
-                    journalsRef.child(journal.id).update({ type: type, subtype: subtype });
-                } else {
-                    // Also update default journals to ensure they have the type field
-                    journalsRef.child(journal.id).update({ type: 'default', subtype: '' });
-                }
+            if (needsUpdate) {
+                journalsRef.child(journal.id).update(updatePayload);
             }
         });
     }
