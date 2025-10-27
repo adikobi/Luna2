@@ -52,6 +52,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Helper Functions ---
+    function showToast(message) {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast-message';
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Animate in
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10); // Small delay to ensure the element is in the DOM before animating
+
+        // Animate out and remove
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }, 3000); // 3 seconds visible
+    }
+
     function formatISODateForDisplay(isoString) {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {
@@ -578,9 +599,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
                 if (isNewEntry) {
-                    journalEntriesRef.push(entryData);
+                    journalEntriesRef.push(entryData).then(() => {
+                        showToast('הרשומה נשמרה בהצלחה');
+                    });
                 } else {
-                    journalEntriesRef.child(currentlyEditingEntryId).update(entryData);
+                    journalEntriesRef.child(currentlyEditingEntryId).update(entryData).then(() => {
+                        showToast('הרשומה עודכנה בהצלחה');
+                    });
                 }
 
                 composerView.classList.remove('visible');
@@ -1154,14 +1179,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const backupRef = database.ref(`users/${appData.currentUser.uid}/journals_backup`);
                     backupRef.set(dataToBackup)
                         .then(() => {
-                            alert('הגיבוי נוצר בהצלחה!');
+                            showToast('הגיבוי נוצר בהצלחה!');
                         })
                         .catch((error) => {
                             console.error("Backup failed: ", error);
-                            alert('יצירת הגיבוי נכשלה. בדוק את ה-console לפרטים נוספים.');
+                            showToast('יצירת הגיבוי נכשלה.');
                         });
                 } else {
-                    alert('אין מידע לגבות.');
+                    showToast('אין מידע לגבות.');
                 }
             });
         }
@@ -1253,7 +1278,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (newName) {
-            journalsRef.push({ name: newName, type: type, subtype: subtype, template: template, entries: {} });
+            journalsRef.push({ name: newName, type: type, subtype: subtype, template: template, entries: {} }).then(() => {
+                showToast(`היומן "${newName}" נוצר בהצלחה`);
+            });
             closeNewJournalModal();
         }
     });
