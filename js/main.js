@@ -47,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let journalsRef = null;
 
     const EMOTION_SETS = {
-        'רגשות': ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '😕', '😋', '😖', '😢', '🙂', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '⚪'],
-        'בריכה': ['🏊', '❌', '😊', '😫', '⚪']
+        'emotion_default': ['😀', '😍', '😊', '😭', '😠', '😴', '😎', '🤔', '🤯', '🥺', '😂', '🥳', '😳', '😞', '😒', '😔', '🥹', '😕', '😋', '😖', '😢', '🙂', '😤', '😓', '😐', '🙄', '🥱', '🤢', '🤒', '🤧', '🤕', '⚪'],
+        'emotion_pool': ['🏊', '❌', '😊', '😫', '⚪']
     };
 
     // --- Helper Functions ---
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const existingSpacer = timelineHeader.querySelector('.spacer');
         if (existingSpacer) existingSpacer.remove();
 
-        if (journal.name === 'משקל') {
+        if (journal.type === 'graph') {
             const graphBtn = document.createElement('button');
             graphBtn.id = 'show-graph-btn';
             graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>';
@@ -268,8 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchBtn.before(graphBtn);
         }
 
-        const emotionJournalNames = ['רגשות', 'בריכה'];
-        if (emotionJournalNames.includes(journal.name)) {
+        if (journal.type === 'emotion') {
             renderEmotionJournalView(journal);
             fab.style.display = 'none';
         } else {
@@ -397,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showGraphView() {
         window.scrollTo(0, 0);
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
-        if (!journal || journal.name !== 'משקל') return;
+        if (!journal || journal.type !== 'graph') return;
 
         hideAllViews();
         graphView.style.display = 'block';
@@ -411,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
-        const isWeightJournal = journal && journal.name === 'משקל';
+        const isWeightJournal = journal && journal.type === 'graph';
 
         let weightAdjusterHTML = '';
         if (isNewEntry && isWeightJournal) {
@@ -485,12 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
-            if (journal && journal.name === 'ויטמינים') {
+            if (journal && journal.type === 'template' && journal.template) {
+                const templateLines = journal.template.split('\n').filter(line => line.trim() !== '');
                 const now = Date.now();
-                textInput.innerHTML = `
-<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-1"><label for="checklist-item-${now}-1">ויטמין D</label></div>
-<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-2"><label for="checklist-item-${now}-2">ויטמין B12</label></div>
-<div>&nbsp;</div>`;
+                const checklistHtml = templateLines.map((line, index) => {
+                    const itemId = `checklist-item-${now}-${index}`;
+                    return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
+                }).join('');
+                textInput.innerHTML = checklistHtml + '<div>&nbsp;</div>';
             }
         }
 
@@ -668,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal) return;
 
-        const emojiSet = EMOTION_SETS[journal.name] || [];
+        const emojiSet = EMOTION_SETS[journal.subtype] || [];
 
         emojiSet.forEach(emoji => {
             const button = document.createElement('button');
@@ -963,8 +964,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             // Find emoji for the date for any emotion-based journal
-            const emotionJournalNames = ['רגשות', 'בריכה'];
-            if (emotionJournalNames.includes(journal.name) && journal.emojis && journal.emojis[dateString]) {
+            if (journal.type === 'emotion' && journal.emojis && journal.emojis[dateString]) {
                 entriesForDate.push({
                     id: `emoji-${dateString}-${journal.id}`,
                     journalId: journal.id,
@@ -1119,8 +1119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }));
                 allEntries = allEntries.concat(entriesArray);
             }
-            const emotionJournalNames = ['רגשות', 'בריכה'];
-            if (emotionJournalNames.includes(journal.name) && journal.emojis) {
+            if (journal.type === 'emotion' && journal.emojis) {
                 const emojiEntries = Object.keys(journal.emojis).map(dateString => ({
                     id: `emoji-${dateString}-${journal.id}`,
                     journalId: journal.id,
@@ -1215,8 +1214,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('add-journal-fab').addEventListener('click', () => {
         newJournalNameInput.value = '';
+        document.getElementById('new-journal-type-select').value = 'default';
+        document.getElementById('template-editor-container').style.display = 'none';
+        document.getElementById('new-journal-template-input').value = '';
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
+    });
+
+    document.getElementById('new-journal-type-select').addEventListener('change', (e) => {
+        const templateEditor = document.getElementById('template-editor-container');
+        if (e.target.value === 'template') {
+            templateEditor.style.display = 'block';
+        } else {
+            templateEditor.style.display = 'none';
+        }
     });
 
     function closeNewJournalModal() {
@@ -1228,8 +1239,21 @@ document.addEventListener('DOMContentLoaded', () => {
     createNewJournalBtn.addEventListener('click', () => {
         if (!journalsRef) return;
         const newName = newJournalNameInput.value.trim();
+        const selectedType = document.getElementById('new-journal-type-select').value;
+
+        let type = selectedType;
+        let subtype = '';
+        let template = '';
+
+        if (selectedType.startsWith('emotion_')) {
+            type = 'emotion';
+            subtype = selectedType;
+        } else if (type === 'template') {
+            template = document.getElementById('new-journal-template-input').value;
+        }
+
         if (newName) {
-            journalsRef.push({ name: newName, entries: {} });
+            journalsRef.push({ name: newName, type: type, subtype: subtype, template: template, entries: {} });
             closeNewJournalModal();
         }
     });
@@ -1422,6 +1446,58 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') verifyPin();
     });
 
+    function migrateJournalTypes() {
+        if (!journalsRef) return;
+
+        appData.journals.forEach(journal => {
+            let updatePayload = {};
+            let needsUpdate = false;
+
+            switch (journal.name) {
+                case 'משקל':
+                    if (journal.type !== 'graph') {
+                        updatePayload.type = 'graph';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'רגשות':
+                    if (journal.type !== 'emotion' || journal.subtype !== 'emotion_default') {
+                        updatePayload.type = 'emotion';
+                        updatePayload.subtype = 'emotion_default';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'בריכה':
+                    if (journal.type !== 'emotion' || journal.subtype !== 'emotion_pool') {
+                        updatePayload.type = 'emotion';
+                        updatePayload.subtype = 'emotion_pool';
+                        needsUpdate = true;
+                    }
+                    break;
+                case 'ויטמינים':
+                    const originalTemplate = "ויטמין D\nויטמין B12";
+                    if (journal.type !== 'template' || journal.template !== originalTemplate) {
+                        updatePayload.type = 'template';
+                        updatePayload.template = originalTemplate;
+                        needsUpdate = true;
+                    }
+                    break;
+                default:
+                    // For any other journal, if it doesn't have a type, set it to default.
+                    if (typeof journal.type === 'undefined' || journal.type === '') {
+                        updatePayload.type = 'default';
+                        updatePayload.subtype = '';
+                        updatePayload.template = '';
+                        needsUpdate = true;
+                    }
+                    break;
+            }
+
+            if (needsUpdate) {
+                journalsRef.child(journal.id).update(updatePayload);
+            }
+        });
+    }
 
     // --- Main App Logic ---
     function initializeData(user) {
@@ -1434,6 +1510,10 @@ document.addEventListener('DOMContentLoaded', () => {
         journalsRef.on('value', (snapshot) => {
             const journalsData = snapshot.val();
             appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
+
+            if (isFirstLoad) {
+                migrateJournalTypes();
+            }
 
             const stats = calculateInsights();
             renderInsightsWidget(stats);

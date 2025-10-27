@@ -316,6 +316,53 @@ body.loading .view-screen {
     font-weight: 700;
 }
 
+/* Custom Select Dropdown in Modal */
+#new-journal-type-select {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    text-align: center;
+    box-sizing: border-box;
+    appearance: none; /* Remove default browser styling */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D3EDE7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+    padding-right: 2.5rem; /* Make space for the arrow */
+    margin-top: 10px; /* Add some space above the select */
+}
+
+#new-journal-type-select:focus {
+    outline: none;
+    border-color: var(--color-accent-system);
+}
+
+#new-journal-template-input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    text-align: right;
+    box-sizing: border-box;
+    resize: vertical; /* Allow vertical resizing */
+}
+
+#new-journal-template-input:focus {
+    outline: none;
+    border-color: var(--color-accent-system);
+}
+
 #login-form, #signup-form {
     display: flex;
     flex-direction: column;
