@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const existingSpacer = timelineHeader.querySelector('.spacer');
         if (existingSpacer) existingSpacer.remove();
 
-        if (journal.type === 'weight') {
+        if (journal.type === 'graph') {
             const graphBtn = document.createElement('button');
             graphBtn.id = 'show-graph-btn';
             graphBtn.innerHTML = '<i class="fas fa-chart-line"></i>';
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showGraphView() {
         window.scrollTo(0, 0);
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
-        if (!journal || journal.type !== 'weight') return;
+        if (!journal || journal.type !== 'graph') return;
 
         hideAllViews();
         graphView.style.display = 'block';
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
-        const isWeightJournal = journal && journal.type === 'weight';
+        const isWeightJournal = journal && journal.type === 'graph';
 
         let weightAdjusterHTML = '';
         if (isNewEntry && isWeightJournal) {
@@ -484,12 +484,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
-            if (journal && journal.type === 'vitamins') {
+            if (journal && journal.type === 'template' && journal.template) {
+                const templateLines = journal.template.split('\n').filter(line => line.trim() !== '');
                 const now = Date.now();
-                textInput.innerHTML = `
-<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-1"><label for="checklist-item-${now}-1">ויטמין D</label></div>
-<div class="checklist-item"><input type="checkbox" id="checklist-item-${now}-2"><label for="checklist-item-${now}-2">ויטמין B12</label></div>
-<div>&nbsp;</div>`;
+                const checklistHtml = templateLines.map((line, index) => {
+                    const itemId = `checklist-item-${now}-${index}`;
+                    return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
+                }).join('');
+                textInput.innerHTML = checklistHtml + '<div>&nbsp;</div>';
             }
         }
 
@@ -1212,8 +1214,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('add-journal-fab').addEventListener('click', () => {
         newJournalNameInput.value = '';
+        document.getElementById('new-journal-type-select').value = 'default';
+        document.getElementById('template-editor-container').style.display = 'none';
+        document.getElementById('new-journal-template-input').value = '';
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
+    });
+
+    document.getElementById('new-journal-type-select').addEventListener('change', (e) => {
+        const templateEditor = document.getElementById('template-editor-container');
+        if (e.target.value === 'template') {
+            templateEditor.style.display = 'block';
+        } else {
+            templateEditor.style.display = 'none';
+        }
     });
 
     function closeNewJournalModal() {
@@ -1229,14 +1243,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let type = selectedType;
         let subtype = '';
+        let template = '';
 
         if (selectedType.startsWith('emotion_')) {
             type = 'emotion';
             subtype = selectedType;
+        } else if (type === 'template') {
+            template = document.getElementById('new-journal-template-input').value;
         }
 
         if (newName) {
-            journalsRef.push({ name: newName, type: type, subtype: subtype, entries: {} });
+            journalsRef.push({ name: newName, type: type, subtype: subtype, template: template, entries: {} });
             closeNewJournalModal();
         }
     });
@@ -1439,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 switch (journal.name) {
                     case 'משקל':
-                        type = 'weight';
+                        type = 'graph';
                         break;
                     case 'רגשות':
                         type = 'emotion';
@@ -1450,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         subtype = 'emotion_pool';
                         break;
                     case 'ויטמינים':
-                        type = 'vitamins';
+                        type = 'template';
                         break;
                 }
 

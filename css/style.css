@@ -344,6 +344,25 @@ body.loading .view-screen {
     border-color: var(--color-accent-system);
 }
 
+#new-journal-template-input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    text-align: right;
+    box-sizing: border-box;
+    resize: vertical; /* Allow vertical resizing */
+}
+
+#new-journal-template-input:focus {
+    outline: none;
+    border-color: var(--color-accent-system);
+}
+
 #login-form, #signup-form {
     display: flex;
     flex-direction: column;

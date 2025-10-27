@@ -202,9 +202,13 @@
                 <option value="default">רגיל</option>
                 <option value="emotion_default">רגשות</option>
                 <option value="emotion_pool">בריכה</option>
-                <option value="weight">משקל</option>
-                <option value="vitamins">ויטמינים</option>
+                <option value="graph">גרף</option>
+                <option value="template">תבנית צ'קליסט</option>
             </select>
+            <div id="template-editor-container" style="display: none; margin-top: 15px;">
+                <p style="margin-bottom: 5px;">הזן תבנית (כל שורה היא פריט בצ'קליסט):</p>
+                <textarea id="new-journal-template-input" dir="rtl" rows="4"></textarea>
+            </div>
             <div class="modal-actions">
                 <button id="cancel-new-journal-btn">ביטול</button>
                 <button id="create-new-journal-btn">צור</button>
