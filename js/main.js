@@ -175,18 +175,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const item = document.createElement('div');
             item.className = 'journal-list-item';
-            item.textContent = journal.name;
             item.dataset.id = journal.id;
+
+            const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
+            const nameHTML = `<span class="journal-name">${journal.name}</span>`;
+
+            item.innerHTML = iconHTML + nameHTML;
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
             deleteBtn.innerHTML = '&times;';
             deleteBtn.dataset.id = journal.id;
 
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-journal-btn';
+            editBtn.innerHTML = '<i data-lucide="pencil"></i>';
+            editBtn.dataset.id = journal.id;
+
             wrapper.appendChild(item);
             wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(editBtn);
             container.appendChild(wrapper);
         });
+
+        // After adding all items, call Lucide to render the icons
+        lucide.createIcons();
     }
 
     function renderEmotionJournalView(journal) {
@@ -1223,7 +1236,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
                     journalsRef.child(journalId).remove();
                 }
+                return; // Prevent fall-through to other click handlers in edit mode
             }
+
+            const editBtn = e.target.closest('.edit-journal-btn');
+            if (editBtn) {
+                const journalId = editBtn.dataset.id;
+                openEditJournalModal(journalId);
+                return; // Prevent fall-through
+            }
+
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
@@ -1242,8 +1264,30 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('new-journal-type-select').value = 'default';
         document.getElementById('template-editor-container').style.display = 'none';
         document.getElementById('new-journal-template-input').value = '';
+        // Reset icon picker selection
+        document.querySelectorAll('#new-journal-icon-picker .icon-picker-btn.selected').forEach(btn => {
+            btn.classList.remove('selected');
+        });
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
+    });
+
+    // Handle icon selection in the new journal modal
+    document.getElementById('new-journal-icon-picker').addEventListener('click', (e) => {
+        const clickedBtn = e.target.closest('.icon-picker-btn');
+        if (!clickedBtn) return;
+
+        // Allow unselecting by clicking the same icon again
+        if (clickedBtn.classList.contains('selected')) {
+            clickedBtn.classList.remove('selected');
+        } else {
+            // Remove 'selected' from any other button
+            document.querySelectorAll('#new-journal-icon-picker .icon-picker-btn.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Add 'selected' to the clicked button
+            clickedBtn.classList.add('selected');
+        }
     });
 
     document.getElementById('new-journal-type-select').addEventListener('change', (e) => {
@@ -1265,6 +1309,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!journalsRef) return;
         const newName = newJournalNameInput.value.trim();
         const selectedType = document.getElementById('new-journal-type-select').value;
+        const selectedIconEl = document.querySelector('#new-journal-icon-picker .icon-picker-btn.selected');
+        const icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
 
         let type = selectedType;
         let subtype = '';
@@ -1278,12 +1324,94 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (newName) {
-            journalsRef.push({ name: newName, type: type, subtype: subtype, template: template, entries: {} }).then(() => {
+            const journalData = {
+                name: newName,
+                type: type,
+                subtype: subtype,
+                template: template,
+                entries: {}
+            };
+            if (icon) {
+                journalData.icon = icon;
+            }
+            journalsRef.push(journalData).then(() => {
                 showToast(`היומן "${newName}" נוצר בהצלחה`);
             });
             closeNewJournalModal();
         }
     });
+
+    // --- Edit Journal Modal Logic ---
+    const editJournalModal = document.getElementById('edit-journal-modal');
+    const editJournalNameInput = document.getElementById('edit-journal-name-input');
+    const cancelEditJournalBtn = document.getElementById('cancel-edit-journal-btn');
+    const saveEditJournalBtn = document.getElementById('save-edit-journal-btn');
+    let currentlyEditingJournalId = null;
+
+    function openEditJournalModal(journalId) {
+        currentlyEditingJournalId = journalId;
+        const journal = appData.journals.find(j => j.id === journalId);
+        if (!journal) return;
+
+        editJournalNameInput.value = journal.name;
+
+        // Reset and set icon picker
+        document.querySelectorAll('#edit-journal-icon-picker .icon-picker-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            if (btn.dataset.icon === journal.icon) {
+                btn.classList.add('selected');
+            }
+        });
+
+        editJournalModal.style.display = 'flex';
+        lucide.createIcons(); // Re-render icons in the modal
+    }
+
+    function closeEditJournalModal() {
+        editJournalModal.style.display = 'none';
+        currentlyEditingJournalId = null;
+    }
+
+    cancelEditJournalBtn.addEventListener('click', closeEditJournalModal);
+
+    saveEditJournalBtn.addEventListener('click', () => {
+        if (!currentlyEditingJournalId || !journalsRef) return;
+
+        const newName = editJournalNameInput.value.trim();
+        if (!newName) {
+            alert('Journal name cannot be empty.');
+            return;
+        }
+
+        const selectedIconEl = document.querySelector('#edit-journal-icon-picker .icon-picker-btn.selected');
+        const icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
+
+        const updates = {
+            name: newName,
+            icon: icon
+        };
+
+        journalsRef.child(currentlyEditingJournalId).update(updates).then(() => {
+            showToast('Journal updated successfully');
+            closeEditJournalModal();
+        });
+    });
+
+    // Handle icon selection in the edit journal modal
+    document.getElementById('edit-journal-icon-picker').addEventListener('click', (e) => {
+        const clickedBtn = e.target.closest('.icon-picker-btn');
+        if (!clickedBtn) return;
+
+        if (clickedBtn.classList.contains('selected')) {
+            clickedBtn.classList.remove('selected');
+        } else {
+            document.querySelectorAll('#edit-journal-icon-picker .icon-picker-btn.selected').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            clickedBtn.classList.add('selected');
+        }
+    });
+
 
     const insightsStatsContainer = document.querySelector('.insights-main-stats');
     insightsStatsContainer.addEventListener('click', (e) => {
