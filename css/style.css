@@ -4,8 +4,8 @@
     --font-stack: 'Heebo', sans-serif;
 
     /* Color and Surface Tokens (Dark Mode) */
-    --color-background-primary: #1C1C1E; /* Dark System Background */
-    --color-surface-card: #2C2C2E; /* Layered Dark Surface */
+    --color-background-primary: #000000; /* Dark System Background */
+    --color-surface-card: #181818; /* Layered Dark Surface */
     --color-text-primary: #FFFFFF; /* White */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
     --color-accent-system: #D3EDE7; /* Lighter Sage Green from new palette */
