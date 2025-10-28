@@ -15,7 +15,7 @@
     --color-frosted-glass-border: rgba(255, 255, 255, 0.1);
 
     /* Border Radius */
-    --border-radius-card: 12px;
+    --border-radius-card: 18px;
 
     /* Shadowing */
     --box-shadow-dark: 0 1px 1px rgba(0, 0, 0, 0.3);
@@ -314,6 +314,7 @@ body.loading .view-screen {
     cursor: pointer;
     font-size: 15px;
     margin-top: 20px;
+    font-family: var(--font-stack);
 }
 
 /* Auth View Specifics */
@@ -350,6 +351,7 @@ body.loading .view-screen {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: var(--font-stack);
 }
 
 .auth-toggle button.active {
@@ -511,7 +513,7 @@ body.loading .view-screen {
     background-color: var(--color-surface-card);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--color-text-primary);
-    border-radius: 8px;
+    border-radius: 14px;
     box-sizing: border-box;
     text-align: right; /* RTL text alignment */
 }
@@ -532,7 +534,7 @@ body.loading .view-screen {
     padding: 15px;
     background-color: var(--color-accent-system);
     border: none;
-    border-radius: 8px;
+    border-radius: 14px;
     color: var(--color-background-primary);
     font-size: 18px;
     cursor: pointer;
@@ -1037,7 +1039,7 @@ button:active,
 .modal-actions button {
     padding: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 14px;
     font-size: 17px;
     cursor: pointer;
 }
