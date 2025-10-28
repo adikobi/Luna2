@@ -185,8 +185,8 @@ body.loading .view-screen {
 }
 
 .journal-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     stroke: var(--color-text-primary);
     stroke-width: 1.5;
 }

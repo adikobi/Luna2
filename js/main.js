@@ -1355,16 +1355,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
         editJournalNameInput.value = journal.name;
 
-        // Reset and set icon picker
-        document.querySelectorAll('#edit-journal-icon-picker .icon-picker-btn').forEach(btn => {
-            btn.classList.remove('selected');
-            if (btn.dataset.icon === journal.icon) {
-                btn.classList.add('selected');
+        const newJournalPicker = document.getElementById('new-journal-icon-picker');
+        const editJournalPicker = document.getElementById('edit-journal-icon-picker');
+
+        // --- DYNAMICALLY POPULATE ICONS ---
+        // Clear previous icons
+        editJournalPicker.innerHTML = '';
+
+        // Clone icons from the new journal modal
+        const icons = newJournalPicker.querySelectorAll('.icon-picker-btn');
+        icons.forEach(iconBtn => {
+            const clone = iconBtn.cloneNode(true);
+            clone.classList.remove('selected'); // Ensure no selection is carried over
+            if (clone.dataset.icon === journal.icon) {
+                clone.classList.add('selected');
             }
+            editJournalPicker.appendChild(clone);
         });
 
+        // Add the "remove icon" button specifically for the edit modal
+        const removeIconButton = document.createElement('button');
+        removeIconButton.className = 'icon-picker-btn';
+        removeIconButton.dataset.icon = '';
+        removeIconButton.innerHTML = '<i data-lucide="x-circle"></i>';
+        if (!journal.icon) { // Select if the journal has no icon
+             removeIconButton.classList.add('selected');
+        }
+        editJournalPicker.appendChild(removeIconButton);
+
+
         editJournalModal.style.display = 'flex';
-        lucide.createIcons(); // Re-render icons in the modal
+        lucide.createIcons(); // Render the newly added icons
     }
 
     function closeEditJournalModal() {
