@@ -364,6 +364,12 @@ body.loading .view-screen {
     grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
     gap: 10px;
     margin-top: 10px;
+    max-height: 200px; /* Set a max height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding: 10px; /* Add some padding */
+    background-color: var(--color-background-primary); /* Match modal input fields */
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
 }
 
 .icon-picker-btn {
@@ -451,6 +457,24 @@ body.loading .view-screen {
 }
 
 #new-journal-type-select:focus {
+    outline: none;
+    border-color: var(--color-accent-system);
+}
+
+#edit-journal-name-input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+#edit-journal-name-input:focus {
     outline: none;
     border-color: var(--color-accent-system);
 }
@@ -975,7 +999,9 @@ button:active,
 
 .modal-content h2 {
     margin-top: 0;
-    font-size: 20px;
+    font-family: 'Bebas Neue', 'Heebo', sans-serif;
+    font-size: 28px;
+    font-weight: 400;
 }
 
 .modal-content p {
@@ -1016,11 +1042,17 @@ button:active,
     cursor: pointer;
 }
 
-#create-new-journal-btn {
+#create-new-journal-btn, #save-edit-journal-btn {
     background-color: var(--color-accent-system);
     font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
+}
+
+#cancel-edit-journal-btn {
+    background-color: #3A3A3C;
+    font-family: var(--font-stack);
+    color: var(--color-text-primary);
 }
 
 /* --- Modern Checklist Styles --- */
