@@ -15,7 +15,7 @@
     --color-frosted-glass-border: rgba(255, 255, 255, 0.1);
 
     /* Border Radius */
-    --border-radius-card: 12px;
+    --border-radius-card: 24px;
 
     /* Shadowing */
     --box-shadow-dark: 0 1px 1px rgba(0, 0, 0, 0.3);
@@ -172,15 +172,29 @@ body.loading .view-screen {
 .journal-list-item {
     background-color: var(--color-surface-card);
     border-radius: var(--border-radius-card);
-    font-size: 18px;
     cursor: pointer;
     aspect-ratio: 1 / 1;
     display: flex;
+    flex-direction: column; /* Stack icon and name vertically */
     justify-content: center;
     align-items: center;
     text-align: center;
     padding: 10px;
     transition: opacity 0.1s ease-in-out;
+    gap: 10px; /* Space between icon and name */
+}
+
+.journal-icon {
+    width: 40px;
+    height: 40px;
+    stroke: var(--color-text-primary);
+    stroke-width: 1.5;
+}
+
+.journal-name {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-primary);
 }
 
 .delete-journal-btn {
@@ -204,6 +218,34 @@ body.loading .view-screen {
 
 #journals-list-view.edit-mode .delete-journal-btn {
     display: block; /* Shown in edit mode */
+}
+
+.edit-journal-btn {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 28px;
+    height: 28px;
+    background-color: #3A3A3C;
+    color: white;
+    border: 2px solid var(--color-background-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.edit-journal-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: white;
+}
+
+#journals-list-view.edit-mode .edit-journal-btn {
+    display: flex;
 }
 
 .delete-journal-btn:hover {
@@ -272,6 +314,7 @@ body.loading .view-screen {
     cursor: pointer;
     font-size: 15px;
     margin-top: 20px;
+    font-family: var(--font-stack);
 }
 
 /* Auth View Specifics */
@@ -308,12 +351,56 @@ body.loading .view-screen {
     border-radius: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-family: var(--font-stack);
 }
 
 .auth-toggle button.active {
     background-color: var(--color-accent-system);
     color: var(--color-background-primary);
     font-weight: 700;
+}
+
+/* --- Icon Picker Styles --- */
+.icon-picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    max-height: 200px; /* Set a max height */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding: 10px; /* Add some padding */
+    background-color: var(--color-background-primary); /* Match modal input fields */
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+}
+
+.icon-picker-btn {
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.icon-picker-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--color-text-secondary);
+    transition: stroke 0.2s;
+}
+
+.icon-picker-btn.selected,
+.icon-picker-btn:hover {
+    border-color: var(--color-accent-system);
+}
+
+.icon-picker-btn.selected svg,
+.icon-picker-btn:hover svg {
+    stroke: var(--color-accent-system);
 }
 
 /* --- Toast Notification Styles --- */
@@ -376,6 +463,24 @@ body.loading .view-screen {
     border-color: var(--color-accent-system);
 }
 
+#edit-journal-name-input {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-background-primary);
+    border: 1px solid var(--color-frosted-glass-border);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    font-family: var(--font-stack);
+    font-size: 16px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+#edit-journal-name-input:focus {
+    outline: none;
+    border-color: var(--color-accent-system);
+}
+
 #new-journal-template-input {
     width: 100%;
     padding: 12px;
@@ -408,7 +513,7 @@ body.loading .view-screen {
     background-color: var(--color-surface-card);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--color-text-primary);
-    border-radius: 8px;
+    border-radius: 18px;
     box-sizing: border-box;
     text-align: right; /* RTL text alignment */
 }
@@ -429,7 +534,7 @@ body.loading .view-screen {
     padding: 15px;
     background-color: var(--color-accent-system);
     border: none;
-    border-radius: 8px;
+    border-radius: 18px;
     color: var(--color-background-primary);
     font-size: 18px;
     cursor: pointer;
@@ -601,7 +706,7 @@ body.loading .view-screen {
 
 .journal-card {
     background-color: var(--color-surface-card);
-    border-radius: var(--border-radius-card);
+    border-radius: 18px; /* Specific radius for journal entry cards */
     box-shadow: var(--box-shadow-dark);
     padding: 15px;
     margin-bottom: 20px;
@@ -896,7 +1001,9 @@ button:active,
 
 .modal-content h2 {
     margin-top: 0;
-    font-size: 20px;
+    font-family: 'Bebas Neue', 'Heebo', sans-serif;
+    font-size: 28px;
+    font-weight: 400;
 }
 
 .modal-content p {
@@ -932,16 +1039,22 @@ button:active,
 .modal-actions button {
     padding: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 18px;
     font-size: 17px;
     cursor: pointer;
 }
 
-#create-new-journal-btn {
+#create-new-journal-btn, #save-edit-journal-btn {
     background-color: var(--color-accent-system);
     font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
+}
+
+#cancel-edit-journal-btn {
+    background-color: #3A3A3C;
+    font-family: var(--font-stack);
+    color: var(--color-text-primary);
 }
 
 /* --- Modern Checklist Styles --- */
