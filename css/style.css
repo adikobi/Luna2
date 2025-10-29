@@ -165,8 +165,20 @@ body.loading .view-screen {
     padding: 20px;
 }
 
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .journal-list-item-wrapper {
     position: relative;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
 .journal-list-item {
@@ -804,14 +816,12 @@ button:active,
     z-index: 2000;
     display: flex;
     flex-direction: column;
-    opacity: 0;
-    visibility: hidden; /* Use visibility to remove from layout */
-    transition: opacity 0.3s ease-in-out, visibility 0.3s;
+    transform: translateY(100%); /* Start off-screen at the bottom */
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
 }
 
 #composer-view.visible {
-    opacity: 1;
-    visibility: visible; /* Make it visible and part of the layout */
+    transform: translateY(0); /* Slide into view */
 }
 
 .composer-header {

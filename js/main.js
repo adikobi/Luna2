@@ -166,53 +166,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    let renderedJournalIds = new Set();
+
     function renderJournalsList(journals) {
         const container = document.getElementById('journals-list-container');
         const emptyStateContainer = document.getElementById('empty-state-container');
         const fab = document.getElementById('add-journal-fab');
+        const newJournalIds = new Set(journals.map(j => j.id));
 
+        // 1. Handle Empty State
         if (journals.length === 0) {
-            container.innerHTML = ''; // Clear any old content
+            container.innerHTML = '';
             container.style.display = 'none';
             emptyStateContainer.style.display = 'block';
-            fab.style.display = 'none'; // Hide FAB when empty state is shown
-        } else {
-            container.style.display = 'grid';
-            emptyStateContainer.style.display = 'none';
-            fab.style.display = 'block';
-
-            container.innerHTML = '';
-            journals.forEach(journal => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'journal-list-item-wrapper';
-
-                const item = document.createElement('div');
-                item.className = 'journal-list-item';
-                item.dataset.id = journal.id;
-
-                const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
-                const nameHTML = `<span class="journal-name">${journal.name}</span>`;
-
-                item.innerHTML = iconHTML + nameHTML;
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-journal-btn';
-                deleteBtn.innerHTML = '&times;';
-                deleteBtn.dataset.id = journal.id;
-
-                const editBtn = document.createElement('button');
-                editBtn.className = 'edit-journal-btn';
-                editBtn.innerHTML = '<i data-lucide="pencil"></i>';
-                editBtn.dataset.id = journal.id;
-
-                wrapper.appendChild(item);
-                wrapper.appendChild(deleteBtn);
-                wrapper.appendChild(editBtn);
-                container.appendChild(wrapper);
-            });
+            fab.style.display = 'none';
+            renderedJournalIds.clear();
+            lucide.createIcons(); // For the empty state icon
+            return;
         }
 
-        // After adding all items (or not), call Lucide to render any icons (like in the empty state)
+        // 2. Show container if it was hidden
+        container.style.display = 'grid';
+        emptyStateContainer.style.display = 'none';
+        fab.style.display = 'block';
+
+        // 3. Remove journals that are no longer in the data
+        for (const renderedId of renderedJournalIds) {
+            if (!newJournalIds.has(renderedId)) {
+                const elementToRemove = container.querySelector(`.journal-list-item-wrapper[data-journal-id="${renderedId}"]`);
+                if (elementToRemove) {
+                    elementToRemove.remove();
+                }
+            }
+        }
+
+        // 4. Add or update journals
+        journals.forEach(journal => {
+            if (renderedJournalIds.has(journal.id)) {
+                // Potentially update existing element if content can change, for now we assume it doesn't.
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'journal-list-item-wrapper';
+            wrapper.style.animation = 'none'; // Disable animation initially
+            wrapper.dataset.journalId = journal.id; // Add a dataset for easier removal
+
+            const item = document.createElement('div');
+            item.className = 'journal-list-item';
+            item.dataset.id = journal.id;
+
+            const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
+            const nameHTML = `<span class="journal-name">${journal.name}</span>`;
+            item.innerHTML = iconHTML + nameHTML;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-journal-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.dataset.id = journal.id;
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-journal-btn';
+            editBtn.innerHTML = '<i data-lucide="pencil"></i>';
+            editBtn.dataset.id = journal.id;
+
+            wrapper.appendChild(item);
+            wrapper.appendChild(deleteBtn);
+            wrapper.appendChild(editBtn);
+            container.appendChild(wrapper);
+
+            // Trigger reflow and then apply animation
+            requestAnimationFrame(() => {
+                wrapper.style.animation = '';
+            });
+        });
+
+        // 5. Update the set of rendered IDs and render icons
+        renderedJournalIds = newJournalIds;
         lucide.createIcons();
     }
 
