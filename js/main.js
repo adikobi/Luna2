@@ -124,6 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    function showLoadingIndicator() {
+        document.body.classList.add('loading');
+    }
+
+    function hideLoadingIndicator() {
+        document.body.classList.remove('loading');
+    }
+
 
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
@@ -1592,6 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const pinInput = document.getElementById('pin-setup-input');
         const pin = pinInput.value;
         if (pin.length === 4 && /^\d{4}$/.test(pin)) {
+            showLoadingIndicator();
             const pinHash = await hashPin(pin);
             localStorage.setItem(`luna_pin_${appData.currentUser.uid}`, pinHash);
             initializeData(appData.currentUser);
@@ -1608,6 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const storedHash = localStorage.getItem(`luna_pin_${appData.currentUser.uid}`);
             const enteredHash = await hashPin(pin);
             if (enteredHash === storedHash) {
+                showLoadingIndicator();
                 initializeData(appData.currentUser);
             } else {
                 pinView.querySelector('.password-container').classList.add('shake');
@@ -1688,6 +1698,7 @@ document.addEventListener('DOMContentLoaded', () => {
             appData.journals = journalsData ? Object.keys(journalsData).map(key => ({ id: key, ...journalsData[key] })) : [];
 
             if (isFirstLoad) {
+                hideLoadingIndicator();
                 migrateJournalTypes();
             }
 
@@ -1723,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth State Change Listener ---
     auth.onAuthStateChanged(user => {
-        document.body.classList.remove('loading'); // Remove loading class once auth state is known
+        hideLoadingIndicator(); // Restore this to show the initial auth/pin view
         if (user) {
             appData.currentUser = user;
             const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
