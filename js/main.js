@@ -168,37 +168,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderJournalsList(journals) {
         const container = document.getElementById('journals-list-container');
-        container.innerHTML = '';
-        journals.forEach(journal => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'journal-list-item-wrapper';
+        const emptyStateContainer = document.getElementById('empty-state-container');
+        const fab = document.getElementById('add-journal-fab');
 
-            const item = document.createElement('div');
-            item.className = 'journal-list-item';
-            item.dataset.id = journal.id;
+        if (journals.length === 0) {
+            container.innerHTML = ''; // Clear any old content
+            container.style.display = 'none';
+            emptyStateContainer.style.display = 'block';
+            fab.style.display = 'none'; // Hide FAB when empty state is shown
+        } else {
+            container.style.display = 'grid';
+            emptyStateContainer.style.display = 'none';
+            fab.style.display = 'block';
 
-            const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
-            const nameHTML = `<span class="journal-name">${journal.name}</span>`;
+            container.innerHTML = '';
+            journals.forEach(journal => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'journal-list-item-wrapper';
 
-            item.innerHTML = iconHTML + nameHTML;
+                const item = document.createElement('div');
+                item.className = 'journal-list-item';
+                item.dataset.id = journal.id;
 
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'delete-journal-btn';
-            deleteBtn.innerHTML = '&times;';
-            deleteBtn.dataset.id = journal.id;
+                const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
+                const nameHTML = `<span class="journal-name">${journal.name}</span>`;
 
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-journal-btn';
-            editBtn.innerHTML = '<i data-lucide="pencil"></i>';
-            editBtn.dataset.id = journal.id;
+                item.innerHTML = iconHTML + nameHTML;
 
-            wrapper.appendChild(item);
-            wrapper.appendChild(deleteBtn);
-            wrapper.appendChild(editBtn);
-            container.appendChild(wrapper);
-        });
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-journal-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.dataset.id = journal.id;
 
-        // After adding all items, call Lucide to render the icons
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-journal-btn';
+                editBtn.innerHTML = '<i data-lucide="pencil"></i>';
+                editBtn.dataset.id = journal.id;
+
+                wrapper.appendChild(item);
+                wrapper.appendChild(deleteBtn);
+                wrapper.appendChild(editBtn);
+                container.appendChild(wrapper);
+            });
+        }
+
+        // After adding all items (or not), call Lucide to render any icons (like in the empty state)
         lucide.createIcons();
     }
 
@@ -1259,7 +1273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createNewJournalBtn = document.getElementById('create-new-journal-btn');
     const cancelNewJournalBtn = document.getElementById('cancel-new-journal-btn');
 
-    document.getElementById('add-journal-fab').addEventListener('click', () => {
+    const openNewJournalModal = () => {
         newJournalNameInput.value = '';
         document.getElementById('new-journal-type-select').value = 'default';
         document.getElementById('template-editor-container').style.display = 'none';
@@ -1270,7 +1284,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
-    });
+    };
+
+    document.getElementById('add-journal-fab').addEventListener('click', openNewJournalModal);
+    document.getElementById('create-first-journal-btn').addEventListener('click', openNewJournalModal);
 
     // Handle icon selection in the new journal modal
     document.getElementById('new-journal-icon-picker').addEventListener('click', (e) => {

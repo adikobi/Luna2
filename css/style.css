@@ -764,13 +764,33 @@ body.loading .view-screen {
     transition: opacity 0.05s ease-in-out;
 }
 
-/* --- Micro-interactions --- */
+/* --- Micro-interactions & Transitions --- */
+
+/* Add transitions to all buttons and clickable cards for a smoother feel */
+button,
+.journal-card,
+.journal-list-item,
+.insights-widget,
+.emotion-day-card,
+.icon-picker-btn,
+.auth-toggle button,
+.filter-btn,
+.header-action-btn {
+    transition: transform 0.15s ease-out, opacity 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+
+/* "Pressed" state for clickable elements */
 button:active,
 .journal-card:active,
 .suggestion-card:active,
-.insights-widget:active {
+.insights-widget:active,
+.journal-list-item:active,
+.emotion-day-card:active,
+.icon-picker-btn:active {
     opacity: 0.8;
-    transition: opacity 0.05s ease-in-out;
+    transform: scale(0.97);
+    transition-duration: 0.05s; /* Make the press feel instant */
 }
 
 /* --- Composer View Styles --- */
@@ -938,7 +958,10 @@ button:active,
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    background-color: var(--color-surface-card);
+    background-color: var(--color-frosted-glass);
+    border: 1px solid var(--color-frosted-glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border-radius: 25px;
     padding: 8px;
     display: flex;
@@ -990,7 +1013,10 @@ button:active,
 }
 
 .modal-content {
-    background-color: var(--color-surface-card);
+    background-color: var(--color-frosted-glass);
+    border: 1px solid var(--color-frosted-glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 25px;
     border-radius: var(--border-radius-card);
     width: 90%;

@@ -104,6 +104,13 @@
             <div id="journals-list-container">
                 <!-- Dynamically populated -->
             </div>
+            <!-- Empty State View -->
+            <div id="empty-state-container" style="display: none; text-align: center; padding: 40px 20px;">
+                <i data-lucide="notebook-tabs" class="empty-state-icon" style="width: 60px; height: 60px; stroke: var(--color-text-secondary); margin-bottom: 20px; stroke-width: 1.5;"></i>
+                <h2 style="font-size: 22px; margin-bottom: 10px;">יומן חדש, דף חדש</h2>
+                <p style="color: var(--color-text-secondary); margin-bottom: 25px;">התחל לתעד את המחשבות, הרגשות והרגעים שלך. לחץ על הכפתור כדי ליצור את היומן הראשון שלך.</p>
+                <button id="create-first-journal-btn" style="background-color: var(--color-accent-system); color: var(--color-background-primary); border: none; padding: 15px 30px; border-radius: 25px; font-size: 18px; font-weight: 700; cursor: pointer;">צור יומן ראשון</button>
+            </div>
         </main>
         <button id="add-journal-fab">+</button>
     </div>
