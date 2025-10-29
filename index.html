@@ -21,6 +21,9 @@
     <script src="js/main.js" defer></script>
 </head>
 <body class="loading">
+    <!-- Loading Spinner -->
+    <div class="loader">Loading...</div>
+
     <!-- Auth View -->
     <div id="auth-view" class="view-screen">
         <div id="auth-container">
@@ -106,6 +109,14 @@
             </div>
         </main>
         <button id="add-journal-fab">+</button>
+    </div>
+
+    <!-- Empty State for Journals List (hidden by default) -->
+    <div id="empty-state-container" style="display: none; text-align: center; padding: 40px 20px;">
+        <i data-lucide="moon" class="empty-state-icon" style="width: 80px; height: 80px; stroke-width: 1; color: var(--color-accent-system); margin-bottom: 20px;"></i>
+        <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 10px;">ברוך הבא ללונה</h2>
+        <p style="color: var(--color-text-secondary); margin-bottom: 30px;">זה המקום שלך להתחיל לתעד. צור את היומן הראשון שלך.</p>
+        <button id="create-first-journal-btn" style="padding: 15px 30px; background-color: var(--color-accent-system); border: none; border-radius: 18px; color: var(--color-background-primary); font-size: 18px; cursor: pointer; font-family: 'Heebo', sans-serif; font-weight: 700;">צור יומן ראשון</button>
     </div>
 
     <!-- Timeline View (hidden by default) -->
