@@ -329,9 +329,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showJournalsListView() {
         appData.currentJournalId = null;
-        renderJournalsList(appData.journals);
-        hideAllViews();
-        journalsListView.style.display = 'block';
+        hideAllViews(); // Hide everything first
+
+        const emptyStateContainer = document.getElementById('empty-state-container');
+        const addJournalFab = document.getElementById('add-journal-fab');
+
+        if (appData.journals.length === 0) {
+            // Show the empty state and hide the regular journal view/FAB
+            emptyStateContainer.style.display = 'block';
+            journalsListView.style.display = 'none';
+            addJournalFab.style.display = 'none';
+        } else {
+            // Show the regular journal view/FAB and hide the empty state
+            emptyStateContainer.style.display = 'none';
+            journalsListView.style.display = 'block';
+            addJournalFab.style.display = 'block';
+            renderJournalsList(appData.journals); // Now, render the list
+        }
     }
 
     function showInsightsView() {
