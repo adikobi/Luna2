@@ -42,8 +42,33 @@ body.loading .view-screen {
     display: none !important;
 }
 
-body.loading .view-screen {
-    display: none !important;
+/* --- Loading Spinner Styles --- */
+#loading-spinner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(211, 237, 231, 0.2); /* Semi-transparent accent color */
+    border-top-color: var(--color-accent-system);
+    border-radius: 50%;
+    z-index: 9999;
+    animation: spin 1s linear infinite;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+body.loading #loading-spinner {
+    opacity: 1;
+    visibility: visible;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .view-screen {
@@ -165,20 +190,8 @@ body.loading .view-screen {
     padding: 20px;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 .journal-list-item-wrapper {
     position: relative;
-    animation: fadeIn 0.4s ease-out forwards;
 }
 
 .journal-list-item {
@@ -776,33 +789,13 @@ body.loading .view-screen {
     transition: opacity 0.05s ease-in-out;
 }
 
-/* --- Micro-interactions & Transitions --- */
-
-/* Add transitions to all buttons and clickable cards for a smoother feel */
-button,
-.journal-card,
-.journal-list-item,
-.insights-widget,
-.emotion-day-card,
-.icon-picker-btn,
-.auth-toggle button,
-.filter-btn,
-.header-action-btn {
-    transition: transform 0.15s ease-out, opacity 0.15s ease-out, background-color 0.15s ease-out;
-}
-
-
-/* "Pressed" state for clickable elements */
+/* --- Micro-interactions --- */
 button:active,
 .journal-card:active,
 .suggestion-card:active,
-.insights-widget:active,
-.journal-list-item:active,
-.emotion-day-card:active,
-.icon-picker-btn:active {
+.insights-widget:active {
     opacity: 0.8;
-    transform: scale(0.97);
-    transition-duration: 0.05s; /* Make the press feel instant */
+    transition: opacity 0.05s ease-in-out;
 }
 
 /* --- Composer View Styles --- */
@@ -816,12 +809,14 @@ button:active,
     z-index: 2000;
     display: flex;
     flex-direction: column;
-    transform: translateY(100%); /* Start off-screen at the bottom */
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
+    opacity: 0;
+    visibility: hidden; /* Use visibility to remove from layout */
+    transition: opacity 0.3s ease-in-out, visibility 0.3s;
 }
 
 #composer-view.visible {
-    transform: translateY(0); /* Slide into view */
+    opacity: 1;
+    visibility: visible; /* Make it visible and part of the layout */
 }
 
 .composer-header {
@@ -968,10 +963,7 @@ button:active,
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    background-color: var(--color-frosted-glass);
-    border: 1px solid var(--color-frosted-glass-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background-color: var(--color-surface-card);
     border-radius: 25px;
     padding: 8px;
     display: flex;
@@ -1023,10 +1015,7 @@ button:active,
 }
 
 .modal-content {
-    background-color: var(--color-frosted-glass);
-    border: 1px solid var(--color-frosted-glass-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background-color: var(--color-surface-card);
     padding: 25px;
     border-radius: var(--border-radius-card);
     width: 90%;

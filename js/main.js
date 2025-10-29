@@ -166,51 +166,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    let renderedJournalIds = new Set();
-
     function renderJournalsList(journals) {
         const container = document.getElementById('journals-list-container');
-        const emptyStateContainer = document.getElementById('empty-state-container');
-        const fab = document.getElementById('add-journal-fab');
-        const newJournalIds = new Set(journals.map(j => j.id));
-
-        // 1. Handle Empty State
-        if (journals.length === 0) {
-            container.innerHTML = '';
-            container.style.display = 'none';
-            emptyStateContainer.style.display = 'block';
-            fab.style.display = 'none';
-            renderedJournalIds.clear();
-            lucide.createIcons(); // For the empty state icon
-            return;
-        }
-
-        // 2. Show container if it was hidden
-        container.style.display = 'grid';
-        emptyStateContainer.style.display = 'none';
-        fab.style.display = 'block';
-
-        // 3. Remove journals that are no longer in the data
-        for (const renderedId of renderedJournalIds) {
-            if (!newJournalIds.has(renderedId)) {
-                const elementToRemove = container.querySelector(`.journal-list-item-wrapper[data-journal-id="${renderedId}"]`);
-                if (elementToRemove) {
-                    elementToRemove.remove();
-                }
-            }
-        }
-
-        // 4. Add or update journals
+        container.innerHTML = '';
         journals.forEach(journal => {
-            if (renderedJournalIds.has(journal.id)) {
-                // Potentially update existing element if content can change, for now we assume it doesn't.
-                return;
-            }
-
             const wrapper = document.createElement('div');
             wrapper.className = 'journal-list-item-wrapper';
-            wrapper.style.animation = 'none'; // Disable animation initially
-            wrapper.dataset.journalId = journal.id; // Add a dataset for easier removal
 
             const item = document.createElement('div');
             item.className = 'journal-list-item';
@@ -218,6 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
             const nameHTML = `<span class="journal-name">${journal.name}</span>`;
+
             item.innerHTML = iconHTML + nameHTML;
 
             const deleteBtn = document.createElement('button');
@@ -234,15 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.appendChild(deleteBtn);
             wrapper.appendChild(editBtn);
             container.appendChild(wrapper);
-
-            // Trigger reflow and then apply animation
-            requestAnimationFrame(() => {
-                wrapper.style.animation = '';
-            });
         });
 
-        // 5. Update the set of rendered IDs and render icons
-        renderedJournalIds = newJournalIds;
+        // After adding all items, call Lucide to render the icons
         lucide.createIcons();
     }
 
@@ -1303,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createNewJournalBtn = document.getElementById('create-new-journal-btn');
     const cancelNewJournalBtn = document.getElementById('cancel-new-journal-btn');
 
-    const openNewJournalModal = () => {
+    document.getElementById('add-journal-fab').addEventListener('click', () => {
         newJournalNameInput.value = '';
         document.getElementById('new-journal-type-select').value = 'default';
         document.getElementById('template-editor-container').style.display = 'none';
@@ -1314,10 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
-    };
-
-    document.getElementById('add-journal-fab').addEventListener('click', openNewJournalModal);
-    document.getElementById('create-first-journal-btn').addEventListener('click', openNewJournalModal);
+    });
 
     // Handle icon selection in the new journal modal
     document.getElementById('new-journal-icon-picker').addEventListener('click', (e) => {
