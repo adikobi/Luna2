@@ -706,7 +706,7 @@ body.loading .view-screen {
 
 .journal-card {
     background-color: var(--color-surface-card);
-    border-radius: var(--border-radius-card);
+    border-radius: 18px; /* Specific radius for journal entry cards */
     box-shadow: var(--box-shadow-dark);
     padding: 15px;
     margin-bottom: 20px;
