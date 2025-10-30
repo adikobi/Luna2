@@ -819,8 +819,6 @@ body.loading .loader {
 }
 
 /* --- Micro-interactions --- */
-
-/* Add transitions for smooth feedback on interactive elements */
 button,
 .journal-card,
 .suggestion-card,
@@ -828,23 +826,22 @@ button,
 .journal-list-item,
 #add-journal-fab,
 #fab,
-.emotion-day-card,
-.weight-btn,
-.toolbar-btn {
-    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease, background-color 0.2s ease;
+.modal-actions button,
+#login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
+    transition: transform 0.1s ease-out, filter 0.1s ease-out, opacity 0.1s ease-out;
 }
 
-/* Hover Effect: A subtle "lift" to indicate interactivity */
 button:hover,
 .journal-list-item:hover,
 #add-journal-fab:hover,
 #fab:hover,
 .journal-card:hover,
-.insights-widget:hover {
-    transform: translateY(-2px);
+.insights-widget:hover,
+.modal-actions button:hover,
+#login-btn:hover, #signup-btn:hover, #pin-setup-btn:hover, #pin-submit-btn:hover {
+    filter: brightness(1.15);
 }
 
-/* Active/Press Effect: A "press-in" feel for satisfying feedback */
 button:active,
 .journal-card:active,
 .suggestion-card:active,
@@ -852,19 +849,11 @@ button:active,
 .journal-list-item:active,
 #add-journal-fab:active,
 #fab:active,
-.emotion-day-card:active,
-.weight-btn:active,
-.toolbar-btn:active {
-    transform: scale(0.97);
-    opacity: 0.9;
-    /* Make the press feel quicker */
+.modal-actions button:active,
+#login-btn:active, #signup-btn:active, #pin-setup-btn:active, #pin-submit-btn:active {
+    transform: scale(0.98);
+    filter: brightness(0.95);
     transition-duration: 0.05s;
-}
-
-/* Specific hover effects for buttons that change color */
-.emotion-day-card:hover,
-.weight-btn:hover {
-     background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* --- Composer View Styles --- */
