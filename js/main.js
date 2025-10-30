@@ -1281,7 +1281,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const createNewJournalBtn = document.getElementById('create-new-journal-btn');
     const cancelNewJournalBtn = document.getElementById('cancel-new-journal-btn');
 
-    document.getElementById('add-journal-fab').addEventListener('click', () => {
+    function openNewJournalModal() {
         newJournalNameInput.value = '';
         document.getElementById('new-journal-type-select').value = 'default';
         document.getElementById('template-editor-container').style.display = 'none';
@@ -1292,7 +1292,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
-    });
+    }
+
+    document.getElementById('add-journal-fab').addEventListener('click', openNewJournalModal);
+    document.getElementById('create-first-journal-btn').addEventListener('click', openNewJournalModal);
 
     // Handle icon selection in the new journal modal
     document.getElementById('new-journal-icon-picker').addEventListener('click', (e) => {
@@ -1736,7 +1739,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     showAllEntriesView();
                 }
-            } else if (isFirstLoad || journalsListView.style.display === 'block') {
+            } else {
                 showJournalsListView();
             }
             isFirstLoad = false;
