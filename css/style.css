@@ -819,12 +819,41 @@ body.loading .loader {
 }
 
 /* --- Micro-interactions --- */
+button,
+.journal-card,
+.suggestion-card,
+.insights-widget,
+.journal-list-item,
+#add-journal-fab,
+#fab,
+.modal-actions button,
+#login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
+    transition: transform 0.1s ease-out, filter 0.1s ease-out, opacity 0.1s ease-out;
+}
+
+button:hover,
+.journal-list-item:hover,
+#add-journal-fab:hover,
+#fab:hover,
+.journal-card:hover,
+.insights-widget:hover,
+.modal-actions button:hover,
+#login-btn:hover, #signup-btn:hover, #pin-setup-btn:hover, #pin-submit-btn:hover {
+    filter: brightness(1.15);
+}
+
 button:active,
 .journal-card:active,
 .suggestion-card:active,
-.insights-widget:active {
-    opacity: 0.8;
-    transition: opacity 0.05s ease-in-out;
+.insights-widget:active,
+.journal-list-item:active,
+#add-journal-fab:active,
+#fab:active,
+.modal-actions button:active,
+#login-btn:active, #signup-btn:active, #pin-setup-btn:active, #pin-submit-btn:active {
+    transform: scale(0.98);
+    filter: brightness(0.95);
+    transition-duration: 0.05s;
 }
 
 /* --- Composer View Styles --- */
@@ -978,6 +1007,7 @@ button:active,
     display: flex;
     justify-content: center;
     align-items: center;
+    touch-action: manipulation; /* Prevents double-tap to zoom */
 }
 
 #entry-textarea a,
