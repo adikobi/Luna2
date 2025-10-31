@@ -13,6 +13,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <!-- Chart.js via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
     <!-- Chart.js Date Adapter (Bundled with a compatible date-fns) -->
@@ -201,6 +202,9 @@
     <div id="composer-view">
         <!-- Composer content will be added here -->
     </div>
+
+    <!-- Hidden File Input for Image Uploads -->
+    <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
 
     <!-- Custom Modal for New Journal -->
     <div id="new-journal-modal" class="modal-overlay" style="display: none;">

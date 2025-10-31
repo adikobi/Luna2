@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const database = firebase.database();
+    const storage = firebase.storage();
 
     // Ensure composer is a direct child of body to avoid stacking context issues
     document.body.appendChild(document.getElementById('composer-view'));
@@ -39,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
+    let currentImageURL = null; // To hold the URL of an uploaded image before saving
     let calendarDate = new Date(); // State for the calendar's currently displayed month
     let insightsChart = {
         selectedYear: new Date().getFullYear(),
@@ -165,9 +167,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const bodyHtml = entry.text;
 
+            const imageHtml = entry.imageUrl ? `<img src="${entry.imageUrl}" class="entry-image">` : '';
+
             card.innerHTML = `
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
+                ${imageHtml}
                 <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
             container.appendChild(card);
@@ -463,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
+        currentImageURL = null; // Reset image URL state on composer open
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
@@ -498,6 +504,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-square"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </button>
+                <button id="add-image-btn" class="toolbar-btn" title="הוסף תמונה">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 </button>
                 <button id="delete-entry-btn" class="toolbar-btn destructive" title="מחק רשומה">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
@@ -586,6 +595,17 @@ document.addEventListener('DOMContentLoaded', () => {
             composerContent.scrollTop = 0;
         }
 
+        // Display existing image if there is one and initialize currentImageURL
+        if (entry && entry.imageUrl) {
+            currentImageURL = entry.imageUrl; // Initialize with existing image
+            const img = document.createElement('img');
+            img.src = entry.imageUrl;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '8px';
+            img.style.marginTop = '10px';
+            composerContent.insertBefore(img, composerContent.querySelector('#entry-textarea'));
+        }
+
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
@@ -602,6 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             composerView.classList.remove('visible');
+            currentImageURL = null; // Also reset on close/cancel
         });
 
         const editBtn = document.getElementById('edit-btn');
@@ -631,6 +652,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
                 const entryData = { date: newEntryDate, text: newEntryText };
+
+                // If a new image was uploaded, currentImageURL will be set.
+                // Otherwise, it will be the original imageUrl or null.
+                entryData.imageUrl = currentImageURL;
+
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
                 if (isNewEntry) {
@@ -644,12 +670,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 composerView.classList.remove('visible');
+                currentImageURL = null; // Reset for the next entry
             });
         }
 
         if (isEditing) {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
+            const addImageBtn = document.getElementById('add-image-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
+
+            addImageBtn.addEventListener('click', () => {
+                document.getElementById('image-upload-input').click();
+            });
 
             // Prevent clicks on checklist items from bubbling up and closing the composer.
             // Also, manually handle the toggle since default behavior can be unreliable in contenteditable.
@@ -755,6 +787,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('cancel-emoji-picker-btn').addEventListener('click', () => {
         document.getElementById('emoji-picker-modal').style.display = 'none';
+    });
+
+    function handleImageUpload(file) {
+        if (!file) return;
+
+        const userId = appData.currentUser.uid;
+        const timestamp = Date.now();
+        const randomString = Math.random().toString(36).substring(2, 8);
+        const fileName = `${timestamp}_${randomString}_${file.name}`;
+        const filePath = `users/${userId}/${fileName}`;
+        const fileRef = storage.ref(filePath);
+        const uploadTask = fileRef.put(file);
+
+        showToast('מעלה תמונה...');
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                // Optional: show progress
+            },
+            (error) => {
+                console.error('Upload failed:', error);
+                showToast('העלאת התמונה נכשלה');
+            },
+            () => {
+                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                    currentImageURL = downloadURL;
+                    const img = document.createElement('img');
+                    img.src = downloadURL;
+                    img.style.maxWidth = '100%';
+                    img.style.borderRadius = '8px';
+                    img.style.marginTop = '10px';
+
+                    const composerContent = document.querySelector('#composer-view .composer-content');
+
+                    // Remove existing image if one exists
+                    const existingImg = composerContent.querySelector('img');
+                    if(existingImg) existingImg.remove();
+
+                    composerContent.insertBefore(img, composerContent.querySelector('#entry-textarea'));
+                    showToast('התמונה הועלתה בהצלחה');
+                });
+            }
+        );
+    }
+
+    document.getElementById('image-upload-input').addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleImageUpload(e.target.files[0]);
+        }
     });
 
     // --- Insights Logic ---

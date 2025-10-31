@@ -1299,6 +1299,14 @@ button:active,
     color: var(--color-text-primary);
 }
 
+.entry-image {
+    width: 100%;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin: 10px 0;
+}
+
 /* --- Mobile Responsive Styles --- */
 @media (max-width: 480px) {
     /* Reduce top padding on the login screen */
