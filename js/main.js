@@ -133,12 +133,42 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('loading');
     }
 
-    function imageToBase64(file) {
+    function imageToBase64(file, maxWidth = 1024, quality = 0.7) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxWidth) {
+                            width *= maxWidth / height;
+                            height = maxWidth;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Get the data URL with specified quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(dataUrl);
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
         });
     }
 
@@ -174,7 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
             const bodyHtml = entry.text;
-
+            // Backward compatibility: If an old imageUrl exists, prepend it to the body.
+            // The new method embeds the image in the bodyHtml itself.
             const imageHtml = entry.imageUrl ? `<img src="${entry.imageUrl}" class="entry-image">` : '';
 
             card.innerHTML = `
@@ -476,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Composer Logic ---
     function populateComposerView(entry = null, mode = 'edit') {
-        currentImageURL = null; // Reset image URL state on composer open
         const isEditing = mode === 'edit';
         const isNewEntry = entry === null;
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
@@ -603,15 +633,52 @@ document.addEventListener('DOMContentLoaded', () => {
             composerContent.scrollTop = 0;
         }
 
-        // Display existing image if there is one and initialize currentImageURL
+        // Backward compatibility for old entries with imageUrl
         if (entry && entry.imageUrl) {
-            currentImageURL = entry.imageUrl; // Initialize with existing image
+            currentImageURL = entry.imageUrl;
+            const container = document.createElement('div');
+            container.className = 'image-preview-container';
+            container.setAttribute('contenteditable', 'false');
+            container.style.position = 'relative';
+            container.style.display = 'inline-block';
+
             const img = document.createElement('img');
             img.src = entry.imageUrl;
             img.style.maxWidth = '100%';
+            img.style.display = 'block';
             img.style.borderRadius = '8px';
             img.style.marginTop = '10px';
-            composerContent.insertBefore(img, composerContent.querySelector('#entry-textarea'));
+            container.appendChild(img);
+
+            if (isEditing) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.className = 'delete-image-btn';
+                deleteBtn.setAttribute('title', 'Remove Image');
+                deleteBtn.style.position = 'absolute';
+                deleteBtn.style.top = '15px';
+                deleteBtn.style.right = '5px';
+                deleteBtn.style.background = 'rgba(0,0,0,0.6)';
+                deleteBtn.style.color = 'white';
+                deleteBtn.style.border = '1px solid rgba(255,255,255,0.2)';
+                deleteBtn.style.borderRadius = '50%';
+                deleteBtn.style.width = '24px';
+                deleteBtn.style.height = '24px';
+                deleteBtn.style.cursor = 'pointer';
+                deleteBtn.style.lineHeight = '22px';
+                deleteBtn.style.textAlign = 'center';
+                deleteBtn.style.fontSize = '16px';
+                deleteBtn.style.fontWeight = 'bold';
+                deleteBtn.addEventListener('click', () => {
+                    container.remove();
+                    currentImageURL = null;
+                });
+                container.appendChild(deleteBtn);
+            }
+
+            textInput.insertBefore(container, textInput.firstChild);
+        } else {
+            currentImageURL = null;
         }
 
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
@@ -630,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             composerView.classList.remove('visible');
-            currentImageURL = null; // Also reset on close/cancel
+            currentImageURL = null;
         });
 
         const editBtn = document.getElementById('edit-btn');
@@ -659,11 +726,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
-                const entryData = { date: newEntryDate, text: newEntryText };
 
-                // If a new image was uploaded, currentImageURL will be set.
-                // Otherwise, it will be the original imageUrl or null.
-                entryData.imageUrl = currentImageURL;
+                // The `imageUrl` property is now legacy. By setting it to null on every save,
+                // we ensure that old entries are migrated to the new embedded-image format
+                // upon their first edit, preventing image duplication.
+                const entryData = { date: newEntryDate, text: newEntryText, imageUrl: null };
 
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
@@ -678,7 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 composerView.classList.remove('visible');
-                currentImageURL = null; // Reset for the next entry
             });
         }
 
@@ -816,27 +882,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const base64String = await imageToBase64(file);
-            currentImageURL = base64String;
-
-            const img = document.createElement('img');
-            img.src = base64String;
-            img.style.maxWidth = '100%';
-            img.style.borderRadius = '8px';
-            img.style.marginTop = '10px';
 
             const composerContent = document.querySelector('#composer-view .composer-content');
             if (!composerContent) return;
 
-            // Remove existing image if one exists before adding the new one
-            const existingImg = composerContent.querySelector('img');
-            if (existingImg) {
-                existingImg.remove();
-            }
-
-            // Insert the new image before the text editor area
             const textarea = composerContent.querySelector('#entry-textarea');
             if (textarea) {
-                composerContent.insertBefore(img, textarea);
+                textarea.focus();
+                // Follow the established pattern of using execCommand to insert complex HTML
+                // Make the container non-editable, and the image itself non-editable
+                const htmlToInsert = `
+                    <div contenteditable="false">
+                        <div class="image-preview-container" style="position: relative; display: inline-block;">
+                            <img src="${base64String}" style="max-width: 100%; display: block; border-radius: 8px; margin-top: 10px;" contenteditable="false">
+                            <button class="delete-image-btn" title="Remove Image" style="position: absolute; top: 15px; right: 5px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; line-height: 22px; text-align: center; font-size: 16px; font-weight: bold;" onclick="this.parentElement.parentElement.remove();">&times;</button>
+                        </div>
+                        <div><br></div>
+                    </div>`;
+                document.execCommand('insertHTML', false, htmlToInsert);
             }
 
             showToast('Image added successfully');
