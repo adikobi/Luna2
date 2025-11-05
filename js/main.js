@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const database = firebase.database();
-    const storage = firebase.storage();
 
     // Ensure composer is a direct child of body to avoid stacking context issues
     document.body.appendChild(document.getElementById('composer-view'));
@@ -132,6 +131,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideLoadingIndicator() {
         document.body.classList.remove('loading');
+    }
+
+    function imageToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
     }
 
 
@@ -789,47 +797,53 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('emoji-picker-modal').style.display = 'none';
     });
 
-    function handleImageUpload(file) {
+    async function handleImageUpload(file) {
         if (!file) return;
 
-        const userId = appData.currentUser.uid;
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 8);
-        const fileName = `${timestamp}_${randomString}_${file.name}`;
-        const filePath = `users/${userId}/${fileName}`;
-        const fileRef = storage.ref(filePath);
-        const uploadTask = fileRef.put(file);
+        // Basic validation: Check file type and size (e.g., limit to 2MB)
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file.');
+            return;
+        }
 
-        showToast('מעלה תמונה...');
+        const maxSizeInMB = 2;
+        if (file.size > maxSizeInMB * 1024 * 1024) {
+            showToast(`File is too large. Max size is ${maxSizeInMB}MB.`);
+            return;
+        }
 
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                // Optional: show progress
-            },
-            (error) => {
-                console.error('Upload failed:', error);
-                showToast('העלאת התמונה נכשלה');
-            },
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    currentImageURL = downloadURL;
-                    const img = document.createElement('img');
-                    img.src = downloadURL;
-                    img.style.maxWidth = '100%';
-                    img.style.borderRadius = '8px';
-                    img.style.marginTop = '10px';
+        showToast('Processing image...');
 
-                    const composerContent = document.querySelector('#composer-view .composer-content');
+        try {
+            const base64String = await imageToBase64(file);
+            currentImageURL = base64String;
 
-                    // Remove existing image if one exists
-                    const existingImg = composerContent.querySelector('img');
-                    if(existingImg) existingImg.remove();
+            const img = document.createElement('img');
+            img.src = base64String;
+            img.style.maxWidth = '100%';
+            img.style.borderRadius = '8px';
+            img.style.marginTop = '10px';
 
-                    composerContent.insertBefore(img, composerContent.querySelector('#entry-textarea'));
-                    showToast('התמונה הועלתה בהצלחה');
-                });
+            const composerContent = document.querySelector('#composer-view .composer-content');
+            if (!composerContent) return;
+
+            // Remove existing image if one exists before adding the new one
+            const existingImg = composerContent.querySelector('img');
+            if (existingImg) {
+                existingImg.remove();
             }
-        );
+
+            // Insert the new image before the text editor area
+            const textarea = composerContent.querySelector('#entry-textarea');
+            if (textarea) {
+                composerContent.insertBefore(img, textarea);
+            }
+
+            showToast('Image added successfully');
+        } catch (error) {
+            console.error('Image to Base64 conversion failed:', error);
+            showToast('Failed to process image.');
+        }
     }
 
     document.getElementById('image-upload-input').addEventListener('change', (e) => {
