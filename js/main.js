@@ -866,19 +866,24 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleImageUpload(file) {
         if (!file) return;
 
-        // Basic validation: Check file type and size (e.g., limit to 2MB)
         if (!file.type.startsWith('image/')) {
             showToast('Please select an image file.');
             return;
         }
 
-        const maxSizeInMB = 2;
-        if (file.size > maxSizeInMB * 1024 * 1024) {
-            showToast(`File is too large. Max size is ${maxSizeInMB}MB.`);
+        const softMaxSizeInMB = 2;
+        const hardMaxSizeInMB = 10;
+
+        if (file.size > hardMaxSizeInMB * 1024 * 1024) {
+            showToast(`File is too large. Max size is ${hardMaxSizeInMB}MB.`);
             return;
         }
 
-        showToast('Processing image...');
+        if (file.size > softMaxSizeInMB * 1024 * 1024) {
+            showToast('Image is large, compressing...');
+        } else {
+            showToast('Processing image...');
+        }
 
         try {
             const base64String = await imageToBase64(file);
