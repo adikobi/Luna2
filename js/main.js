@@ -655,24 +655,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteBtn.innerHTML = '&times;';
                 deleteBtn.className = 'delete-image-btn';
                 deleteBtn.setAttribute('title', 'Remove Image');
-                deleteBtn.style.position = 'absolute';
-                deleteBtn.style.top = '15px';
-                deleteBtn.style.right = '5px';
-                deleteBtn.style.background = 'rgba(0,0,0,0.6)';
-                deleteBtn.style.color = 'white';
-                deleteBtn.style.border = '1px solid rgba(255,255,255,0.2)';
-                deleteBtn.style.borderRadius = '50%';
-                deleteBtn.style.width = '24px';
-                deleteBtn.style.height = '24px';
-                deleteBtn.style.cursor = 'pointer';
-                deleteBtn.style.lineHeight = '22px';
-                deleteBtn.style.textAlign = 'center';
-                deleteBtn.style.fontSize = '16px';
-                deleteBtn.style.fontWeight = 'bold';
-                deleteBtn.addEventListener('click', () => {
-                    container.remove();
-                    currentImageURL = null;
-                });
+                // Style is applied via CSS for consistency
                 container.appendChild(deleteBtn);
             }
 
@@ -757,9 +740,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('image-upload-input').click();
             });
 
-            // Prevent clicks on checklist items from bubbling up and closing the composer.
-            // Also, manually handle the toggle since default behavior can be unreliable in contenteditable.
+            // Centralized click handler for the text editor
             textInput.addEventListener('click', (e) => {
+                // Handle delete image button clicks
+                const deleteBtn = e.target.closest('.delete-image-btn');
+                if (deleteBtn) {
+                    const imageContainer = deleteBtn.closest('.image-preview-container');
+                    if (imageContainer) {
+                        // The image container is wrapped in a contenteditable="false" div
+                        imageContainer.parentElement.remove();
+                    }
+                    // Since this handles legacy images too, check if we need to clear the old URL
+                    if (currentImageURL) {
+                        currentImageURL = null;
+                    }
+                    return; // Stop processing after handling the delete
+                }
+
+                // Handle checklist item clicks
                 const label = e.target.closest('.checklist-item label');
                 if (label) {
                     e.stopPropagation(); // Stop the composer from closing.
@@ -767,7 +765,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const inputId = label.getAttribute('for');
                     if (inputId) {
-                        // Scope the search to the textInput element to avoid ID collisions
                         const checkbox = textInput.querySelector(`#${inputId}`);
                         if (checkbox) {
                             checkbox.checked = !checkbox.checked; // Manually toggle the state.
@@ -898,9 +895,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Make the container non-editable, and the image itself non-editable
                 const htmlToInsert = `
                     <div contenteditable="false">
-                        <div class="image-preview-container" style="position: relative; display: inline-block;">
-                            <img src="${base64String}" style="max-width: 100%; display: block; border-radius: 8px; margin-top: 10px;" contenteditable="false">
-                            <button class="delete-image-btn" title="Remove Image" style="position: absolute; top: 15px; right: 5px; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 24px; height: 24px; cursor: pointer; line-height: 22px; text-align: center; font-size: 16px; font-weight: bold;" onclick="this.parentElement.parentElement.remove();">&times;</button>
+                        <div class="image-preview-container">
+                            <img src="${base64String}" contenteditable="false">
+                            <button class="delete-image-btn" title="Remove Image">&times;</button>
                         </div>
                         <div><br></div>
                     </div>`;

@@ -414,6 +414,45 @@ body.loading .loader {
     font-weight: 700;
 }
 
+.image-preview-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.image-preview-container img {
+    max-width: 100%;
+    display: block;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.delete-image-btn {
+    position: absolute;
+    top: 15px;
+    right: 5px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    line-height: 22px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.delete-image-btn:hover {
+    background: rgba(255, 0, 0, 0.7);
+}
+
 /* --- Icon Picker Styles --- */
 .icon-picker {
     display: grid;
