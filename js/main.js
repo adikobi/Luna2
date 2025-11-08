@@ -745,14 +745,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle delete image button clicks
                 const deleteBtn = e.target.closest('.delete-image-btn');
                 if (deleteBtn) {
-                    const imageContainer = deleteBtn.closest('.image-preview-container');
-                    if (imageContainer) {
-                        // The image container is wrapped in a contenteditable="false" div
-                        imageContainer.parentElement.remove();
-                    }
-                    // Since this handles legacy images too, check if we need to clear the old URL
-                    if (currentImageURL) {
-                        currentImageURL = null;
+                    if (confirm("האם אתה בטוח שאתה רוצה למחוק את התמונה?")) {
+                        const imageContainer = deleteBtn.closest('.image-preview-container');
+                        if (imageContainer) {
+                            // The image container is wrapped in a contenteditable="false" div
+                            imageContainer.parentElement.remove();
+                        }
+                        // Since this handles legacy images too, check if we need to clear the old URL
+                        if (currentImageURL) {
+                            currentImageURL = null;
+                        }
                     }
                     return; // Stop processing after handling the delete
                 }
