@@ -652,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isEditing) {
                 const deleteBtn = document.createElement('button');
-                deleteBtn.innerHTML = '&times;';
+                deleteBtn.innerHTML = '<i data-lucide="x"></i>';
                 deleteBtn.className = 'delete-image-btn';
                 deleteBtn.setAttribute('title', 'Remove Image');
                 // Style is applied via CSS for consistency
@@ -660,6 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             textInput.insertBefore(container, textInput.firstChild);
+            lucide.createIcons(); // Render the icon for legacy images
         } else {
             currentImageURL = null;
         }
@@ -899,11 +900,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div contenteditable="false">
                         <div class="image-preview-container">
                             <img src="${base64String}" contenteditable="false">
-                            <button class="delete-image-btn" title="Remove Image">&times;</button>
+                            <button class="delete-image-btn" title="Remove Image"><i data-lucide="x"></i></button>
                         </div>
                         <div><br></div>
                     </div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
+                lucide.createIcons(); // Render the new icon
             }
 
             showToast('Image added successfully');

@@ -440,7 +440,6 @@ body.loading .loader {
     width: 28px;
     height: 28px;
     cursor: pointer;
-    font-size: 18px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -448,10 +447,21 @@ body.loading .loader {
     transition: all 0.2s ease-in-out;
 }
 
+.delete-image-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--color-text-secondary);
+    stroke-width: 2.5;
+    transition: stroke 0.2s ease-in-out;
+}
+
 .delete-image-btn:hover {
     background-color: rgba(255, 59, 48, 0.8); /* Red with some transparency */
-    color: white;
     transform: scale(1.1);
+}
+
+.delete-image-btn:hover svg {
+    stroke: white;
 }
 
 /* --- Icon Picker Styles --- */
