@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
+    let currentImageURL = null; // To hold the URL of an uploaded image before saving
     let calendarDate = new Date(); // State for the calendar's currently displayed month
     let insightsChart = {
         selectedYear: new Date().getFullYear(),
@@ -132,6 +133,45 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('loading');
     }
 
+    function imageToBase64(file, maxWidth = 1024, quality = 0.7) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxWidth) {
+                            width *= maxWidth / height;
+                            height = maxWidth;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Get the data URL with specified quality
+                    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                    resolve(dataUrl);
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
+        });
+    }
+
 
     // --- UI Rendering ---
     function renderJournalFeed(entries, showJournalName = false, container = journalFeed) {
@@ -164,10 +204,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
 
             const bodyHtml = entry.text;
+            // Backward compatibility: If an old imageUrl exists, prepend it to the body.
+            // The new method embeds the image in the bodyHtml itself.
+            const imageHtml = entry.imageUrl ? `<img src="${entry.imageUrl}" class="entry-image">` : '';
 
             card.innerHTML = `
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
+                ${imageHtml}
                 <div class="body-text" dir="${textDir}">${bodyHtml}</div>
             `;
             container.appendChild(card);
@@ -499,6 +543,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-square"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </button>
+                <button id="add-image-btn" class="toolbar-btn" title="הוסף תמונה">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-image"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </button>
                 <button id="delete-entry-btn" class="toolbar-btn destructive" title="מחק רשומה">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                 </button>
@@ -586,6 +633,38 @@ document.addEventListener('DOMContentLoaded', () => {
             composerContent.scrollTop = 0;
         }
 
+        // Backward compatibility for old entries with imageUrl
+        if (entry && entry.imageUrl) {
+            currentImageURL = entry.imageUrl;
+            const container = document.createElement('div');
+            container.className = 'image-preview-container';
+            container.setAttribute('contenteditable', 'false');
+            container.style.position = 'relative';
+            container.style.display = 'inline-block';
+
+            const img = document.createElement('img');
+            img.src = entry.imageUrl;
+            img.style.maxWidth = '100%';
+            img.style.display = 'block';
+            img.style.borderRadius = '8px';
+            img.style.marginTop = '10px';
+            container.appendChild(img);
+
+            if (isEditing) {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '<i data-lucide="x"></i>';
+                deleteBtn.className = 'delete-image-btn';
+                deleteBtn.setAttribute('title', 'Remove Image');
+                // Style is applied via CSS for consistency
+                container.appendChild(deleteBtn);
+            }
+
+            textInput.insertBefore(container, textInput.firstChild);
+            lucide.createIcons(); // Render the icon for legacy images
+        } else {
+            currentImageURL = null;
+        }
+
         document.getElementById('close-cancel-btn').addEventListener('click', () => {
             if (isEditing && initialEntryState) {
                 const currentState = {
@@ -602,6 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             composerView.classList.remove('visible');
+            currentImageURL = null;
         });
 
         const editBtn = document.getElementById('edit-btn');
@@ -630,7 +710,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const newEntryText = (title ? `<strong>${title}</strong><br>` : '') + bodyHtml;
                 const newEntryDate = new Date(dateValue).toISOString();
-                const entryData = { date: newEntryDate, text: newEntryText };
+
+                // The `imageUrl` property is now legacy. By setting it to null on every save,
+                // we ensure that old entries are migrated to the new embedded-image format
+                // upon their first edit, preventing image duplication.
+                const entryData = { date: newEntryDate, text: newEntryText, imageUrl: null };
+
                 const journalEntriesRef = journalsRef.child(appData.currentJournalId).child('entries');
 
                 if (isNewEntry) {
@@ -649,11 +734,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isEditing) {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
+            const addImageBtn = document.getElementById('add-image-btn');
             const deleteBtn = document.getElementById('delete-entry-btn');
 
-            // Prevent clicks on checklist items from bubbling up and closing the composer.
-            // Also, manually handle the toggle since default behavior can be unreliable in contenteditable.
+            addImageBtn.addEventListener('click', () => {
+                document.getElementById('image-upload-input').click();
+            });
+
+            // Centralized click handler for the text editor
             textInput.addEventListener('click', (e) => {
+                // Handle delete image button clicks
+                const deleteBtn = e.target.closest('.delete-image-btn');
+                if (deleteBtn) {
+                    if (confirm("האם אתה בטוח שאתה רוצה למחוק את התמונה?")) {
+                        const imageContainer = deleteBtn.closest('.image-preview-container');
+                        if (imageContainer) {
+                            // The image container is wrapped in a contenteditable="false" div
+                            imageContainer.parentElement.remove();
+                        }
+                        // Since this handles legacy images too, check if we need to clear the old URL
+                        if (currentImageURL) {
+                            currentImageURL = null;
+                        }
+                    }
+                    return; // Stop processing after handling the delete
+                }
+
+                // Handle checklist item clicks
                 const label = e.target.closest('.checklist-item label');
                 if (label) {
                     e.stopPropagation(); // Stop the composer from closing.
@@ -661,7 +768,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const inputId = label.getAttribute('for');
                     if (inputId) {
-                        // Scope the search to the textInput element to avoid ID collisions
                         const checkbox = textInput.querySelector(`#${inputId}`);
                         if (checkbox) {
                             checkbox.checked = !checkbox.checked; // Manually toggle the state.
@@ -755,6 +861,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('cancel-emoji-picker-btn').addEventListener('click', () => {
         document.getElementById('emoji-picker-modal').style.display = 'none';
+    });
+
+    async function handleImageUpload(file) {
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select an image file.');
+            return;
+        }
+
+        const softMaxSizeInMB = 2;
+        const hardMaxSizeInMB = 10;
+
+        if (file.size > hardMaxSizeInMB * 1024 * 1024) {
+            showToast(`File is too large. Max size is ${hardMaxSizeInMB}MB.`);
+            return;
+        }
+
+        if (file.size > softMaxSizeInMB * 1024 * 1024) {
+            showToast('Image is large, compressing...');
+        } else {
+            showToast('Processing image...');
+        }
+
+        try {
+            const base64String = await imageToBase64(file);
+
+            const composerContent = document.querySelector('#composer-view .composer-content');
+            if (!composerContent) return;
+
+            const textarea = composerContent.querySelector('#entry-textarea');
+            if (textarea) {
+                textarea.focus();
+                // Follow the established pattern of using execCommand to insert complex HTML
+                // Make the container non-editable, and the image itself non-editable
+                const htmlToInsert = `
+                    <div contenteditable="false">
+                        <div class="image-preview-container">
+                            <img src="${base64String}" contenteditable="false">
+                            <button class="delete-image-btn" title="Remove Image"><i data-lucide="x"></i></button>
+                        </div>
+                        <div><br></div>
+                    </div>`;
+                document.execCommand('insertHTML', false, htmlToInsert);
+                lucide.createIcons(); // Render the new icon
+            }
+
+            showToast('Image added successfully');
+        } catch (error) {
+            console.error('Image to Base64 conversion failed:', error);
+            showToast('Failed to process image.');
+        }
+    }
+
+    document.getElementById('image-upload-input').addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handleImageUpload(e.target.files[0]);
+        }
     });
 
     // --- Insights Logic ---
