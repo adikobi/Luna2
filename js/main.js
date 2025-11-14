@@ -1869,6 +1869,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!journalsRef) return;
 
         appData.journals.forEach(journal => {
+            if (typeof journal.parentId === 'undefined') {
+                journalsRef.child(journal.id).update({ parentId: null });
+            }
             let updatePayload = {};
             let needsUpdate = false;
 
