@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         journals: [],
         currentJournalId: null,
         currentUser: null,
+        currentFolderId: null, // To track the current folder view
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
@@ -218,18 +219,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function renderJournalsList(journals) {
+    function renderJournalsList() {
         const container = document.getElementById('journals-list-container');
         container.innerHTML = '';
-        journals.forEach(journal => {
+        const itemsToShow = appData.journals.filter(j => j.parentId === appData.currentFolderId);
+
+        itemsToShow.forEach(journal => {
             const wrapper = document.createElement('div');
             wrapper.className = 'journal-list-item-wrapper';
 
             const item = document.createElement('div');
             item.className = 'journal-list-item';
             item.dataset.id = journal.id;
+            if (journal.type === 'folder') {
+                item.classList.add('folder-item');
+            }
 
-            const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
+            const iconName = journal.type === 'folder' ? 'folder' : journal.icon;
+            const iconHTML = iconName ? `<i data-lucide="${iconName}" class="journal-icon"></i>` : '';
             const nameHTML = `<span class="journal-name">${journal.name}</span>`;
 
             item.innerHTML = iconHTML + nameHTML;
@@ -249,8 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
             wrapper.appendChild(editBtn);
             container.appendChild(wrapper);
         });
-
-        // After adding all items, call Lucide to render the icons
         lucide.createIcons();
     }
 
@@ -371,24 +376,37 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView() {
+    function showJournalsListView(folderId = null) {
         appData.currentJournalId = null;
-        hideAllViews(); // Hide everything first
+        appData.currentFolderId = folderId;
+        hideAllViews();
 
         const emptyStateContainer = document.getElementById('empty-state-container');
         const addJournalFab = document.getElementById('add-journal-fab');
+        const titleEl = document.querySelector('.journals-list-title');
+        const backBtn = document.getElementById('back-to-parent-folder-btn');
+
+        const itemsInCurrentView = appData.journals.filter(j => j.parentId === folderId);
+        const isRootView = folderId === null;
 
         if (appData.journals.length === 0) {
-            // Show the empty state and hide the regular journal view/FAB
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
         } else {
-            // Show the regular journal view/FAB and hide the empty state
             emptyStateContainer.style.display = 'none';
             journalsListView.style.display = 'block';
             addJournalFab.style.display = 'block';
-            renderJournalsList(appData.journals); // Now, render the list
+            renderJournalsList();
+        }
+
+        if (isRootView) {
+            titleEl.textContent = 'תיקיות';
+            backBtn.style.display = 'none';
+        } else {
+            const currentFolder = appData.journals.find(j => j.id === folderId);
+            titleEl.textContent = currentFolder ? currentFolder.name : '';
+            backBtn.style.display = 'block';
         }
     }
 
@@ -1419,10 +1437,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
-                    journalsRef.child(journalId).remove();
+                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
+                    deleteJournalAndChildren(journalId);
                 }
-                return; // Prevent fall-through to other click handlers in edit mode
+                return;
             }
 
             const editBtn = e.target.closest('.edit-journal-btn');
@@ -1435,10 +1453,31 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
-                showTimelineView(journalItem.dataset.id);
+                const journalId = journalItem.dataset.id;
+                const journal = appData.journals.find(j => j.id === journalId);
+                if (journal && journal.type === 'folder') {
+                    showJournalsListView(journalId);
+                } else {
+                    showTimelineView(journalId);
+                }
             }
         }
     });
+
+    document.getElementById('back-to-parent-folder-btn').addEventListener('click', () => {
+        const currentFolder = appData.journals.find(j => j.id === appData.currentFolderId);
+        if (currentFolder) {
+            showJournalsListView(currentFolder.parentId);
+        }
+    });
+
+    function deleteJournalAndChildren(journalId) {
+        const children = appData.journals.filter(j => j.parentId === journalId);
+        children.forEach(child => {
+            deleteJournalAndChildren(child.id);
+        });
+        journalsRef.child(journalId).remove();
+    }
 
     const newJournalModal = document.getElementById('new-journal-modal');
     const newJournalNameInput = document.getElementById('new-journal-name-input');
@@ -1454,6 +1493,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('#new-journal-icon-picker .icon-picker-btn.selected').forEach(btn => {
             btn.classList.remove('selected');
         });
+
+        const parentFolderSelect = document.getElementById('parent-folder-select');
+        parentFolderSelect.innerHTML = '<option value="">ללא</option>'; // Reset options
+        const folders = appData.journals.filter(j => j.type === 'folder');
+        folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder.id;
+            option.textContent = folder.name;
+            parentFolderSelect.appendChild(option);
+        });
+
         newJournalModal.style.display = 'flex';
         newJournalNameInput.focus();
     }
@@ -1500,6 +1550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedType = document.getElementById('new-journal-type-select').value;
         const selectedIconEl = document.querySelector('#new-journal-icon-picker .icon-picker-btn.selected');
         const icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
+        const parentId = document.getElementById('parent-folder-select').value || null;
 
         let type = selectedType;
         let subtype = '';
@@ -1518,7 +1569,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: type,
                 subtype: subtype,
                 template: template,
-                entries: {}
+                entries: {},
+                parentId: parentId
             };
             if (icon) {
                 journalData.icon = icon;
