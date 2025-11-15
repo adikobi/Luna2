@@ -238,6 +238,11 @@ body.loading .loader {
     gap: 10px; /* Space between icon and name */
 }
 
+.journal-list-item.folder {
+    border: 1px solid var(--color-frosted-glass-border);
+    background-color: var(--color-background-primary);
+}
+
 .journal-icon {
     width: 40px;
     height: 40px;
