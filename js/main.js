@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         journals: [],
         currentJournalId: null,
         currentUser: null,
-        currentFolderId: null,
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
@@ -228,9 +227,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const item = document.createElement('div');
             item.className = 'journal-list-item';
-            if (journal.type === 'folder') {
-                item.classList.add('folder-item');
-            }
             item.dataset.id = journal.id;
 
             const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
@@ -375,39 +371,24 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView(folderId = null) {
+    function showJournalsListView() {
         appData.currentJournalId = null;
-        appData.currentFolderId = folderId;
-        hideAllViews();
+        hideAllViews(); // Hide everything first
 
         const emptyStateContainer = document.getElementById('empty-state-container');
         const addJournalFab = document.getElementById('add-journal-fab');
-        const backBtn = document.getElementById('back-to-parent-folder-btn');
-        const lockBtn = document.getElementById('lock-app-btn');
 
-        const journalsInCurrentFolder = appData.journals.filter(j => j.parentId === folderId);
-
-        if (folderId === null) {
-            backBtn.style.display = 'none';
-            lockBtn.style.display = 'block';
-        } else {
-            backBtn.style.display = 'block';
-            lockBtn.style.display = 'none';
-        }
-
-        // Handle empty state specifically for the current view
-        const isRootAndEmpty = folderId === null && appData.journals.length === 0;
-        const isFolderAndEmpty = folderId !== null && journalsInCurrentFolder.length === 0;
-
-        if (isRootAndEmpty) {
+        if (appData.journals.length === 0) {
+            // Show the empty state and hide the regular journal view/FAB
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
         } else {
+            // Show the regular journal view/FAB and hide the empty state
             emptyStateContainer.style.display = 'none';
             journalsListView.style.display = 'block';
             addJournalFab.style.display = 'block';
-            renderJournalsList(journalsInCurrentFolder);
+            renderJournalsList(appData.journals); // Now, render the list
         }
     }
 
@@ -1431,21 +1412,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const journalsListContainer = document.getElementById('journals-list-container');
-    function deleteJournalAndChildren(journalId) {
-        if (!journalsRef) return;
-
-        // Find all children of the current journal/folder
-        const children = appData.journals.filter(j => j.parentId === journalId);
-
-        // Recursively delete all children
-        children.forEach(child => {
-            deleteJournalAndChildren(child.id);
-        });
-
-        // Delete the journal/folder itself
-        journalsRef.child(journalId).remove();
-    }
-
     journalsListContainer.addEventListener('click', (e) => {
         if (!journalsRef) return;
         if (journalsListView.classList.contains('edit-mode')) {
@@ -1453,8 +1419,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
-                    deleteJournalAndChildren(journalId);
+                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
+                    journalsRef.child(journalId).remove();
                 }
                 return; // Prevent fall-through to other click handlers in edit mode
             }
@@ -1469,21 +1435,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
-                const journalId = journalItem.dataset.id;
-                const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && journal.type === 'folder') {
-                    showJournalsListView(journalId);
-                } else {
-                    showTimelineView(journalId);
-                }
+                showTimelineView(journalItem.dataset.id);
             }
-        }
-    });
-
-    document.getElementById('back-to-parent-folder-btn').addEventListener('click', () => {
-        const currentFolder = appData.journals.find(j => j.id === appData.currentFolderId);
-        if (currentFolder) {
-            showJournalsListView(currentFolder.parentId);
         }
     });
 
@@ -1565,24 +1518,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: type,
                 subtype: subtype,
                 template: template,
-                entries: {},
-                parentId: appData.currentFolderId,
+                entries: {}
             };
-
-            if (type === 'folder') {
-                // Folders shouldn't have entries, templates, or subtypes.
-                delete journalData.entries;
-                delete journalData.template;
-                delete journalData.subtype;
-                 journalData.icon = 'folder'; // Default icon for folders
-            }
-
-
             if (icon) {
                 journalData.icon = icon;
             }
             journalsRef.push(journalData).then(() => {
-                showToast(`"${newName}" נוצר בהצלחה`);
+                showToast(`היומן "${newName}" נוצר בהצלחה`);
             });
             closeNewJournalModal();
         }
@@ -1871,15 +1813,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') verifyPin();
     });
 
-    function migrateJournalParentIds() {
-        if (!journalsRef) return;
-        appData.journals.forEach(journal => {
-            if (typeof journal.parentId === 'undefined') {
-                journalsRef.child(journal.id).update({ parentId: null });
-            }
-        });
-    }
-
     function migrateJournalTypes() {
         if (!journalsRef) return;
 
@@ -1948,7 +1881,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isFirstLoad) {
                 hideLoadingIndicator();
                 migrateJournalTypes();
-                migrateJournalParentIds();
             }
 
             const stats = calculateInsights();
@@ -1972,8 +1904,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showAllEntriesView();
                 }
             } else {
-                // When data refreshes, stay in the current folder view
-                showJournalsListView(appData.currentFolderId);
+                showJournalsListView();
             }
             isFirstLoad = false;
         }, (error) => {
