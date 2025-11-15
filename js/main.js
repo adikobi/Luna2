@@ -383,20 +383,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const emptyStateContainer = document.getElementById('empty-state-container');
         const addJournalFab = document.getElementById('add-journal-fab');
         const backBtn = document.getElementById('back-to-parent-folder-btn');
-        const titleEl = document.querySelector('#journals-list-view .journals-list-title');
+        const lockBtn = document.getElementById('lock-app-btn');
 
         const journalsInCurrentFolder = appData.journals.filter(j => j.parentId === folderId);
 
         if (folderId === null) {
-            titleEl.textContent = 'היומנים שלי';
             backBtn.style.display = 'none';
+            lockBtn.style.display = 'block';
         } else {
-            const currentFolder = appData.journals.find(j => j.id === folderId);
-            titleEl.textContent = currentFolder ? currentFolder.name : 'תיקייה';
             backBtn.style.display = 'block';
+            lockBtn.style.display = 'none';
         }
 
-        if (appData.journals.length === 0) {
+        // Handle empty state specifically for the current view
+        const isRootAndEmpty = folderId === null && appData.journals.length === 0;
+        const isFolderAndEmpty = folderId !== null && journalsInCurrentFolder.length === 0;
+
+        if (isRootAndEmpty) {
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
