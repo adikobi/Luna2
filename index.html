@@ -85,6 +85,9 @@
     <!-- Journals List View (hidden by default) -->
     <div id="journals-list-view" class="view-screen" style="display: none;">
         <header class="journals-list-header">
+            <button id="back-to-parent-folder-btn" class="header-action-btn" style="display: none;">
+                <i data-lucide="redo"></i>
+            </button>
             <button id="lock-app-btn" class="header-action-btn">
                 <i data-lucide="lock"></i>
             </button>
@@ -218,6 +221,7 @@
                 <option value="emotion_pool">בריכה</option>
                 <option value="graph">גרף</option>
                 <option value="template">תבנית צ'קליסט</option>
+                <option value="folder">תיקיה</option>
             </select>
             <div id="template-editor-container" style="display: none; margin-top: 15px;">
                 <p style="margin-bottom: 5px;">הזן תבנית (כל שורה היא פריט בצ'קליסט):</p>

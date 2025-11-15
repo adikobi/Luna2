@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         journals: [],
         currentJournalId: null,
         currentUser: null,
+        currentFolderId: null, // To track the currently viewed folder
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
@@ -371,24 +372,32 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView() {
+    function showJournalsListView(folderId = null) {
         appData.currentJournalId = null;
-        hideAllViews(); // Hide everything first
+        appData.currentFolderId = folderId;
+        hideAllViews();
 
+        const backToParentBtn = document.getElementById('back-to-parent-folder-btn');
         const emptyStateContainer = document.getElementById('empty-state-container');
         const addJournalFab = document.getElementById('add-journal-fab');
 
+        const itemsInCurrentFolder = appData.journals.filter(j => j.parentId === folderId);
+
         if (appData.journals.length === 0) {
-            // Show the empty state and hide the regular journal view/FAB
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
         } else {
-            // Show the regular journal view/FAB and hide the empty state
             emptyStateContainer.style.display = 'none';
             journalsListView.style.display = 'block';
             addJournalFab.style.display = 'block';
-            renderJournalsList(appData.journals); // Now, render the list
+            renderJournalsList(itemsInCurrentFolder);
+        }
+
+        if (folderId) {
+            backToParentBtn.style.display = 'block';
+        } else {
+            backToParentBtn.style.display = 'none';
         }
     }
 
@@ -1272,8 +1281,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
-    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
+    document.getElementById('back-to-journals-btn').addEventListener('click', () => showJournalsListView(null));
+    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', () => showJournalsListView(null));
+
+    document.getElementById('back-to-parent-folder-btn').addEventListener('click', () => {
+        const currentFolder = appData.journals.find(j => j.id === appData.currentFolderId);
+        if (currentFolder) {
+            showJournalsListView(currentFolder.parentId);
+        }
+    });
     document.getElementById('prev-month-btn').addEventListener('click', () => {
         calendarDate.setMonth(calendarDate.getMonth() - 1);
         renderCalendar(calendarDate);
@@ -1411,6 +1427,32 @@ document.addEventListener('DOMContentLoaded', () => {
         editJournalsBtn.style.display = 'block';
     });
 
+    function deleteJournalAndChildren(journalId) {
+        const journal = appData.journals.find(j => j.id === journalId);
+        if (!journal) return;
+
+        let descendants = [journalId];
+        let queue = [journalId];
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            const children = appData.journals.filter(j => j.parentId === currentId);
+            for (const child of children) {
+                descendants.push(child.id);
+                if (child.type === 'folder') {
+                    queue.push(child.id);
+                }
+            }
+        }
+
+        const updates = {};
+        descendants.forEach(id => {
+            updates[id] = null;
+        });
+
+        journalsRef.update(updates);
+    }
+
     const journalsListContainer = document.getElementById('journals-list-container');
     journalsListContainer.addEventListener('click', (e) => {
         if (!journalsRef) return;
@@ -1419,10 +1461,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
-                    journalsRef.child(journalId).remove();
+                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
+                    deleteJournalAndChildren(journalId);
                 }
-                return; // Prevent fall-through to other click handlers in edit mode
+                return;
             }
 
             const editBtn = e.target.closest('.edit-journal-btn');
@@ -1435,7 +1477,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
-                showTimelineView(journalItem.dataset.id);
+                const journalId = journalItem.dataset.id;
+                const journal = appData.journals.find(j => j.id === journalId);
+                if (journal) {
+                    if (journal.type === 'folder') {
+                        showJournalsListView(journalId);
+                    } else {
+                        showTimelineView(journalId);
+                    }
+                }
             }
         }
     });
@@ -1499,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newName = newJournalNameInput.value.trim();
         const selectedType = document.getElementById('new-journal-type-select').value;
         const selectedIconEl = document.querySelector('#new-journal-icon-picker .icon-picker-btn.selected');
-        const icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
+        let icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
 
         let type = selectedType;
         let subtype = '';
@@ -1510,21 +1560,30 @@ document.addEventListener('DOMContentLoaded', () => {
             subtype = selectedType;
         } else if (type === 'template') {
             template = document.getElementById('new-journal-template-input').value;
+        } else if (type === 'folder' && !icon) {
+            icon = 'folder'; // Default icon for folders
         }
 
         if (newName) {
             const journalData = {
                 name: newName,
                 type: type,
-                subtype: subtype,
-                template: template,
-                entries: {}
+                parentId: appData.currentFolderId || null,
             };
+
             if (icon) {
                 journalData.icon = icon;
             }
+
+            // Only add properties specific to non-folder types
+            if (type !== 'folder') {
+                journalData.subtype = subtype;
+                journalData.template = template;
+                journalData.entries = {};
+            }
+
             journalsRef.push(journalData).then(() => {
-                showToast(`היומן "${newName}" נוצר בהצלחה`);
+                showToast(`"${newName}" נוצר בהצלחה`);
             });
             closeNewJournalModal();
         }
@@ -1813,6 +1872,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') verifyPin();
     });
 
+    function migrateJournalParentIds() {
+        if (!journalsRef) return;
+        appData.journals.forEach(journal => {
+            if (typeof journal.parentId === 'undefined') {
+                journalsRef.child(journal.id).update({ parentId: null });
+            }
+        });
+    }
+
     function migrateJournalTypes() {
         if (!journalsRef) return;
 
@@ -1881,6 +1949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isFirstLoad) {
                 hideLoadingIndicator();
                 migrateJournalTypes();
+                migrateJournalParentIds();
             }
 
             const stats = calculateInsights();
