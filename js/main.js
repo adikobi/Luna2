@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         journals: [],
         currentJournalId: null,
         currentUser: null,
+        currentFolderId: null, // To track the currently viewed folder
     };
     let currentlyEditingEntryId = null;
     let initialEntryState = null; // Used to check for unsaved changes
@@ -78,6 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true
+        });
+    }
+
+    function migrateJournalParentIds() {
+        if (!journalsRef) return;
+        appData.journals.forEach(journal => {
+            // Check if parentId is missing (undefined)
+            if (typeof journal.parentId === 'undefined') {
+                journalsRef.child(journal.id).update({ parentId: null });
+            }
         });
     }
 
@@ -229,6 +240,10 @@ document.addEventListener('DOMContentLoaded', () => {
             item.className = 'journal-list-item';
             item.dataset.id = journal.id;
 
+            if (journal.type === 'folder') {
+                item.classList.add('folder');
+            }
+
             const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
             const nameHTML = `<span class="journal-name">${journal.name}</span>`;
 
@@ -371,24 +386,37 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView() {
+    function showJournalsListView(folderId = null) {
         appData.currentJournalId = null;
-        hideAllViews(); // Hide everything first
+        appData.currentFolderId = folderId;
+        hideAllViews();
+        fab.style.display = 'none'; // Ensure the timeline FAB is hidden
 
         const emptyStateContainer = document.getElementById('empty-state-container');
         const addJournalFab = document.getElementById('add-journal-fab');
+        const backToParentFolderBtn = document.getElementById('back-to-parent-folder-btn');
+
+        const journalsInCurrentFolder = appData.journals.filter(j => j.parentId === folderId);
 
         if (appData.journals.length === 0) {
-            // Show the empty state and hide the regular journal view/FAB
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
+            backToParentFolderBtn.style.display = 'none';
         } else {
-            // Show the regular journal view/FAB and hide the empty state
             emptyStateContainer.style.display = 'none';
             journalsListView.style.display = 'block';
             addJournalFab.style.display = 'block';
-            renderJournalsList(appData.journals); // Now, render the list
+            renderJournalsList(journalsInCurrentFolder);
+        }
+
+        if (folderId) {
+            const parentFolder = appData.journals.find(j => j.id === folderId);
+            backToParentFolderBtn.style.display = 'block';
+            // Store the parent's ID to navigate back to it.
+            backToParentFolderBtn.dataset.parentId = parentFolder ? parentFolder.parentId : '';
+        } else {
+            backToParentFolderBtn.style.display = 'none';
         }
     }
 
@@ -1272,8 +1300,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('back-to-journals-btn').addEventListener('click', showJournalsListView);
-    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', showJournalsListView);
+    document.getElementById('back-to-journals-btn').addEventListener('click', () => showJournalsListView(appData.currentFolderId));
+    document.getElementById('back-to-parent-folder-btn').addEventListener('click', (e) => {
+        const parentId = e.currentTarget.dataset.parentId === 'undefined' ? null : e.currentTarget.dataset.parentId;
+        showJournalsListView(parentId);
+    });
+    document.getElementById('back-to-journals-from-insights-btn').addEventListener('click', () => showJournalsListView(null));
     document.getElementById('prev-month-btn').addEventListener('click', () => {
         calendarDate.setMonth(calendarDate.getMonth() - 1);
         renderCalendar(calendarDate);
@@ -1419,8 +1451,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את היומן "${journal.name}"? פעולה זו היא בלתי הפיכה.`)) {
-                    journalsRef.child(journalId).remove();
+                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו תמחק גם את כל התוכן שבפנים.`)) {
+                    deleteJournalAndChildren(journalId);
                 }
                 return; // Prevent fall-through to other click handlers in edit mode
             }
@@ -1435,10 +1467,35 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             const journalItem = e.target.closest('.journal-list-item');
             if (journalItem) {
-                showTimelineView(journalItem.dataset.id);
+                const journalId = journalItem.dataset.id;
+                const journal = appData.journals.find(j => j.id === journalId);
+                if (journal && journal.type === 'folder') {
+                    showJournalsListView(journalId); // Navigate into the folder
+                } else {
+                    showTimelineView(journalId); // Open the journal timeline
+                }
             }
         }
     });
+
+    function deleteJournalAndChildren(journalId) {
+        if (!journalsRef) return;
+
+        const journalToDelete = appData.journals.find(j => j.id === journalId);
+        if (!journalToDelete) return;
+
+        // Find and delete all children recursively
+        if (journalToDelete.type === 'folder') {
+            const children = appData.journals.filter(j => j.parentId === journalId);
+            children.forEach(child => {
+                // This recursive call will handle nested folders
+                deleteJournalAndChildren(child.id);
+            });
+        }
+
+        // After all children are handled, delete the journal itself
+        journalsRef.child(journalId).remove();
+    }
 
     const newJournalModal = document.getElementById('new-journal-modal');
     const newJournalNameInput = document.getElementById('new-journal-name-input');
@@ -1499,7 +1556,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newName = newJournalNameInput.value.trim();
         const selectedType = document.getElementById('new-journal-type-select').value;
         const selectedIconEl = document.querySelector('#new-journal-icon-picker .icon-picker-btn.selected');
-        const icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
+        let icon = selectedIconEl ? selectedIconEl.dataset.icon : null;
 
         let type = selectedType;
         let subtype = '';
@@ -1510,21 +1567,30 @@ document.addEventListener('DOMContentLoaded', () => {
             subtype = selectedType;
         } else if (type === 'template') {
             template = document.getElementById('new-journal-template-input').value;
+        } else if (type === 'folder' && !icon) {
+            icon = 'folder'; // Default icon for folders
         }
 
         if (newName) {
             const journalData = {
                 name: newName,
                 type: type,
-                subtype: subtype,
-                template: template,
-                entries: {}
+                parentId: appData.currentFolderId || null,
             };
+
             if (icon) {
                 journalData.icon = icon;
             }
+
+            // Only add properties specific to non-folder types
+            if (type !== 'folder') {
+                journalData.subtype = subtype;
+                journalData.template = template;
+                journalData.entries = {};
+            }
+
             journalsRef.push(journalData).then(() => {
-                showToast(`היומן "${newName}" נוצר בהצלחה`);
+                showToast(`"${newName}" נוצר בהצלחה`);
             });
             closeNewJournalModal();
         }
@@ -1881,6 +1947,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isFirstLoad) {
                 hideLoadingIndicator();
                 migrateJournalTypes();
+                migrateJournalParentIds();
             }
 
             const stats = calculateInsights();
@@ -1904,7 +1971,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showAllEntriesView();
                 }
             } else {
-                showJournalsListView();
+                showJournalsListView(appData.currentFolderId || null);
             }
             isFirstLoad = false;
         }, (error) => {
@@ -1956,4 +2023,9 @@ document.addEventListener('DOMContentLoaded', () => {
             renderWeightChart(data, range);
         }
     });
+    // Expose for testing
+    window.showJournalsListView = showJournalsListView;
+    window.showTimelineView = showTimelineView;
+    window.appData = appData;
+    window.openNewJournalModal = openNewJournalModal;
 });
