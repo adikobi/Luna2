@@ -396,14 +396,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const addJournalFab = document.getElementById('add-journal-fab');
         const backToParentFolderBtn = document.getElementById('back-to-parent-folder-btn');
 
-        const journalsInCurrentFolder = appData.journals.filter(j => j.parentId === folderId);
+        // Critical fix: Firebase doesn't store null, so root items have an undefined parentId.
+        // This filter handles both null (for new items) and undefined (from Firebase).
+        const journalsInCurrentFolder = appData.journals.filter(j => {
+            if (folderId === null) {
+                return !j.parentId;
+            }
+            return j.parentId === folderId;
+        });
 
+        // Corrected empty state logic
         if (appData.journals.length === 0) {
+            // This is the true empty state: no journals exist anywhere.
             emptyStateContainer.style.display = 'block';
             journalsListView.style.display = 'none';
             addJournalFab.style.display = 'none';
             backToParentFolderBtn.style.display = 'none';
         } else {
+            // Journals exist, so show the list view, even if this folder is empty.
             emptyStateContainer.style.display = 'none';
             journalsListView.style.display = 'block';
             addJournalFab.style.display = 'block';
