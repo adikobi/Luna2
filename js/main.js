@@ -814,6 +814,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            textInput.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+            });
+
+            textInput.addEventListener('input', () => {
+                const text = textInput.textContent;
+                if (isHebrew(text)) {
+                    textInput.dir = 'rtl';
+                    textInput.style.textAlign = 'right';
+                } else {
+                    textInput.dir = 'ltr';
+                    textInput.style.textAlign = 'left';
+                }
+            });
+
             textInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const selection = window.getSelection();
