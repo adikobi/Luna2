@@ -1343,8 +1343,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
-            // Do not open composer if a link was clicked
-            if (e.target.tagName === 'A') return;
+            // Do not open composer if a link was clicked. Use closest() to handle nested tags inside links.
+            if (e.target.closest('a')) return;
 
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;
