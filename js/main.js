@@ -864,7 +864,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    document.execCommand('insertText', false, pastedText);
+                    const urlRegex = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
+                    const tempDiv = document.createElement('div');
+                    let resultHtml = '';
+                    let lastIndex = 0;
+                    let match;
+
+                    // Manually iterate over matches to correctly handle escaping text vs. creating links
+                    while ((match = urlRegex.exec(pastedText)) !== null) {
+                        // 1. Get the text *before* the URL and escape it
+                        const precedingText = pastedText.substring(lastIndex, match.index);
+                        tempDiv.textContent = precedingText;
+                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
+
+                        // 2. Get the URL and create an anchor tag for it
+                        const url = match[0];
+                        resultHtml += `<a href="${url}" target="_blank">${url}</a>`;
+
+                        lastIndex = urlRegex.lastIndex;
+                    }
+
+                    // 3. Get the remaining text *after* the last URL and escape it
+                    if (lastIndex < pastedText.length) {
+                        const remainingText = pastedText.substring(lastIndex);
+                        tempDiv.textContent = remainingText;
+                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
+                    }
+
+                    document.execCommand('insertHTML', false, resultHtml);
                 }
             });
 

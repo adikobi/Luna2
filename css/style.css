@@ -1083,7 +1083,7 @@ button:active,
 
 #entry-textarea a,
 .body-text a {
-    color: var(--color-accent-system);
+    color: white;
     text-decoration: underline;
 }
 
