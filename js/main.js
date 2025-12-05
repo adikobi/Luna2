@@ -116,6 +116,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return hebrewRegex.test(text);
     }
 
+    function sanitizeHtml(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newBody = document.createElement('body');
+
+        function traverse(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                newBody.appendChild(node.cloneNode());
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'A') {
+                    const newLink = document.createElement('a');
+                    newLink.href = node.getAttribute('href'); // Only keep the href attribute
+                    newLink.textContent = node.textContent;
+                    newBody.appendChild(newLink);
+                } else if (node.tagName === 'BR') {
+                    newBody.appendChild(document.createElement('br'));
+                } else {
+                    // For all other tags, just process their children (unwrap them)
+                    Array.from(node.childNodes).forEach(traverse);
+                }
+            }
+        }
+
+        Array.from(doc.body.childNodes).forEach(traverse);
+        return newBody.innerHTML;
+    }
+
     function countWords(str) {
         const cleanString = str.replace(/<\/?[^>]+(>|$)/g, " ").trim();
         if (cleanString === '') return 0;
@@ -213,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.id = entry.id; // Use the entry's Firebase key
             card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
+            const textAlign = isHebrew(entry.text) ? 'right' : 'left';
 
             const bodyHtml = entry.text;
             // Backward compatibility: If an old imageUrl exists, prepend it to the body.
@@ -223,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 ${imageHtml}
-                <div class="body-text" dir="${textDir}">${bodyHtml}</div>
+                <div class="body-text" dir="${textDir}" style="text-align: ${textAlign};">${bodyHtml}</div>
             `;
             container.appendChild(card);
         });
@@ -565,6 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="composer-header">
                 <button id="close-cancel-btn">${isEditing && !isNewEntry ? 'ביטול' : 'סגור'}</button>
                 <div>
+                    ${!isEditing && !isNewEntry ? '<button id="copy-all-btn">העתק הכל</button>' : ''}
                     ${!isEditing && !isNewEntry ? '<button id="edit-btn">ערוך</button>' : ''}
                     ${isEditing ? `<button id="save-btn">${isNewEntry ? 'סיום' : 'שמור'}</button>` : ''}
                 </div>
@@ -575,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="date-container"></div>
                 </div>
                 ${weightAdjusterHTML}
-                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
+                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="auto"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
@@ -727,6 +756,18 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
         }
 
+        const copyAllBtn = document.getElementById('copy-all-btn');
+        if (copyAllBtn) {
+            copyAllBtn.addEventListener('click', () => {
+                const title = titleInput.value;
+                const bodyHtml = textInput.innerHTML;
+                const fullText = (title ? title + '\n\n' : '') + bodyHtml.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+                navigator.clipboard.writeText(fullText.trim()).then(() => {
+                    showToast('הטקסט הועתק בהצלחה');
+                });
+            });
+        }
+
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
@@ -811,6 +852,46 @@ document.addEventListener('DOMContentLoaded', () => {
                             checkbox.checked = !checkbox.checked; // Manually toggle the state.
                         }
                     }
+                }
+            });
+
+            textInput.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedHtml = e.clipboardData.getData('text/html');
+                const pastedText = e.clipboardData.getData('text/plain');
+
+                if (pastedHtml && pastedHtml.length > 0) {
+                    const sanitized = sanitizeHtml(pastedHtml);
+                    document.execCommand('insertHTML', false, sanitized);
+                } else if (pastedText && pastedText.length > 0) {
+                    const urlRegex = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
+                    const tempDiv = document.createElement('div');
+                    let resultHtml = '';
+                    let lastIndex = 0;
+                    let match;
+
+                    // Manually iterate over matches to correctly handle escaping text vs. creating links
+                    while ((match = urlRegex.exec(pastedText)) !== null) {
+                        // 1. Get the text *before* the URL and escape it
+                        const precedingText = pastedText.substring(lastIndex, match.index);
+                        tempDiv.textContent = precedingText;
+                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
+
+                        // 2. Get the URL and create an anchor tag for it
+                        const url = match[0];
+                        resultHtml += `<a href="${url}" target="_blank">${url}</a>`;
+
+                        lastIndex = urlRegex.lastIndex;
+                    }
+
+                    // 3. Get the remaining text *after* the last URL and escape it
+                    if (lastIndex < pastedText.length) {
+                        const remainingText = pastedText.substring(lastIndex);
+                        tempDiv.textContent = remainingText;
+                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
+                    }
+
+                    document.execCommand('insertHTML', false, resultHtml);
                 }
             });
 
@@ -1288,8 +1369,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const card = e.target.closest('.journal-card');
         if (card && card.parentElement.id !== 'entries-for-date-view') {
-            // Do not open composer if a link was clicked
-            if (e.target.tagName === 'A') return;
+            // Do not open composer if a link was clicked. Use closest() to handle nested tags inside links.
+            if (e.target.closest('a')) return;
 
             const entryId = card.dataset.id;
             const journalId = card.dataset.journalId || appData.currentJournalId;

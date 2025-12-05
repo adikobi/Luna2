@@ -1034,6 +1034,7 @@ button:active,
     padding: 0;
     overflow-y: auto;
     white-space: pre-wrap; /* This is key to preserving newlines for innerText */
+    text-align: start;
 }
 
 #entry-textarea:focus {
