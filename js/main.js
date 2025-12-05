@@ -213,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.dataset.id = entry.id; // Use the entry's Firebase key
             card.dataset.journalId = entry.journalId; // Store journalId for opening
             const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
+            const textAlign = isHebrew(entry.text) ? 'right' : 'left';
 
             const bodyHtml = entry.text;
             // Backward compatibility: If an old imageUrl exists, prepend it to the body.
@@ -223,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 ${imageHtml}
-                <div class="body-text" dir="${textDir}">${bodyHtml}</div>
+                <div class="body-text" dir="${textDir}" style="text-align: ${textAlign};">${bodyHtml}</div>
             `;
             container.appendChild(card);
         });
@@ -565,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="composer-header">
                 <button id="close-cancel-btn">${isEditing && !isNewEntry ? 'ביטול' : 'סגור'}</button>
                 <div>
+                    ${!isEditing && !isNewEntry ? '<button id="copy-all-btn">העתק הכל</button>' : ''}
                     ${!isEditing && !isNewEntry ? '<button id="edit-btn">ערוך</button>' : ''}
                     ${isEditing ? `<button id="save-btn">${isNewEntry ? 'סיום' : 'שמור'}</button>` : ''}
                 </div>
@@ -575,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="date-container"></div>
                 </div>
                 ${weightAdjusterHTML}
-                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
+                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="auto"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
@@ -727,6 +729,18 @@ document.addEventListener('DOMContentLoaded', () => {
             editBtn.addEventListener('click', () => populateComposerView(entry, 'edit'));
         }
 
+        const copyAllBtn = document.getElementById('copy-all-btn');
+        if (copyAllBtn) {
+            copyAllBtn.addEventListener('click', () => {
+                const title = titleInput.value;
+                const bodyHtml = textInput.innerHTML;
+                const fullText = (title ? title + '\n\n' : '') + bodyHtml.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+                navigator.clipboard.writeText(fullText.trim()).then(() => {
+                    showToast('הטקסט הועתק בהצלחה');
+                });
+            });
+        }
+
         const saveBtn = document.getElementById('save-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
@@ -818,17 +832,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 const text = e.clipboardData.getData('text/plain');
                 document.execCommand('insertText', false, text);
-            });
-
-            textInput.addEventListener('input', () => {
-                const text = textInput.textContent;
-                if (isHebrew(text)) {
-                    textInput.dir = 'rtl';
-                    textInput.style.textAlign = 'right';
-                } else {
-                    textInput.dir = 'ltr';
-                    textInput.style.textAlign = 'left';
-                }
             });
 
             textInput.addEventListener('keydown', (e) => {
