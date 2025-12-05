@@ -116,6 +116,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return hebrewRegex.test(text);
     }
 
+    function sanitizeHtml(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newBody = document.createElement('body');
+
+        function traverse(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                newBody.appendChild(node.cloneNode());
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName === 'A') {
+                    const newLink = document.createElement('a');
+                    newLink.href = node.getAttribute('href'); // Only keep the href attribute
+                    newLink.textContent = node.textContent;
+                    newBody.appendChild(newLink);
+                } else if (node.tagName === 'BR') {
+                    newBody.appendChild(document.createElement('br'));
+                } else {
+                    // For all other tags, just process their children (unwrap them)
+                    Array.from(node.childNodes).forEach(traverse);
+                }
+            }
+        }
+
+        Array.from(doc.body.childNodes).forEach(traverse);
+        return newBody.innerHTML;
+    }
+
     function countWords(str) {
         const cleanString = str.replace(/<\/?[^>]+(>|$)/g, " ").trim();
         if (cleanString === '') return 0;
@@ -830,8 +857,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             textInput.addEventListener('paste', (e) => {
                 e.preventDefault();
-                const text = e.clipboardData.getData('text/plain');
-                document.execCommand('insertText', false, text);
+                // Get pasted HTML, or fallback to plain text
+                const pastedHtml = e.clipboardData.getData('text/html');
+                const pastedText = e.clipboardData.getData('text/plain');
+
+                if (pastedHtml) {
+                    const sanitized = sanitizeHtml(pastedHtml);
+                    document.execCommand('insertHTML', false, sanitized);
+                } else {
+                    document.execCommand('insertText', false, pastedText);
+                }
             });
 
             textInput.addEventListener('keydown', (e) => {
