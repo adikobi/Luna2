@@ -857,14 +857,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             textInput.addEventListener('paste', (e) => {
                 e.preventDefault();
-                // Get pasted HTML, or fallback to plain text
                 const pastedHtml = e.clipboardData.getData('text/html');
                 const pastedText = e.clipboardData.getData('text/plain');
 
-                if (pastedHtml) {
+                if (pastedHtml && pastedHtml.length > 0) {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
-                } else {
+                } else if (pastedText && pastedText.length > 0) {
                     document.execCommand('insertText', false, pastedText);
                 }
             });
