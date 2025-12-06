@@ -654,14 +654,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
-            if (journal && journal.type === 'template' && journal.template) {
+            if (journal && (journal.type === 'template' || journal.type === 'questions') && journal.template) {
                 const templateLines = journal.template.split('\n').filter(line => line.trim() !== '');
-                const now = Date.now();
-                const checklistHtml = templateLines.map((line, index) => {
-                    const itemId = `checklist-item-${now}-${index}`;
-                    return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
-                }).join('');
-                textInput.innerHTML = checklistHtml + '<div>&nbsp;</div>';
+                let contentHtml = '';
+                if (journal.type === 'template') {
+                    const now = Date.now();
+                    contentHtml = templateLines.map((line, index) => {
+                        const itemId = `checklist-item-${now}-${index}`;
+                        return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
+                    }).join('');
+                    contentHtml += '<div>&nbsp;</div>'; // Add space to continue typing
+                } else { // It's a 'questions' journal
+                    contentHtml = templateLines.map(line => {
+                        const question = line.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        return `<div class="question-item"><div class="question-text">${question}</div><div class="answer-text" contenteditable="true" placeholder="התשובה שלך..."></div></div>`;
+                    }).join('');
+                }
+                textInput.innerHTML = contentHtml;
             }
         }
 
@@ -864,34 +873,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    const urlRegex = /((?:https?|ftp):\/\/[^\s/$.?#].[^\s]*)/gi;
+                    // Create a temporary element to safely escape any potential HTML in the plain text.
                     const tempDiv = document.createElement('div');
-                    let resultHtml = '';
-                    let lastIndex = 0;
-                    let match;
+                    tempDiv.textContent = pastedText;
 
-                    // Manually iterate over matches to correctly handle escaping text vs. creating links
-                    while ((match = urlRegex.exec(pastedText)) !== null) {
-                        // 1. Get the text *before* the URL and escape it
-                        const precedingText = pastedText.substring(lastIndex, match.index);
-                        tempDiv.textContent = precedingText;
-                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
+                    // Convert newline characters to <br> tags. This is the key fix.
+                    const htmlWithBreaks = tempDiv.innerHTML.replace(/\n/g, '<br>');
 
-                        // 2. Get the URL and create an anchor tag for it
-                        const url = match[0];
-                        resultHtml += `<a href="${url}" target="_blank">${url}</a>`;
-
-                        lastIndex = urlRegex.lastIndex;
-                    }
-
-                    // 3. Get the remaining text *after* the last URL and escape it
-                    if (lastIndex < pastedText.length) {
-                        const remainingText = pastedText.substring(lastIndex);
-                        tempDiv.textContent = remainingText;
-                        resultHtml += tempDiv.innerHTML.replace(/\n/g, '<br>');
-                    }
-
-                    document.execCommand('insertHTML', false, resultHtml);
+                    // Insert the sanitized HTML.
+                    document.execCommand('insertHTML', false, htmlWithBreaks);
                 }
             });
 
@@ -1629,7 +1619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('new-journal-type-select').addEventListener('change', (e) => {
         const templateEditor = document.getElementById('template-editor-container');
-        if (e.target.value === 'template') {
+        if (e.target.value === 'template' || e.target.value === 'questions') {
             templateEditor.style.display = 'block';
         } else {
             templateEditor.style.display = 'none';
