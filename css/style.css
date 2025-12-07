@@ -1299,6 +1299,41 @@ button:active,
     right: 7px; /* Position the checkmark on the right */
 }
 
+/* --- Question Journal Styles --- */
+.question-item {
+    margin: 16px 0;
+}
+
+.question-text {
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.answer-text {
+    background-color: var(--color-surface-card);
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 40px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.answer-text:focus {
+    outline: 1px solid var(--color-accent-system);
+    color: var(--color-text-primary);
+}
+
+.answer-text:empty:before {
+    content: attr(placeholder);
+    color: var(--color-text-secondary);
+    pointer-events: none;
+    display: block;
+    opacity: 0.7;
+}
+
+
 /* --- Emotion Journal View Styles --- */
 .emotion-grid {
     display: grid;
