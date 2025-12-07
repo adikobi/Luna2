@@ -1646,7 +1646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedType.startsWith('emotion_')) {
             type = 'emotion';
             subtype = selectedType;
-        } else if (type === 'template') {
+    } else if (type === 'template' || type === 'questions') {
             template = document.getElementById('new-journal-template-input').value;
         } else if (type === 'folder' && !icon) {
             icon = 'folder'; // Default icon for folders
