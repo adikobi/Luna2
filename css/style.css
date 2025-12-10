@@ -216,7 +216,7 @@ body.loading .loader {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 20px;
-    padding: 20px;
+    padding: 20px 20px 100px; /* Added padding to prevent FAB overlap */
 }
 
 .journal-list-item-wrapper {
@@ -817,7 +817,7 @@ body.loading .loader {
 
 /* --- Journal Feed Styles --- */
 #journal-feed {
-    padding: 0 20px;
+    padding: 0 20px 100px; /* Added padding to prevent FAB overlap */
 }
 
 .month-header {
