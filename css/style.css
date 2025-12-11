@@ -434,6 +434,14 @@ body.loading .loader {
     font-weight: 700;
 }
 
+/* Stop cursor from blinking */
+input,
+textarea,
+[contenteditable="true"] {
+    animation: none;
+    caret-color: var(--color-accent-system);
+}
+
 .image-preview-container {
     position: relative;
     display: inline-block;
