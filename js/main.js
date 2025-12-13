@@ -920,12 +920,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (copyAllBtn) {
             copyAllBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const bodyHtml = textInput.innerHTML;
+                let bodyHtml = textInput.innerHTML;
 
-                // Use a temporary element to accurately convert HTML to plain text, preserving line breaks
+                // More robust conversion from HTML to plain text with preserved line breaks.
+                // 1. Replace block-level tags that imply a newline with a newline character.
+                bodyHtml = bodyHtml.replace(/<div>/gi, '\n');
+                bodyHtml = bodyHtml.replace(/<p>/gi, '\n');
+                bodyHtml = bodyHtml.replace(/<br>/gi, '\n');
+
+                // 2. Use a temporary element to strip all remaining HTML tags.
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = bodyHtml;
-                const bodyAsText = tempDiv.innerText || ""; // Use innerText to get rendered text with newlines
+                let bodyAsText = tempDiv.textContent || "";
+
+                // 3. Clean up: Remove leading/trailing whitespace and normalize multiple newlines.
+                bodyAsText = bodyAsText.replace(/\n+/g, '\n').trim();
 
                 const fullText = (title ? title + '\n\n' : '') + bodyAsText;
                 navigator.clipboard.writeText(fullText.trim()).then(() => {
