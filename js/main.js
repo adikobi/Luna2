@@ -1034,15 +1034,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    // Create a temporary element to safely escape any potential HTML in the plain text.
+                    // To preserve line breaks, we split the plain text into lines,
+                    // sanitize each line individually to prevent HTML injection,
+                    // and then join them back together with <br> tags.
+                    const lines = pastedText.split('\n');
                     const tempDiv = document.createElement('div');
-                    tempDiv.textContent = pastedText;
-
-                    // Convert newline characters to <br> tags. This is the key fix.
-                    const htmlWithBreaks = tempDiv.innerHTML.replace(/\n/g, '<br>');
-
-                    // Insert the sanitized HTML.
-                    document.execCommand('insertHTML', false, htmlWithBreaks);
+                    const escapedLines = lines.map(line => {
+                        // Using textContent is a standard way to get a sanitized HTML string.
+                        tempDiv.textContent = line;
+                        return tempDiv.innerHTML;
+                    });
+                    const htmlToInsert = escapedLines.join('<br>');
+                    document.execCommand('insertHTML', false, htmlToInsert);
                 }
             });
 
