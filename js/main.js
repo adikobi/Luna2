@@ -921,7 +921,13 @@ document.addEventListener('DOMContentLoaded', () => {
             copyAllBtn.addEventListener('click', () => {
                 const title = titleInput.value;
                 const bodyHtml = textInput.innerHTML;
-                const fullText = (title ? title + '\n\n' : '') + bodyHtml.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+
+                // Use a temporary element to accurately convert HTML to plain text, preserving line breaks
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = bodyHtml;
+                const bodyAsText = tempDiv.innerText || ""; // Use innerText to get rendered text with newlines
+
+                const fullText = (title ? title + '\n\n' : '') + bodyAsText;
                 navigator.clipboard.writeText(fullText.trim()).then(() => {
                     showToast('הטקסט הועתק בהצלחה');
                 });
