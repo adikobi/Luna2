@@ -1049,17 +1049,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    // To preserve line breaks, we split the plain text into lines,
-                    // sanitize each line individually to prevent HTML injection,
-                    // and then join them back together with <br> tags.
+                    // This handles plain text paste, preserving line breaks and auto-linking URLs.
+                    const urlRegex = /(https?:\/\/[^\s<>"'()]+|www\.[^\s<>"'()]+)/g;
+
                     const lines = pastedText.split('\n');
                     const tempDiv = document.createElement('div');
-                    const escapedLines = lines.map(line => {
-                        // Using textContent is a standard way to get a sanitized HTML string.
+
+                    const processedLines = lines.map(line => {
+                        // Sanitize each line to prevent HTML injection.
                         tempDiv.textContent = line;
-                        return tempDiv.innerHTML;
+                        let sanitizedLine = tempDiv.innerHTML;
+
+                        // Find URLs in the sanitized line and wrap them in <a> tags.
+                        return sanitizedLine.replace(urlRegex, (url) => {
+                            let href = url;
+                            if (!href.startsWith('http')) {
+                                href = 'http://' + href;
+                            }
+                            return `<a href="${href}" target="_blank">${url}</a>`;
+                        });
                     });
-                    const htmlToInsert = escapedLines.join('<br>');
+
+                    const htmlToInsert = processedLines.join('<br>');
                     document.execCommand('insertHTML', false, htmlToInsert);
                 }
             });
