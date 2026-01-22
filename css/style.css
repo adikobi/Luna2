@@ -58,6 +58,7 @@ body.loading .view-screen {
     display: flex;
     justify-content: center;
     align-items: center;
+    text-indent: -9999px; /* Hide the "Loading..." text */
 }
 
 body.loading .loader {
