@@ -1117,19 +1117,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return; // Stop processing after handling the delete
                 }
+            });
 
-                // Handle checklist item clicks
-                const label = e.target.closest('.checklist-item label');
-                if (label) {
-                    e.stopPropagation(); // Stop the composer from closing.
-                    e.preventDefault();  // Stop the browser's default label action.
-
-                    const inputId = label.getAttribute('for');
-                    if (inputId) {
-                        const checkbox = textInput.querySelector(`#${inputId}`);
-                        if (checkbox) {
-                            checkbox.checked = !checkbox.checked; // Manually toggle the state.
-                        }
+            // Handle checklist state updates within the composer.
+            // We rely on native behavior for the toggle, but we must manually sync
+            // the 'checked' attribute to the DOM so that it persists when saved (innerHTML).
+            textInput.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="checkbox"]')) {
+                    if (e.target.checked) {
+                        e.target.setAttribute('checked', 'checked');
+                    } else {
+                        e.target.removeAttribute('checked');
                     }
                 }
             });
