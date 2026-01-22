@@ -1117,6 +1117,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     return; // Stop processing after handling the delete
                 }
+
+                // Handle checklist item clicks manually.
+                // In a contenteditable element, clicking a label for a checkbox is often swallowed
+                // or treated as a caret positioning event by the browser/OS (especially mobile).
+                // We force the toggle here to ensure consistent behavior.
+                const label = e.target.closest('.checklist-item label');
+                if (label) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        const checkbox = textInput.querySelector(`#${inputId}`);
+                        if (checkbox) {
+                            // 1. Toggle the property (updates UI visual state via CSS)
+                            checkbox.checked = !checkbox.checked;
+
+                            // 2. Sync the attribute (ensures state is saved in innerHTML)
+                            if (checkbox.checked) {
+                                checkbox.setAttribute('checked', 'checked');
+                            } else {
+                                checkbox.removeAttribute('checked');
+                            }
+                        }
+                    }
+                }
             });
 
             // Handle checklist state updates within the composer.
