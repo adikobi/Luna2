@@ -1118,18 +1118,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     return; // Stop processing after handling the delete
                 }
 
-                // Handle checklist item clicks
+                // Handle checklist item clicks manually.
+                // In a contenteditable element, clicking a label for a checkbox is often swallowed
+                // or treated as a caret positioning event by the browser/OS (especially mobile).
+                // We force the toggle here to ensure consistent behavior.
                 const label = e.target.closest('.checklist-item label');
                 if (label) {
-                    e.stopPropagation(); // Stop the composer from closing.
-                    e.preventDefault();  // Stop the browser's default label action.
+                    e.preventDefault();
+                    e.stopPropagation();
 
                     const inputId = label.getAttribute('for');
                     if (inputId) {
                         const checkbox = textInput.querySelector(`#${inputId}`);
                         if (checkbox) {
-                            checkbox.checked = !checkbox.checked; // Manually toggle the state.
+                            // 1. Toggle the property (updates UI visual state via CSS)
+                            checkbox.checked = !checkbox.checked;
+
+                            // 2. Sync the attribute (ensures state is saved in innerHTML)
+                            if (checkbox.checked) {
+                                checkbox.setAttribute('checked', 'checked');
+                            } else {
+                                checkbox.removeAttribute('checked');
+                            }
                         }
+                    }
+                }
+            });
+
+            // Handle checklist state updates within the composer.
+            // We rely on native behavior for the toggle, but we must manually sync
+            // the 'checked' attribute to the DOM so that it persists when saved (innerHTML).
+            textInput.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="checkbox"]')) {
+                    if (e.target.checked) {
+                        e.target.setAttribute('checked', 'checked');
+                    } else {
+                        e.target.removeAttribute('checked');
                     }
                 }
             });
@@ -1693,36 +1717,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.body.addEventListener('click', (e) => {
         // Handle checklist item clicks directly in the timeline view for quick toggling.
-        const checklistLabel = e.target.closest('.journal-card .checklist-item label');
-        if (checklistLabel) {
-            e.stopPropagation(); // Prevent the composer from opening.
-            e.preventDefault(); // Prevent default label behavior, we handle it manually.
-
-            const card = e.target.closest('.journal-card');
-            const entryId = card.dataset.id;
-            const journalId = card.dataset.journalId;
-            const journal = appData.journals.find(j => j.id === journalId);
-            if (!journal || !journal.entries || !journal.entries[entryId] || !journalsRef) return;
-
-            // Find the checkbox and toggle its state.
-            const inputId = checklistLabel.getAttribute('for');
-            const checkbox = card.querySelector(`#${inputId}`);
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked; // Manually toggle the state
-                // Sync the attribute for saving
-                if (checkbox.checked) {
-                    checkbox.setAttribute('checked', 'checked');
-                } else {
-                    checkbox.removeAttribute('checked');
-                }
-
-                // Now, save the entire updated body text.
-                const bodyTextElement = card.querySelector('.body-text');
-                const updatedHtml = bodyTextElement.innerHTML;
-                const entryRef = journalsRef.child(journalId).child('entries').child(entryId);
-                entryRef.update({ text: updatedHtml });
-            }
-            return; // Stop further processing
+        // We simply return to allow the default behavior (toggling checkbox) to happen,
+        // but prevent the "open composer" logic below from running.
+        if (e.target.closest('.journal-card .checklist-item')) {
+            return;
         }
 
         if (e.target.closest('#show-graph-btn')) {
@@ -1751,6 +1749,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = emotionCard.dataset.date;
             showEmojiPicker(date);
             return;
+        }
+    });
+
+    // Handle checklist item changes (toggling) reliably via the change event.
+    // This catches the native checkbox toggle and saves the new state.
+    document.body.addEventListener('change', (e) => {
+        if (e.target.matches('.journal-card .checklist-item input[type="checkbox"]')) {
+            const checkbox = e.target;
+            const card = checkbox.closest('.journal-card');
+            if (!card) return;
+
+            const entryId = card.dataset.id;
+            const journalId = card.dataset.journalId;
+
+            // Sync the attribute so it persists in the innerHTML
+            if (checkbox.checked) {
+                checkbox.setAttribute('checked', 'checked');
+            } else {
+                checkbox.removeAttribute('checked');
+            }
+
+            // Save to Firebase
+            if (journalsRef && journalId && entryId) {
+                 const bodyTextElement = card.querySelector('.body-text');
+                 if (bodyTextElement) {
+                     const updatedHtml = bodyTextElement.innerHTML;
+                     journalsRef.child(journalId).child('entries').child(entryId).update({ text: updatedHtml });
+                 }
+            }
         }
     });
 
