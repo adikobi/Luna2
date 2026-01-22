@@ -2238,7 +2238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault(); // Prevent focus loss or double taps
 
                 // Haptic feedback
-                if (navigator.vibrate) navigator.vibrate(10);
+                if (navigator.vibrate) navigator.vibrate(15);
 
                 const keyVal = key.dataset.key;
                 if (keyVal === 'backspace') {
