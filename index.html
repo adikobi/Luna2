@@ -110,8 +110,15 @@
     <!-- PIN View -->
     <div id="pin-view" class="view-screen" style="display: none;">
         <div class="pin-header">
-            <i class="fas fa-lock" style="font-size: 40px; color: var(--color-accent-system); margin-bottom: 10px;"></i>
-            <h2>ברוכים השבים</h2>
+            <div class="logo-container pin-logo pulsing-logo">
+                <i class="fas fa-moon moon-icon"></i>
+                <div class="stars">
+                    <i class="fas fa-star star-1"></i>
+                    <i class="fas fa-heart heart-star"></i>
+                    <i class="fas fa-star star-2"></i>
+                </div>
+            </div>
+            <h2 id="pin-greeting">ברוכים השבים</h2>
         </div>
         <div class="password-container">
             <div class="pin-dots-container" id="pin-dots">

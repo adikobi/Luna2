@@ -2236,6 +2236,10 @@ document.addEventListener('DOMContentLoaded', () => {
         keys.forEach(key => {
             key.addEventListener('click', (e) => {
                 e.preventDefault(); // Prevent focus loss or double taps
+
+                // Haptic feedback
+                if (navigator.vibrate) navigator.vibrate(10);
+
                 const keyVal = key.dataset.key;
                 if (keyVal === 'backspace') {
                     input.value = input.value.slice(0, -1);
@@ -2515,7 +2519,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth State Change Listener ---
     // Start splash screen timer
-    const splashMinTime = new Promise(resolve => setTimeout(resolve, 3000)); // Minimum 3s splash
+    const splashMinTime = new Promise(resolve => setTimeout(resolve, 2000)); // Minimum 2s splash
 
     auth.onAuthStateChanged(async user => {
         hideLoadingIndicator(); // This hides the moon loader, but we now have the full splash overlay
@@ -2531,6 +2535,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (user) {
             appData.currentUser = user;
+
+            // Set Greeting
+            const greetingEl = document.getElementById('pin-greeting');
+            if (greetingEl) {
+                let userName = user.displayName;
+                if (userName) {
+                    greetingEl.textContent = `שלום ${userName}`;
+                } else {
+                    // Try fetching from DB if displayName is empty
+                    database.ref(`users/${user.uid}/profile/username`).once('value').then(snap => {
+                        if (snap.exists()) {
+                             greetingEl.textContent = `שלום ${snap.val()}`;
+                        } else {
+                             greetingEl.textContent = "ברוכים השבים";
+                        }
+                    });
+                }
+            }
+
             const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
             hideAllViews();
             if (pinHash) {
