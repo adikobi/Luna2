@@ -51,20 +51,52 @@
         </div>
     </div>
 
+    <!-- Generic Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay" style="display: none; z-index: 5000;">
+        <div class="modal-content">
+            <h2 id="confirm-modal-title">אישור</h2>
+            <p id="confirm-modal-message">האם אתה בטוח?</p>
+            <div class="modal-actions">
+                <button id="confirm-modal-cancel-btn">ביטול</button>
+                <button id="confirm-modal-ok-btn" class="destructive">אישור</button>
+            </div>
+        </div>
+    </div>
+
     <!-- PIN Setup View -->
     <div id="pin-setup-view" class="view-screen" style="display: none;">
         <div class="pin-container">
             <h2>הגדר קוד PIN</h2>
             <p>הזן קוד בן 4 ספרות לכניסה מהירה.</p>
-            <input type="password" id="pin-setup-input" inputmode="numeric" pattern="[0-9]*" maxlength="4">
-            <button id="pin-setup-btn">הגדר</button>
+            <div class="pin-dots-container" id="pin-setup-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <input type="password" id="pin-setup-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" class="hidden-pin-input">
+            <div class="pin-keyboard">
+                <button class="pin-key" data-key="1">1</button>
+                <button class="pin-key" data-key="2">2</button>
+                <button class="pin-key" data-key="3">3</button>
+                <button class="pin-key" data-key="4">4</button>
+                <button class="pin-key" data-key="5">5</button>
+                <button class="pin-key" data-key="6">6</button>
+                <button class="pin-key" data-key="7">7</button>
+                <button class="pin-key" data-key="8">8</button>
+                <button class="pin-key" data-key="9">9</button>
+                <button class="pin-key empty"></button>
+                <button class="pin-key" data-key="0">0</button>
+                <button class="pin-key delete" data-key="backspace"><i class="fas fa-backspace"></i></button>
+            </div>
+            <button id="pin-setup-btn" style="display: none;">הגדר</button> <!-- Hidden, triggered automatically -->
         </div>
     </div>
 
     <!-- PIN View -->
     <div id="pin-view" class="view-screen" style="display: none;">
          <div id="splash-screen">
-            <div class="logo-container">
+            <div class="logo-container pulsing-logo">
                 <i class="fas fa-moon moon-icon"></i>
                 <div class="stars">
                     <i class="fas fa-star star-1"></i>
@@ -72,12 +104,32 @@
                     <i class="fas fa-star star-2"></i>
                 </div>
             </div>
-            <h1 class="splash-title">Luna</h1>
-            <p class="splash-subtitle">זיכרונות ורגעים</p>
+            <h1 class="splash-title fade-in-text">Luna</h1>
+            <p class="splash-subtitle fade-in-text delay-1">זיכרונות ורגעים</p>
         </div>
         <div class="password-container">
-            <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
-            <button id="pin-submit-btn">כניסה</button>
+            <div class="pin-dots-container" id="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+            </div>
+            <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" class="hidden-pin-input">
+             <div class="pin-keyboard">
+                <button class="pin-key" data-key="1">1</button>
+                <button class="pin-key" data-key="2">2</button>
+                <button class="pin-key" data-key="3">3</button>
+                <button class="pin-key" data-key="4">4</button>
+                <button class="pin-key" data-key="5">5</button>
+                <button class="pin-key" data-key="6">6</button>
+                <button class="pin-key" data-key="7">7</button>
+                <button class="pin-key" data-key="8">8</button>
+                <button class="pin-key" data-key="9">9</button>
+                <button class="pin-key empty"></button>
+                <button class="pin-key" data-key="0">0</button>
+                <button class="pin-key delete" data-key="backspace"><i class="fas fa-backspace"></i></button>
+            </div>
+            <button id="pin-submit-btn" style="display: none;">כניסה</button> <!-- Hidden -->
         </div>
         <button id="logout-btn" class="text-btn">התנתק</button>
     </div>

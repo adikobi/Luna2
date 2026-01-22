@@ -218,6 +218,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000); // 3 seconds visible
     }
 
+    function showConfirmModal(title, message, onConfirm) {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const msgEl = document.getElementById('confirm-modal-message');
+        const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+        const okBtn = document.getElementById('confirm-modal-ok-btn');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+
+        // Clean up old listeners to avoid stacking
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        const newOkBtn = okBtn.cloneNode(true);
+        okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+        newCancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        newOkBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            if (onConfirm) onConfirm();
+        });
+
+        modal.style.display = 'flex';
+    }
+
     function formatISODateForDisplay(isoString) {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {
@@ -663,8 +692,10 @@ document.addEventListener('DOMContentLoaded', () => {
             backToParentFolderBtn.style.display = 'block';
             // Store the parent's ID to navigate back to it.
             backToParentFolderBtn.dataset.parentId = parentFolder ? parentFolder.parentId : '';
+            if (lockAppBtn) lockAppBtn.style.display = 'none'; // Hide lock button in folder
         } else {
             backToParentFolderBtn.style.display = 'none';
+            if (lockAppBtn) lockAppBtn.style.display = 'block'; // Show lock button in root
         }
     }
 
@@ -977,7 +1008,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentState.title !== initialEntryState.title ||
                     currentState.html !== initialEntryState.html ||
                     currentState.date !== initialEntryState.date;
-                if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
+                if (hasChanged) {
+                    showConfirmModal('שינויים לא נשמרו', 'האם את/ה בטוח/ה שברצונך לצאת ללא שמירה?', () => {
+                        composerView.classList.remove('visible');
+                        currentImageURL = null;
+                    });
                     return;
                 }
             }
@@ -1069,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle delete image button clicks
                 const deleteBtn = e.target.closest('.delete-image-btn');
                 if (deleteBtn) {
-                    if (confirm("האם אתה בטוח שאתה רוצה למחוק את התמונה?")) {
+                    showConfirmModal('מחיקת תמונה', 'האם את/ה בטוח/ה שברצונך למחוק את התמונה?', () => {
                         const imageContainer = deleteBtn.closest('.image-preview-container');
                         if (imageContainer) {
                             // The image container is wrapped in a contenteditable="false" div
@@ -1079,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (currentImageURL) {
                             currentImageURL = null;
                         }
-                    }
+                    });
                     return; // Stop processing after handling the delete
                 }
 
@@ -1094,6 +1129,57 @@ document.addEventListener('DOMContentLoaded', () => {
                         const checkbox = textInput.querySelector(`#${inputId}`);
                         if (checkbox) {
                             checkbox.checked = !checkbox.checked; // Manually toggle the state.
+                        }
+                    }
+                }
+            });
+
+            // Live Link Detection
+            textInput.addEventListener('input', (e) => {
+                // We check on input to handle space, enter, or paste that results in a URL
+                if (e.data === ' ' || e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+                    const selection = window.getSelection();
+                    if (!selection.rangeCount) return;
+                    const range = selection.getRangeAt(0);
+                    const node = range.startContainer;
+
+                    // Only check text nodes
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        // Regex to find a URL at the end of the text (before the space we just typed)
+                        // This is a simple heuristic: http/https + non-whitespace, ending before the cursor
+                        const match = text.match(/(https?:\/\/[^\s]+)\s$/);
+
+                        if (match) {
+                            const url = match[1];
+                            const startOffset = match.index;
+                            const endOffset = match.index + url.length;
+
+                            // Check if already linked (parent is A tag)
+                            if (node.parentNode.tagName === 'A') return;
+
+                            // Create a range for the URL
+                            const urlRange = document.createRange();
+                            urlRange.setStart(node, startOffset);
+                            urlRange.setEnd(node, endOffset);
+
+                            // Select it
+                            selection.removeAllRanges();
+                            selection.addRange(urlRange);
+
+                            // Linkify
+                            document.execCommand('createLink', false, url);
+
+                            // The execCommand might split the text node. We need to reset the cursor to the end.
+                            // However, 'createLink' usually keeps selection on the link.
+                            // We want to move cursor AFTER the link + the space.
+
+                            selection.collapseToEnd();
+                            // Ensure the space is preserved and we are out of the anchor?
+                            // execCommand might include the trailing space in the link if we selected it.
+                            // My regex included the space `\s$` in match[0] but `url` is match[1].
+                            // I set range end to `endOffset` which is end of URL, excluding space.
+                            // So the space is AFTER the link. Correct.
                         }
                     }
                 }
@@ -1166,12 +1252,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     composerView.classList.remove('visible');
                     return;
                 }
-                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+                showConfirmModal('מחיקת רשומה', 'האם את/ה בטוח/ה שברצונך למחוק את הרשומה?', () => {
                     if (currentlyEditingEntryId) {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
                         composerView.classList.remove('visible');
                     }
-                }
+                });
             });
         }
     }
@@ -1552,10 +1638,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Global Event Listeners ---
+
+    // History API: Handle back button navigation
+    window.addEventListener('popstate', (event) => {
+        const state = event.state;
+
+        // Ensure composer is closed when navigating back
+        if (composerView.classList.contains('visible')) {
+            composerView.classList.remove('visible');
+        }
+
+        if (!state) {
+            // If state is null, it usually means we are at the initial load state, which we treat as the main list
+            showJournalsListView(null, false);
+            return;
+        }
+
+        switch (state.view) {
+            case 'list':
+                showJournalsListView(state.folderId, false);
+                break;
+            case 'timeline':
+                showTimelineView(state.journalId, false);
+                break;
+            case 'insights':
+                showInsightsView(false);
+                break;
+            case 'graph':
+                appData.currentJournalId = state.journalId; // Ensure context is set
+                showGraphView(false);
+                break;
+            case 'all-entries':
+                showAllEntriesView(false);
+                break;
+            case 'composer':
+                // If we moved forward to 'composer' state, open it
+                if (!composerView.classList.contains('visible')) {
+                     currentlyEditingEntryId = null;
+                     populateComposerView(null, 'edit');
+                     composerView.classList.add('visible');
+                }
+                break;
+            default:
+                showJournalsListView(null, false);
+        }
+    });
+
     fab.addEventListener('click', () => {
         currentlyEditingEntryId = null;
         populateComposerView(null, 'edit');
         composerView.classList.add('visible');
+        history.pushState({ view: 'composer' }, '', '#new-entry');
     });
 
     document.body.addEventListener('click', (e) => {
@@ -1727,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please log in to create a backup.");
             return;
         }
-        if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
+        showConfirmModal('יצירת גיבוי', 'האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.', () => {
             const journalsDataRef = database.ref(`users/${appData.currentUser.uid}/journals`);
             journalsDataRef.once('value', (snapshot) => {
                 const dataToBackup = snapshot.val();
@@ -1745,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('אין מידע לגבות.');
                 }
             });
-        }
+        });
     });
 
     lockAppBtn.addEventListener('click', () => {
@@ -1776,8 +1909,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו תמחק גם את כל התוכן שבפנים.`)) {
-                    deleteJournalAndChildren(journalId);
+                if (journal) {
+                    showConfirmModal('מחיקת יומן', `האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו תמחק גם את כל התוכן שבפנים.`, () => {
+                        deleteJournalAndChildren(journalId);
+                    });
                 }
                 return; // Prevent fall-through to other click handlers in edit mode
             }
@@ -2079,6 +2214,68 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- PIN Pad Logic ---
+    function setupPinPad(viewId, inputId, submitBtnId) {
+        const view = document.getElementById(viewId);
+        const input = document.getElementById(inputId);
+        const submitBtn = document.getElementById(submitBtnId);
+        const dots = view.querySelectorAll('.pin-dot');
+        const keys = view.querySelectorAll('.pin-key');
+
+        function updateDots() {
+            const val = input.value;
+            dots.forEach((dot, index) => {
+                if (index < val.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+
+        keys.forEach(key => {
+            key.addEventListener('click', (e) => {
+                e.preventDefault(); // Prevent focus loss or double taps
+                const keyVal = key.dataset.key;
+                if (keyVal === 'backspace') {
+                    input.value = input.value.slice(0, -1);
+                } else if (input.value.length < 4) {
+                    input.value += keyVal;
+                }
+                updateDots();
+
+                // Auto-submit if 4 digits
+                if (input.value.length === 4) {
+                    // Small delay for visual feedback
+                    setTimeout(() => {
+                        submitBtn.click();
+                    }, 100);
+                }
+            });
+        });
+
+        // Also sync if user types on keyboard (if input keeps focus, though hidden)
+        input.addEventListener('input', updateDots);
+
+        // Clear on view show
+        const originalDisplay = view.style.display;
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (view.style.display !== 'none') {
+                        input.value = '';
+                        updateDots();
+                        input.focus();
+                    }
+                }
+            });
+        });
+        observer.observe(view, { attributes: true });
+    }
+
+    setupPinPad('pin-setup-view', 'pin-setup-input', 'pin-setup-btn');
+    setupPinPad('pin-view', 'pin-input', 'pin-submit-btn');
+
     document.getElementById('pin-setup-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') pinSetupBtn.click();
     });
@@ -2295,15 +2492,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (appData.currentJournalId) {
                     const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
                     if (currentJournalExists) {
-                        showTimelineView(appData.currentJournalId);
+                        showTimelineView(appData.currentJournalId, false);
                     } else {
-                        showJournalsListView();
+                        showJournalsListView(null, false);
                     }
                 } else {
-                    showAllEntriesView();
+                    showAllEntriesView(false);
                 }
             } else {
-                showJournalsListView(appData.currentFolderId || null);
+                // Initial load: Replace state instead of pushing to avoid "Back" doing nothing
+                showJournalsListView(appData.currentFolderId || null, false);
+                const folderId = appData.currentFolderId || null;
+                const urlHash = folderId ? `#folder-${folderId}` : '#home';
+                history.replaceState({ view: 'list', folderId: folderId }, '', urlHash);
             }
             isFirstLoad = false;
         }, (error) => {
