@@ -1054,6 +1054,7 @@ button:active,
     color: var(--color-text-secondary);
     pointer-events: none;
     display: block;
+    text-align: right; /* Ensure placeholder is right-aligned */
 }
 
 /* --- Weight Adjuster Styles --- */

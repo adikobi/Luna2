@@ -272,10 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 let newNode = null;
 
                 if (tagName === 'a') {
-                    newNode = document.createElement('a');
-                    newNode.href = node.getAttribute('href');
-                    newNode.target = '_blank';
-                    newNode.textContent = node.textContent;
+                    // Check if it's a real link with href
+                    if (node.hasAttribute('href')) {
+                        newNode = document.createElement('a');
+                        newNode.href = node.getAttribute('href');
+                        newNode.target = '_blank';
+                        newNode.textContent = node.textContent;
+                    } else {
+                        // If it's an anchor without href, just keep the text
+                         const textNode = document.createTextNode(node.textContent);
+                         parent.appendChild(textNode);
+                         return; // Done with this node
+                    }
                 } else if (tagName === 'br') {
                     newNode = document.createElement('br');
                 } else if (['div', 'p', 'ul', 'ol', 'li', 'blockquote'].includes(tagName)) {
@@ -559,10 +567,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Screen Navigation ---
-    function showTimelineView(journalId) {
+    function showTimelineView(journalId, pushState = true) {
         appData.currentJournalId = journalId;
         const journal = appData.journals.find(j => j.id === journalId);
         if (!journal) return;
+
+        if (pushState) {
+            history.pushState({ view: 'timeline', journalId: journalId }, '', `#journal-${journalId}`);
+        }
 
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
@@ -606,9 +618,15 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView(folderId = null) {
+    function showJournalsListView(folderId = null, pushState = true) {
         appData.currentJournalId = null;
         appData.currentFolderId = folderId;
+
+        if (pushState) {
+            const urlHash = folderId ? `#folder-${folderId}` : '#home';
+            history.pushState({ view: 'list', folderId: folderId }, '', urlHash);
+        }
+
         hideAllViews();
         fab.style.display = 'none'; // Ensure the timeline FAB is hidden
 
@@ -650,7 +668,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showInsightsView() {
+    function showInsightsView(pushState = true) {
+        if (pushState) {
+            history.pushState({ view: 'insights' }, '', '#insights');
+        }
         insightsChart.selectedYear = new Date().getFullYear();
         insightsChart.allTime = true;
         const stats = calculateInsights();
@@ -751,10 +772,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showGraphView() {
+    function showGraphView(pushState = true) {
         window.scrollTo(0, 0);
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal || journal.type !== 'graph') return;
+
+        if (pushState) {
+            history.pushState({ view: 'graph', journalId: appData.currentJournalId }, '', `#graph-${appData.currentJournalId}`);
+        }
 
         hideAllViews();
         graphView.style.display = 'block';
@@ -796,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="date-container"></div>
                 </div>
                 ${weightAdjusterHTML}
-                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="auto"></div>
+                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
@@ -1111,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const newChecklistItem = document.createElement('div');
                         const inputId = `checklist-item-${Date.now()}`;
                         newChecklistItem.className = 'checklist-item';
-                        newChecklistItem.setAttribute('dir', 'auto');
+                        newChecklistItem.setAttribute('dir', 'rtl');
                         newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
 
                         const container = parentDiv.closest('.checklist-item') || parentDiv;
@@ -1132,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 const inputId = `checklist-item-${Date.now()}`;
-                const htmlToInsert = `<div class="checklist-item" dir="auto"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                const htmlToInsert = `<div class="checklist-item" dir="rtl"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
             });
 
@@ -1655,7 +1680,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const editJournalsBtn = document.getElementById('journals-list-edit-btn');
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
 
-    function showAllEntriesView() {
+    function showAllEntriesView(pushState = true) {
+        if (pushState) {
+            history.pushState({ view: 'all-entries' }, '', '#all-entries');
+        }
+
         // Clear out any journal-specific buttons from the header
         const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
         const existingGraphBtn = document.getElementById('show-graph-btn');
@@ -1892,9 +1921,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const newJournal = { ...journalData, id: newJournalRef.key };
 
             newJournalRef.set(journalData).then(() => {
-                // Optimistic update
-                appData.journals.push(newJournal);
-                showJournalsListView(appData.currentFolderId);
                 showToast(`"${newName}" נוצר בהצלחה`);
             });
 
