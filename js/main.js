@@ -2234,11 +2234,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         keys.forEach(key => {
-            key.addEventListener('click', (e) => {
-                e.preventDefault(); // Prevent focus loss or double taps
-
-                // Haptic feedback
+            // Mobile Touch Support for Visual Feedback
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent ghost clicks
+                key.classList.add('active');
                 if (navigator.vibrate) navigator.vibrate(15);
+                key.click(); // Manually trigger click
+            });
+
+            const removeActive = () => key.classList.remove('active');
+            key.addEventListener('touchend', removeActive);
+            key.addEventListener('touchcancel', removeActive);
+
+            key.addEventListener('click', (e) => {
+                // e.preventDefault() is handled in touchstart if touched,
+                // but we need it here for mouse clicks
+                if (e.cancelable) e.preventDefault();
+
+                // Haptic feedback (for mouse clicks on supported devices)
+                // Debounce slightly if triggered by touchstart to avoid double vibrate
+                if (!e.isTrusted && navigator.vibrate) {
+                    // Triggered by script (touch), vibration already happened
+                } else if (navigator.vibrate) {
+                    navigator.vibrate(15);
+                }
 
                 const keyVal = key.dataset.key;
                 if (keyVal === 'backspace') {

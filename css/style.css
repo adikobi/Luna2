@@ -758,7 +758,8 @@ textarea,
     box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle depth */
 }
 
-.pin-key:active {
+.pin-key:active,
+.pin-key.active {
     background-color: var(--color-accent-system); /* Fill it up! */
     color: var(--color-background-primary); /* Invert text color for contrast */
     transform: scale(0.85); /* Deeper press */
