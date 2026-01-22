@@ -30,6 +30,14 @@
     --font-weight-metadata: 500;
 }
 
+/* Glassmorphism Utility */
+.glass-effect {
+    background-color: var(--color-frosted-glass);
+    border: 1px solid var(--color-frosted-glass-border);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 body {
     font-family: var(--font-stack);
     background-color: var(--color-background-primary);
@@ -37,6 +45,22 @@ body {
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 body.loading .view-screen {
@@ -265,22 +289,21 @@ body.loading .loader {
 
 .journal-list-item.folder {
     border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
+    background-color: rgba(255, 255, 255, 0.03);
+    position: relative;
 }
 
-.journal-list-item.folder {
+.journal-list-item.folder::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    bottom: 4px; /* Offset to create tab look */
+    left: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-card);
+    z-index: -1;
     border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
-}
-
-.journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
-}
-
-.journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
 }
 
 .journal-icon {
@@ -1085,7 +1108,7 @@ button,
 #fab,
 .modal-actions button,
 #login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
-    transition: transform 0.1s ease-out, filter 0.1s ease-out, opacity 0.1s ease-out;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.2s ease, opacity 0.2s ease;
 }
 
 button:hover,
@@ -1108,9 +1131,9 @@ button:active,
 #fab:active,
 .modal-actions button:active,
 #login-btn:active, #signup-btn:active, #pin-setup-btn:active, #pin-submit-btn:active {
-    transform: scale(0.98);
-    filter: brightness(0.95);
-    transition-duration: 0.05s;
+    transform: scale(0.96);
+    filter: brightness(0.9);
+    transition-duration: 0.1s;
 }
 
 /* --- Composer View Styles --- */
@@ -1472,11 +1495,13 @@ button:active,
     height: 10px;
     border: solid var(--color-background-primary);
     border-width: 0 2px 2px 0;
-    /* Rotation might need mirroring in RTL?
-       Actually, checkmarks are usually the same direction.
-       But transform origin might matter.
-       Usually 45deg is fine. */
     transform: translateY(-60%) rotate(45deg);
+    animation: checkmark-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes checkmark-pop {
+    0% { transform: translateY(-60%) rotate(45deg) scale(0); opacity: 0; }
+    100% { transform: translateY(-60%) rotate(45deg) scale(1); opacity: 1; }
 }
 
 /* Style for the checked state */
