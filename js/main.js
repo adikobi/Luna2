@@ -218,6 +218,35 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000); // 3 seconds visible
     }
 
+    function showConfirmModal(title, message, onConfirm) {
+        const modal = document.getElementById('confirm-modal');
+        const titleEl = document.getElementById('confirm-modal-title');
+        const msgEl = document.getElementById('confirm-modal-message');
+        const cancelBtn = document.getElementById('confirm-modal-cancel-btn');
+        const okBtn = document.getElementById('confirm-modal-ok-btn');
+
+        titleEl.textContent = title;
+        msgEl.textContent = message;
+
+        // Clean up old listeners to avoid stacking
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+        const newOkBtn = okBtn.cloneNode(true);
+        okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+
+        newCancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        newOkBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            if (onConfirm) onConfirm();
+        });
+
+        modal.style.display = 'flex';
+    }
+
     function formatISODateForDisplay(isoString) {
         const date = new Date(isoString);
         return date.toLocaleDateString('en-US', {
@@ -264,26 +293,84 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = parser.parseFromString(html, 'text/html');
         const newBody = document.createElement('body');
 
-        function traverse(node) {
+        function traverse(node, parent) {
             if (node.nodeType === Node.TEXT_NODE) {
-                newBody.appendChild(node.cloneNode());
+                parent.appendChild(node.cloneNode());
             } else if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'A') {
-                    const newLink = document.createElement('a');
-                    newLink.href = node.getAttribute('href'); // Only keep the href attribute
-                    newLink.textContent = node.textContent;
-                    newBody.appendChild(newLink);
-                } else if (node.tagName === 'BR') {
-                    newBody.appendChild(document.createElement('br'));
+                const tagName = node.tagName.toLowerCase();
+                let newNode = null;
+
+                if (tagName === 'a') {
+                    // Check if it's a real link with href
+                    if (node.hasAttribute('href')) {
+                        newNode = document.createElement('a');
+                        newNode.href = node.getAttribute('href');
+                        newNode.target = '_blank';
+                        newNode.textContent = node.textContent;
+                    } else {
+                        // If it's an anchor without href, just keep the text
+                         const textNode = document.createTextNode(node.textContent);
+                         parent.appendChild(textNode);
+                         return; // Done with this node
+                    }
+                } else if (tagName === 'br') {
+                    newNode = document.createElement('br');
+                } else if (['div', 'p', 'ul', 'ol', 'li', 'blockquote'].includes(tagName)) {
+                    newNode = document.createElement(tagName);
+                    newNode.setAttribute('dir', 'auto');
+                    // We intentionally strip styles/classes to keep it clean, per requirement.
+                } else if (tagName === 'b' || tagName === 'strong') {
+                    newNode = document.createElement('strong');
+                } else if (tagName === 'i' || tagName === 'em') {
+                    newNode = document.createElement('em');
+                }
+
+                if (newNode) {
+                    parent.appendChild(newNode);
+                    Array.from(node.childNodes).forEach(child => traverse(child, newNode));
                 } else {
-                    // For all other tags, just process their children (unwrap them)
-                    Array.from(node.childNodes).forEach(traverse);
+                    // Unwrap other tags
+                    Array.from(node.childNodes).forEach(child => traverse(child, parent));
                 }
             }
         }
 
-        Array.from(doc.body.childNodes).forEach(traverse);
+        Array.from(doc.body.childNodes).forEach(child => traverse(child, newBody));
         return newBody.innerHTML;
+    }
+
+    function linkifyHtml(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+
+        function traverseAndLinkify(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                if (urlRegex.test(text)) {
+                    const fragment = document.createDocumentFragment();
+                    let lastIdx = 0;
+                    text.replace(urlRegex, (match, url, idx) => {
+                        fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.textContent = url;
+                        fragment.appendChild(a);
+                        lastIdx = idx + match.length;
+                    });
+                    fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
+                    node.parentNode.replaceChild(fragment, node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName !== 'A' && node.tagName !== 'BUTTON' && node.tagName !== 'INPUT') {
+                    Array.from(node.childNodes).forEach(traverseAndLinkify);
+                }
+            }
+        }
+
+        traverseAndLinkify(div);
+        return div.innerHTML;
     }
 
     function countWords(str) {
@@ -382,10 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'journal-card';
             card.dataset.id = entry.id; // Use the entry's Firebase key
             card.dataset.journalId = entry.journalId; // Store journalId for opening
-            const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
-            const textAlign = isHebrew(entry.text) ? 'right' : 'left';
+            // Use linkifyHtml to make links clickable and ensure HTML is clean
+            const bodyHtml = linkifyHtml(entry.text);
 
-            const bodyHtml = entry.text;
             // Backward compatibility: If an old imageUrl exists, prepend it to the body.
             // The new method embeds the image in the bodyHtml itself.
             const imageHtml = entry.imageUrl ? `<img src="${entry.imageUrl}" class="entry-image">` : '';
@@ -394,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 ${imageHtml}
-                <div class="body-text" dir="${textDir}" style="text-align: ${textAlign};">${bodyHtml}</div>
+                <div class="body-text" dir="auto">${bodyHtml}</div>
             `;
             container.appendChild(card);
         });
@@ -510,10 +596,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Screen Navigation ---
-    function showTimelineView(journalId) {
+    function showTimelineView(journalId, pushState = true) {
         appData.currentJournalId = journalId;
         const journal = appData.journals.find(j => j.id === journalId);
         if (!journal) return;
+
+        if (pushState) {
+            history.pushState({ view: 'timeline', journalId: journalId }, '', `#journal-${journalId}`);
+        }
 
         mainTitle.textContent = journal.name;
         document.getElementById('search-input').value = '';
@@ -557,9 +647,15 @@ document.addEventListener('DOMContentLoaded', () => {
         timelineView.scrollTop = 0;
     }
 
-    function showJournalsListView(folderId = null) {
+    function showJournalsListView(folderId = null, pushState = true) {
         appData.currentJournalId = null;
         appData.currentFolderId = folderId;
+
+        if (pushState) {
+            const urlHash = folderId ? `#folder-${folderId}` : '#home';
+            history.pushState({ view: 'list', folderId: folderId }, '', urlHash);
+        }
+
         hideAllViews();
         fab.style.display = 'none'; // Ensure the timeline FAB is hidden
 
@@ -596,12 +692,17 @@ document.addEventListener('DOMContentLoaded', () => {
             backToParentFolderBtn.style.display = 'block';
             // Store the parent's ID to navigate back to it.
             backToParentFolderBtn.dataset.parentId = parentFolder ? parentFolder.parentId : '';
+            if (lockAppBtn) lockAppBtn.style.display = 'none'; // Hide lock button in folder
         } else {
             backToParentFolderBtn.style.display = 'none';
+            if (lockAppBtn) lockAppBtn.style.display = 'block'; // Show lock button in root
         }
     }
 
-    function showInsightsView() {
+    function showInsightsView(pushState = true) {
+        if (pushState) {
+            history.pushState({ view: 'insights' }, '', '#insights');
+        }
         insightsChart.selectedYear = new Date().getFullYear();
         insightsChart.allTime = true;
         const stats = calculateInsights();
@@ -702,10 +803,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function showGraphView() {
+    function showGraphView(pushState = true) {
         window.scrollTo(0, 0);
         const journal = appData.journals.find(j => j.id === appData.currentJournalId);
         if (!journal || journal.type !== 'graph') return;
+
+        if (pushState) {
+            history.pushState({ view: 'graph', journalId: appData.currentJournalId }, '', `#graph-${appData.currentJournalId}`);
+        }
 
         hideAllViews();
         graphView.style.display = 'block';
@@ -747,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="date-container"></div>
                 </div>
                 ${weightAdjusterHTML}
-                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="auto"></div>
+                <div id="entry-textarea" ${isEditing ? 'contenteditable="true"' : ''} placeholder="התחל לכתוב..." dir="rtl"></div>
             </div>
             <div class="composer-toolbar" style="display: ${isEditing ? 'flex' : 'none'};">
                 <button id="add-checklist-btn" class="toolbar-btn" title="הוסף צ'קליסט">
@@ -787,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleInput.value = '';
             }
 
-            textInput.innerHTML = tempDiv.innerHTML;
+            textInput.innerHTML = linkifyHtml(tempDiv.innerHTML);
 
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
@@ -804,7 +909,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const now = Date.now();
                     contentHtml = templateLines.map((line, index) => {
                         const itemId = `checklist-item-${now}-${index}`;
-                        return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
+                        return `<div class="checklist-item" dir="auto"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
                     }).join('');
                     contentHtml += '<div>&nbsp;</div>'; // Add space to continue typing
                 } else { // It's a 'questions' journal
@@ -903,7 +1008,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentState.title !== initialEntryState.title ||
                     currentState.html !== initialEntryState.html ||
                     currentState.date !== initialEntryState.date;
-                if (hasChanged && !confirm('עדיין לא שמרת. האם אתה בטוח שאתה רוצה לסגור?')) {
+                if (hasChanged) {
+                    showConfirmModal('שינויים לא נשמרו', 'האם את/ה בטוח/ה שברצונך לצאת ללא שמירה?', () => {
+                        composerView.classList.remove('visible');
+                        currentImageURL = null;
+                    });
                     return;
                 }
             }
@@ -920,8 +1029,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (copyAllBtn) {
             copyAllBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const bodyHtml = textInput.innerHTML;
-                const fullText = (title ? title + '\n\n' : '') + bodyHtml.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+                // Use innerText to preserve visible formatting (newlines, etc.)
+                const fullText = (title ? title + '\n\n' : '') + textInput.innerText;
                 navigator.clipboard.writeText(fullText.trim()).then(() => {
                     showToast('הטקסט הועתק בהצלחה');
                 });
@@ -995,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle delete image button clicks
                 const deleteBtn = e.target.closest('.delete-image-btn');
                 if (deleteBtn) {
-                    if (confirm("האם אתה בטוח שאתה רוצה למחוק את התמונה?")) {
+                    showConfirmModal('מחיקת תמונה', 'האם את/ה בטוח/ה שברצונך למחוק את התמונה?', () => {
                         const imageContainer = deleteBtn.closest('.image-preview-container');
                         if (imageContainer) {
                             // The image container is wrapped in a contenteditable="false" div
@@ -1005,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (currentImageURL) {
                             currentImageURL = null;
                         }
-                    }
+                    });
                     return; // Stop processing after handling the delete
                 }
 
@@ -1025,6 +1134,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Live Link Detection
+            textInput.addEventListener('input', (e) => {
+                // We check on input to handle space, enter, or paste that results in a URL
+                if (e.data === ' ' || e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') {
+                    const selection = window.getSelection();
+                    if (!selection.rangeCount) return;
+                    const range = selection.getRangeAt(0);
+                    const node = range.startContainer;
+
+                    // Only check text nodes
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent;
+                        // Regex to find a URL at the end of the text (before the space we just typed)
+                        // This is a simple heuristic: http/https + non-whitespace, ending before the cursor
+                        const match = text.match(/(https?:\/\/[^\s]+)\s$/);
+
+                        if (match) {
+                            const url = match[1];
+                            const startOffset = match.index;
+                            const endOffset = match.index + url.length;
+
+                            // Check if already linked (parent is A tag)
+                            if (node.parentNode.tagName === 'A') return;
+
+                            // Create a range for the URL
+                            const urlRange = document.createRange();
+                            urlRange.setStart(node, startOffset);
+                            urlRange.setEnd(node, endOffset);
+
+                            // Select it
+                            selection.removeAllRanges();
+                            selection.addRange(urlRange);
+
+                            // Linkify
+                            document.execCommand('createLink', false, url);
+
+                            // The execCommand might split the text node. We need to reset the cursor to the end.
+                            // However, 'createLink' usually keeps selection on the link.
+                            // We want to move cursor AFTER the link + the space.
+
+                            selection.collapseToEnd();
+                            // Ensure the space is preserved and we are out of the anchor?
+                            // execCommand might include the trailing space in the link if we selected it.
+                            // My regex included the space `\s$` in match[0] but `url` is match[1].
+                            // I set range end to `endOffset` which is end of URL, excluding space.
+                            // So the space is AFTER the link. Correct.
+                        }
+                    }
+                }
+            });
+
             textInput.addEventListener('paste', (e) => {
                 e.preventDefault();
                 const pastedHtml = e.clipboardData.getData('text/html');
@@ -1034,15 +1194,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    // Create a temporary element to safely escape any potential HTML in the plain text.
-                    const tempDiv = document.createElement('div');
-                    tempDiv.textContent = pastedText;
-
-                    // Convert newline characters to <br> tags. This is the key fix.
-                    const htmlWithBreaks = tempDiv.innerHTML.replace(/\n/g, '<br>');
-
-                    // Insert the sanitized HTML.
-                    document.execCommand('insertHTML', false, htmlWithBreaks);
+                    // Wrap plain text lines in divs with dir="auto" for better BiDi support
+                    const lines = pastedText.split(/\r?\n/);
+                    let htmlToInsert = '';
+                    lines.forEach(line => {
+                         if (line.trim() === '') {
+                             htmlToInsert += '<div><br></div>';
+                         } else {
+                             const tempDiv = document.createElement('div');
+                             tempDiv.textContent = line;
+                             htmlToInsert += `<div dir="auto">${tempDiv.innerHTML}</div>`;
+                         }
+                    });
+                    document.execCommand('insertHTML', false, htmlToInsert);
                 }
             });
 
@@ -1058,6 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const newChecklistItem = document.createElement('div');
                         const inputId = `checklist-item-${Date.now()}`;
                         newChecklistItem.className = 'checklist-item';
+                        newChecklistItem.setAttribute('dir', 'rtl');
                         newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
 
                         const container = parentDiv.closest('.checklist-item') || parentDiv;
@@ -1078,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 const inputId = `checklist-item-${Date.now()}`;
-                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                const htmlToInsert = `<div class="checklist-item" dir="rtl"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
             });
 
@@ -1087,12 +1252,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     composerView.classList.remove('visible');
                     return;
                 }
-                if (confirm('האם את בטוחה שאת רוצה למחוק את הרשומה?')) {
+                showConfirmModal('מחיקת רשומה', 'האם את/ה בטוח/ה שברצונך למחוק את הרשומה?', () => {
                     if (currentlyEditingEntryId) {
                         journalsRef.child(appData.currentJournalId).child('entries').child(currentlyEditingEntryId).remove();
                         composerView.classList.remove('visible');
                     }
-                }
+                });
             });
         }
     }
@@ -1473,10 +1638,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Global Event Listeners ---
+
+    // History API: Handle back button navigation
+    window.addEventListener('popstate', (event) => {
+        const state = event.state;
+
+        // Ensure composer is closed when navigating back
+        if (composerView.classList.contains('visible')) {
+            composerView.classList.remove('visible');
+        }
+
+        if (!state) {
+            // If state is null, it usually means we are at the initial load state, which we treat as the main list
+            showJournalsListView(null, false);
+            return;
+        }
+
+        switch (state.view) {
+            case 'list':
+                showJournalsListView(state.folderId, false);
+                break;
+            case 'timeline':
+                showTimelineView(state.journalId, false);
+                break;
+            case 'insights':
+                showInsightsView(false);
+                break;
+            case 'graph':
+                appData.currentJournalId = state.journalId; // Ensure context is set
+                showGraphView(false);
+                break;
+            case 'all-entries':
+                showAllEntriesView(false);
+                break;
+            case 'composer':
+                // If we moved forward to 'composer' state, open it
+                if (!composerView.classList.contains('visible')) {
+                     currentlyEditingEntryId = null;
+                     populateComposerView(null, 'edit');
+                     composerView.classList.add('visible');
+                }
+                break;
+            default:
+                showJournalsListView(null, false);
+        }
+    });
+
     fab.addEventListener('click', () => {
         currentlyEditingEntryId = null;
         populateComposerView(null, 'edit');
         composerView.classList.add('visible');
+        history.pushState({ view: 'composer' }, '', '#new-entry');
     });
 
     document.body.addEventListener('click', (e) => {
@@ -1601,7 +1813,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const editJournalsBtn = document.getElementById('journals-list-edit-btn');
     const doneJournalsBtn = document.getElementById('journals-list-done-btn');
 
-    function showAllEntriesView() {
+    function showAllEntriesView(pushState = true) {
+        if (pushState) {
+            history.pushState({ view: 'all-entries' }, '', '#all-entries');
+        }
+
         // Clear out any journal-specific buttons from the header
         const timelineHeader = document.querySelector('#timeline-view .timeline-top-bar');
         const existingGraphBtn = document.getElementById('show-graph-btn');
@@ -1644,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please log in to create a backup.");
             return;
         }
-        if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.')) {
+        showConfirmModal('יצירת גיבוי', 'האם אתה בטוח שברצונך ליצור גיבוי? פעולה זו תחליף את הגיבוי הקיים.', () => {
             const journalsDataRef = database.ref(`users/${appData.currentUser.uid}/journals`);
             journalsDataRef.once('value', (snapshot) => {
                 const dataToBackup = snapshot.val();
@@ -1662,7 +1878,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('אין מידע לגבות.');
                 }
             });
-        }
+        });
     });
 
     lockAppBtn.addEventListener('click', () => {
@@ -1693,8 +1909,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (deleteBtn) {
                 const journalId = deleteBtn.dataset.id;
                 const journal = appData.journals.find(j => j.id === journalId);
-                if (journal && confirm(`האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו תמחק גם את כל התוכן שבפנים.`)) {
-                    deleteJournalAndChildren(journalId);
+                if (journal) {
+                    showConfirmModal('מחיקת יומן', `האם אתה בטוח שברצונך למחוק את "${journal.name}"? פעולה זו תמחק גם את כל התוכן שבפנים.`, () => {
+                        deleteJournalAndChildren(journalId);
+                    });
                 }
                 return; // Prevent fall-through to other click handlers in edit mode
             }
@@ -1838,9 +2056,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const newJournal = { ...journalData, id: newJournalRef.key };
 
             newJournalRef.set(journalData).then(() => {
-                // Optimistic update
-                appData.journals.push(newJournal);
-                showJournalsListView(appData.currentFolderId);
                 showToast(`"${newName}" נוצר בהצלחה`);
             });
 
@@ -1998,6 +2213,91 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.key === 'Enter') signupBtn.click();
         });
     });
+
+    // --- PIN Pad Logic ---
+    function setupPinPad(viewId, inputId, submitBtnId) {
+        const view = document.getElementById(viewId);
+        const input = document.getElementById(inputId);
+        const submitBtn = document.getElementById(submitBtnId);
+        const dots = view.querySelectorAll('.pin-dot');
+        const keys = view.querySelectorAll('.pin-key');
+
+        function updateDots() {
+            const val = input.value;
+            dots.forEach((dot, index) => {
+                if (index < val.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+
+        keys.forEach(key => {
+            // Mobile Touch Support for Visual Feedback
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevent ghost clicks
+                key.classList.add('active');
+                if (navigator.vibrate) navigator.vibrate(15);
+                key.click(); // Manually trigger click
+            });
+
+            const removeActive = () => key.classList.remove('active');
+            key.addEventListener('touchend', removeActive);
+            key.addEventListener('touchcancel', removeActive);
+
+            key.addEventListener('click', (e) => {
+                // e.preventDefault() is handled in touchstart if touched,
+                // but we need it here for mouse clicks
+                if (e.cancelable) e.preventDefault();
+
+                // Haptic feedback (for mouse clicks on supported devices)
+                // Debounce slightly if triggered by touchstart to avoid double vibrate
+                if (!e.isTrusted && navigator.vibrate) {
+                    // Triggered by script (touch), vibration already happened
+                } else if (navigator.vibrate) {
+                    navigator.vibrate(15);
+                }
+
+                const keyVal = key.dataset.key;
+                if (keyVal === 'backspace') {
+                    input.value = input.value.slice(0, -1);
+                } else if (input.value.length < 4) {
+                    input.value += keyVal;
+                }
+                updateDots();
+
+                // Auto-submit if 4 digits
+                if (input.value.length === 4) {
+                    // Small delay for visual feedback
+                    setTimeout(() => {
+                        submitBtn.click();
+                    }, 100);
+                }
+            });
+        });
+
+        // Also sync if user types on keyboard (if input keeps focus, though hidden)
+        input.addEventListener('input', updateDots);
+
+        // Clear on view show
+        const originalDisplay = view.style.display;
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (view.style.display !== 'none') {
+                        input.value = '';
+                        updateDots();
+                        input.focus();
+                    }
+                }
+            });
+        });
+        observer.observe(view, { attributes: true });
+    }
+
+    setupPinPad('pin-setup-view', 'pin-setup-input', 'pin-setup-btn');
+    setupPinPad('pin-view', 'pin-input', 'pin-submit-btn');
 
     document.getElementById('pin-setup-input').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') pinSetupBtn.click();
@@ -2215,15 +2515,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (appData.currentJournalId) {
                     const currentJournalExists = appData.journals.some(j => j.id === appData.currentJournalId);
                     if (currentJournalExists) {
-                        showTimelineView(appData.currentJournalId);
+                        showTimelineView(appData.currentJournalId, false);
                     } else {
-                        showJournalsListView();
+                        showJournalsListView(null, false);
                     }
                 } else {
-                    showAllEntriesView();
+                    showAllEntriesView(false);
                 }
             } else {
-                showJournalsListView(appData.currentFolderId || null);
+                // Initial load: Replace state instead of pushing to avoid "Back" doing nothing
+                showJournalsListView(appData.currentFolderId || null, false);
+                const folderId = appData.currentFolderId || null;
+                const urlHash = folderId ? `#folder-${folderId}` : '#home';
+                history.replaceState({ view: 'list', folderId: folderId }, '', urlHash);
             }
             isFirstLoad = false;
         }, (error) => {
@@ -2233,10 +2537,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Auth State Change Listener ---
-    auth.onAuthStateChanged(user => {
-        hideLoadingIndicator(); // Restore this to show the initial auth/pin view
+    // Start splash screen timer
+    const splashMinTime = new Promise(resolve => setTimeout(resolve, 2000)); // Minimum 2s splash
+
+    auth.onAuthStateChanged(async user => {
+        hideLoadingIndicator(); // This hides the moon loader, but we now have the full splash overlay
+
+        // Wait for minimum splash time
+        await splashMinTime;
+
+        const splashOverlay = document.getElementById('splash-screen-overlay');
+        if (splashOverlay) {
+            splashOverlay.classList.add('fade-out');
+            setTimeout(() => splashOverlay.remove(), 500); // Remove from DOM after fade
+        }
+
         if (user) {
             appData.currentUser = user;
+
+            // Set Greeting
+            const greetingEl = document.getElementById('pin-greeting');
+            if (greetingEl) {
+                let userName = user.displayName;
+                if (userName) {
+                    greetingEl.textContent = `שלום ${userName}`;
+                } else {
+                    // Try fetching from DB if displayName is empty
+                    database.ref(`users/${user.uid}/profile/username`).once('value').then(snap => {
+                        if (snap.exists()) {
+                             greetingEl.textContent = `שלום ${snap.val()}`;
+                        } else {
+                             greetingEl.textContent = "ברוכים השבים";
+                        }
+                    });
+                }
+            }
+
             const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
             hideAllViews();
             if (pinHash) {

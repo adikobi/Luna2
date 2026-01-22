@@ -9,6 +9,7 @@
     --color-text-primary: #FFFFFF; /* White */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
     --color-accent-system: #D3EDE7; /* Lighter Sage Green from new palette */
+    --color-destructive: #800020; /* Bordeaux / Burgundy */
     --primary-action: var(--cgolor-accent-system);
     --tertiary-action: var(--color-text-secondary);
     --color-frosted-glass: rgba(44, 44, 46, 0.7);
@@ -42,36 +43,28 @@ body.loading .view-screen {
     display: none !important;
 }
 
-/* --- Loading Spinner Styles --- */
+/* --- Loading Animation (Pulsing Moon) --- */
 .loader {
-  font-size: 4px;
-  text-indent: -9999em;
-  border-top: 1.1em solid rgba(255, 255, 255, 0.2);
-  border-right: 1.1em solid rgba(255, 255, 255, 0.2);
-  border-bottom: 1.1em solid rgba(255, 255, 255, 0.2);
-  border-left: 1.1em solid var(--color-accent-system);
-  -webkit-transform: translateZ(0);
-  -ms-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-animation: load8 1.1s infinite linear;
-  animation: load8 1.1s infinite linear;
-
-  /* Centering styles */
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  margin-top: -5.5em; /* Half of height */
-  margin-left: -5.5em; /* Half of width */
-  z-index: 9999;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s;
-}
-.loader,
-.loader:after {
-  border-radius: 50%;
-  width: 10em;
-  height: 10em;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 140px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    text-indent: 0;
+    color: var(--color-accent-system);
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-stack);
+    padding-bottom: 20px;
 }
 
 body.loading .loader {
@@ -79,31 +72,63 @@ body.loading .loader {
     visibility: visible;
 }
 
-@-webkit-keyframes load8 {
-  0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
+.loader::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--color-accent-system);
+    box-shadow: 0 0 20px var(--color-accent-system);
+    animation: moon-pulse 1.5s infinite ease-in-out alternate;
 }
-@keyframes load8 {
-  0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
+
+.loader::after {
+    content: '';
+    position: absolute;
+    top: 25px; /* Offset relative to moon (top 20px) */
+    left: 50%;
+    transform: translateX(-50%);
+    margin-left: 10px; /* Push right to create crescent on left */
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: var(--color-background-primary);
+    animation: moon-shadow 3s infinite linear;
+}
+
+@keyframes moon-pulse {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    100% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 30px var(--color-accent-system); }
+}
+
+/* Subtle rotation for dynamic feel */
+@keyframes moon-shadow {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-2px, 2px); }
+    50% { transform: translate(-4px, 0); }
+    75% { transform: translate(-2px, -2px); }
+    100% { transform: translate(0, 0); }
 }
 
 .view-screen {
     height: 100vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+}
+
+/* View Transition Animation */
+.view-screen[style*="display: block"],
+.view-screen[style*="display: flex"] {
+    animation: viewFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* iOS-like ease */
+}
+
+@keyframes viewFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 /* --- Corrected Timeline View Header --- */
@@ -277,7 +302,7 @@ body.loading .loader {
     right: -5px;
     width: 28px;
     height: 28px;
-    background-color: #ff453a;
+    background-color: var(--color-destructive);
     color: white;
     border: 2px solid var(--color-background-primary);
     border-radius: 50%;
@@ -360,25 +385,44 @@ body.loading .loader {
 #password-view, #auth-view, #pin-setup-view, #pin-view {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-evenly; /* Better spacing for mobile */
     align-items: center;
     text-align: center;
     padding: 20px;
     box-sizing: border-box;
+    height: 100dvh; /* Use dynamic viewport height */
+    overflow: hidden; /* Prevent scrolling */
 }
 
+/* Auth View Specifics */
 #auth-view {
-    justify-content: flex-start;
-    padding-top: 15vh;
+    justify-content: center; /* Center on page */
 }
 
-#pin-view {
-    justify-content: flex-start;
-    padding-top: 10vh;
+/* Pin Container Layout */
+.pin-container, .password-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Center content vertically */
+    width: 100%;
+    flex-grow: 1; /* Allow it to take available space */
 }
 
-#pin-view .password-container {
-    margin-top: 2.5rem;
+.pin-header {
+    text-align: center;
+    margin-bottom: 20px;
+    flex-shrink: 0; /* Don't shrink header */
+}
+
+/* Adjust PIN dots margin */
+.pin-dots-container {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-bottom: 30px; /* Reduced from 40px */
+    direction: ltr;
+    flex-shrink: 0;
 }
 
 .text-btn {
@@ -650,14 +694,131 @@ textarea,
     text-align: right; /* RTL text alignment */
 }
 
-#pin-input, #pin-setup-input {
-    text-align: center;
-    letter-spacing: 5px;
-}
-
-#login-form input:focus, #signup-form input:focus, #pin-setup-input:focus, #pin-input:focus {
+#login-form input:focus, #signup-form input:focus {
     outline: none;
     border-color: var(--color-accent-system);
+}
+
+/* Hidden PIN Input */
+.hidden-pin-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+/* PIN Dots Container - Redundant rule removal (handled above) but ensuring specific overrides if needed */
+
+.pin-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--color-text-secondary); /* Subtle default */
+    background-color: transparent;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+}
+
+.pin-dot.filled {
+    background-color: var(--color-accent-system);
+    border-color: var(--color-accent-system);
+    transform: scale(1.3);
+    box-shadow: 0 0 15px rgba(211, 237, 231, 0.6); /* Glow */
+}
+
+/* PIN Keyboard */
+.pin-keyboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px; /* More breathing room */
+    width: 100%;
+    max-width: 300px; /* Constrain width */
+    margin: 0 auto;
+    direction: ltr;
+    padding-bottom: 20px; /* Bottom spacing */
+}
+
+.pin-key {
+    background-color: rgba(255, 255, 255, 0.05); /* Very subtle glass */
+    background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    color: var(--color-text-primary);
+    font-size: 28px; /* Larger Text */
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.1s;
+    font-family: var(--font-stack);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle depth */
+}
+
+.pin-key:active,
+.pin-key.active {
+    background-color: var(--color-accent-system); /* Fill it up! */
+    color: var(--color-background-primary); /* Invert text color for contrast */
+    transform: scale(0.85); /* Deeper press */
+    border-color: transparent;
+    box-shadow:
+        0 0 15px var(--color-accent-system), /* Outer glow */
+        inset 0 2px 4px rgba(0,0,0,0.2); /* Inner depth */
+}
+
+.pin-key.empty {
+    background: transparent;
+    pointer-events: none;
+}
+
+.pin-key.delete {
+    background-color: transparent;
+    font-size: 20px;
+}
+
+/* Splash Screen Overlay */
+#splash-screen-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: var(--color-background-primary);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease-out, visibility 0.5s;
+}
+
+#splash-screen-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.pulsing-logo {
+    animation: pulse-logo 3s infinite ease-in-out;
+}
+
+@keyframes pulse-logo {
+    0% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(211, 237, 231, 0.3)); }
+    50% { transform: scale(1.05); filter: drop-shadow(0 0 15px rgba(211, 237, 231, 0.6)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(211, 237, 231, 0.3)); }
+}
+
+.fade-in-text {
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fade-in-up 1s ease-out forwards;
+}
+
+.fade-in-text.delay-1 {
+    animation-delay: 0.5s;
+}
+
+@keyframes fade-in-up {
+    to { opacity: 1; transform: translateY(0); }
 }
 
 #login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
@@ -697,6 +858,24 @@ textarea,
     width: 150px;
     height: 150px;
     margin-bottom: 0;
+}
+
+.logo-container.pin-logo {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 10px;
+}
+
+.logo-container.pin-logo .moon-icon {
+    font-size: 80px;
+    top: 5px;
+    left: 5px;
+}
+
+.logo-container.pin-logo .stars {
+    transform: scale(0.6);
+    top: 5px;
+    right: -10px;
 }
 
 .moon-icon {
@@ -1054,6 +1233,7 @@ button:active,
     color: var(--color-text-secondary);
     pointer-events: none;
     display: block;
+    text-align: right; /* Ensure placeholder is right-aligned */
 }
 
 /* --- Weight Adjuster Styles --- */
@@ -1138,7 +1318,7 @@ button:active,
 }
 
 .toolbar-btn.destructive:hover {
-    color: #ff453a;
+    color: var(--color-destructive);
 }
 
 /* --- Custom Modal Styles --- */
@@ -1220,10 +1400,22 @@ button:active,
     font-weight: 700;
 }
 
-#cancel-edit-journal-btn {
+#cancel-edit-journal-btn, #confirm-modal-cancel-btn {
     background-color: #3A3A3C;
     font-family: var(--font-stack);
     color: var(--color-text-primary);
+}
+
+#confirm-modal-ok-btn {
+    background-color: var(--color-accent-system);
+    font-family: var(--font-stack);
+    color: var(--color-background-primary);
+    font-weight: 700;
+}
+
+#confirm-modal-ok-btn.destructive {
+    background-color: var(--color-destructive);
+    color: white;
 }
 
 /* --- Modern Checklist Styles --- */
@@ -1244,41 +1436,48 @@ button:active,
 
 .checklist-item label {
     position: relative;
-    padding-left: 30px; /* Space for the custom checkbox */
+    padding-inline-start: 34px; /* Space for the custom checkbox (Logical Property) */
     cursor: pointer;
     color: var(--color-text-primary);
     line-height: 1.5;
     transition: color 0.2s ease;
 }
 
-/* Custom checkbox square */
+/* Custom checkbox circle (iPhone style) */
 .checklist-item label::before {
     content: '';
     position: absolute;
-    left: 0;
+    inset-inline-start: 0; /* Logical Property */
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--color-accent-system);
-    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-text-secondary);
+    border-radius: 50%;
     background-color: transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-/* Checkmark style (using an SVG for a sharp look) */
+.checklist-item label:hover::before {
+    border-color: var(--color-accent-system);
+}
+
+/* Checkmark style */
 .checklist-item input[type="checkbox"]:checked + label::after {
     content: '';
     position: absolute;
-    left: 7px;
+    inset-inline-start: 8px; /* Logical Property */
     top: 50%;
-    width: 6px;
-    height: 12px;
+    width: 5px;
+    height: 10px;
     border: solid var(--color-background-primary);
     border-width: 0 2px 2px 0;
-    transform: translateY(-65%) rotate(45deg); /* Fine-tune position */
+    /* Rotation might need mirroring in RTL?
+       Actually, checkmarks are usually the same direction.
+       But transform origin might matter.
+       Usually 45deg is fine. */
+    transform: translateY(-60%) rotate(45deg);
 }
-
 
 /* Style for the checked state */
 .checklist-item input[type="checkbox"]:checked + label {
@@ -1289,22 +1488,6 @@ button:active,
 .checklist-item input[type="checkbox"]:checked + label::before {
     background-color: var(--color-accent-system);
     border-color: var(--color-accent-system);
-}
-
-/* RTL-specific styles for checklist */
-[dir="rtl"] .checklist-item label {
-    padding-left: 0;
-    padding-right: 30px; /* Space for the checkbox on the right */
-}
-
-[dir="rtl"] .checklist-item label::before {
-    left: auto;
-    right: 0; /* Position the checkbox on the right */
-}
-
-[dir="rtl"] .checklist-item input[type="checkbox"]:checked + label::after {
-    left: auto;
-    right: 7px; /* Position the checkmark on the right */
 }
 
 /* --- Question Journal Styles --- */
