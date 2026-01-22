@@ -892,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 titleInput.value = '';
             }
 
-            textInput.innerHTML = tempDiv.innerHTML;
+            textInput.innerHTML = linkifyHtml(tempDiv.innerHTML);
 
             if (isEditing) {
                 dateInput.value = formatISOForInput(entry.date);
