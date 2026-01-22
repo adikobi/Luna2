@@ -2514,8 +2514,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Auth State Change Listener ---
-    auth.onAuthStateChanged(user => {
-        hideLoadingIndicator(); // Restore this to show the initial auth/pin view
+    // Start splash screen timer
+    const splashMinTime = new Promise(resolve => setTimeout(resolve, 2500)); // Minimum 2.5s splash
+
+    auth.onAuthStateChanged(async user => {
+        hideLoadingIndicator(); // This hides the moon loader, but we now have the full splash overlay
+
+        // Wait for minimum splash time
+        await splashMinTime;
+
+        const splashOverlay = document.getElementById('splash-screen-overlay');
+        if (splashOverlay) {
+            splashOverlay.classList.add('fade-out');
+            setTimeout(() => splashOverlay.remove(), 500); // Remove from DOM after fade
+        }
+
         if (user) {
             appData.currentUser = user;
             const pinHash = localStorage.getItem(`luna_pin_${user.uid}`);
