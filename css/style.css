@@ -1244,41 +1244,48 @@ button:active,
 
 .checklist-item label {
     position: relative;
-    padding-left: 30px; /* Space for the custom checkbox */
+    padding-inline-start: 34px; /* Space for the custom checkbox (Logical Property) */
     cursor: pointer;
     color: var(--color-text-primary);
     line-height: 1.5;
     transition: color 0.2s ease;
 }
 
-/* Custom checkbox square */
+/* Custom checkbox circle (iPhone style) */
 .checklist-item label::before {
     content: '';
     position: absolute;
-    left: 0;
+    inset-inline-start: 0; /* Logical Property */
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--color-accent-system);
-    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--color-text-secondary);
+    border-radius: 50%;
     background-color: transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-/* Checkmark style (using an SVG for a sharp look) */
+.checklist-item label:hover::before {
+    border-color: var(--color-accent-system);
+}
+
+/* Checkmark style */
 .checklist-item input[type="checkbox"]:checked + label::after {
     content: '';
     position: absolute;
-    left: 7px;
+    inset-inline-start: 8px; /* Logical Property */
     top: 50%;
-    width: 6px;
-    height: 12px;
+    width: 5px;
+    height: 10px;
     border: solid var(--color-background-primary);
     border-width: 0 2px 2px 0;
-    transform: translateY(-65%) rotate(45deg); /* Fine-tune position */
+    /* Rotation might need mirroring in RTL?
+       Actually, checkmarks are usually the same direction.
+       But transform origin might matter.
+       Usually 45deg is fine. */
+    transform: translateY(-60%) rotate(45deg);
 }
-
 
 /* Style for the checked state */
 .checklist-item input[type="checkbox"]:checked + label {
@@ -1289,22 +1296,6 @@ button:active,
 .checklist-item input[type="checkbox"]:checked + label::before {
     background-color: var(--color-accent-system);
     border-color: var(--color-accent-system);
-}
-
-/* RTL-specific styles for checklist */
-[dir="rtl"] .checklist-item label {
-    padding-left: 0;
-    padding-right: 30px; /* Space for the checkbox on the right */
-}
-
-[dir="rtl"] .checklist-item label::before {
-    left: auto;
-    right: 0; /* Position the checkbox on the right */
-}
-
-[dir="rtl"] .checklist-item input[type="checkbox"]:checked + label::after {
-    left: auto;
-    right: 7px; /* Position the checkmark on the right */
 }
 
 /* --- Question Journal Styles --- */

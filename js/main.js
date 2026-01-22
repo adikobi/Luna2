@@ -264,26 +264,76 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = parser.parseFromString(html, 'text/html');
         const newBody = document.createElement('body');
 
-        function traverse(node) {
+        function traverse(node, parent) {
             if (node.nodeType === Node.TEXT_NODE) {
-                newBody.appendChild(node.cloneNode());
+                parent.appendChild(node.cloneNode());
             } else if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.tagName === 'A') {
-                    const newLink = document.createElement('a');
-                    newLink.href = node.getAttribute('href'); // Only keep the href attribute
-                    newLink.textContent = node.textContent;
-                    newBody.appendChild(newLink);
-                } else if (node.tagName === 'BR') {
-                    newBody.appendChild(document.createElement('br'));
+                const tagName = node.tagName.toLowerCase();
+                let newNode = null;
+
+                if (tagName === 'a') {
+                    newNode = document.createElement('a');
+                    newNode.href = node.getAttribute('href');
+                    newNode.target = '_blank';
+                    newNode.textContent = node.textContent;
+                } else if (tagName === 'br') {
+                    newNode = document.createElement('br');
+                } else if (['div', 'p', 'ul', 'ol', 'li', 'blockquote'].includes(tagName)) {
+                    newNode = document.createElement(tagName);
+                    newNode.setAttribute('dir', 'auto');
+                    // We intentionally strip styles/classes to keep it clean, per requirement.
+                } else if (tagName === 'b' || tagName === 'strong') {
+                    newNode = document.createElement('strong');
+                } else if (tagName === 'i' || tagName === 'em') {
+                    newNode = document.createElement('em');
+                }
+
+                if (newNode) {
+                    parent.appendChild(newNode);
+                    Array.from(node.childNodes).forEach(child => traverse(child, newNode));
                 } else {
-                    // For all other tags, just process their children (unwrap them)
-                    Array.from(node.childNodes).forEach(traverse);
+                    // Unwrap other tags
+                    Array.from(node.childNodes).forEach(child => traverse(child, parent));
                 }
             }
         }
 
-        Array.from(doc.body.childNodes).forEach(traverse);
+        Array.from(doc.body.childNodes).forEach(child => traverse(child, newBody));
         return newBody.innerHTML;
+    }
+
+    function linkifyHtml(html) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+
+        function traverseAndLinkify(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent;
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                if (urlRegex.test(text)) {
+                    const fragment = document.createDocumentFragment();
+                    let lastIdx = 0;
+                    text.replace(urlRegex, (match, url, idx) => {
+                        fragment.appendChild(document.createTextNode(text.slice(lastIdx, idx)));
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.textContent = url;
+                        fragment.appendChild(a);
+                        lastIdx = idx + match.length;
+                    });
+                    fragment.appendChild(document.createTextNode(text.slice(lastIdx)));
+                    node.parentNode.replaceChild(fragment, node);
+                }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.tagName !== 'A' && node.tagName !== 'BUTTON' && node.tagName !== 'INPUT') {
+                    Array.from(node.childNodes).forEach(traverseAndLinkify);
+                }
+            }
+        }
+
+        traverseAndLinkify(div);
+        return div.innerHTML;
     }
 
     function countWords(str) {
@@ -382,10 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'journal-card';
             card.dataset.id = entry.id; // Use the entry's Firebase key
             card.dataset.journalId = entry.journalId; // Store journalId for opening
-            const textDir = isHebrew(entry.text) ? 'rtl' : 'ltr';
-            const textAlign = isHebrew(entry.text) ? 'right' : 'left';
+            // Use linkifyHtml to make links clickable and ensure HTML is clean
+            const bodyHtml = linkifyHtml(entry.text);
 
-            const bodyHtml = entry.text;
             // Backward compatibility: If an old imageUrl exists, prepend it to the body.
             // The new method embeds the image in the bodyHtml itself.
             const imageHtml = entry.imageUrl ? `<img src="${entry.imageUrl}" class="entry-image">` : '';
@@ -394,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${showJournalName ? `<div class="journal-name-indicator">${entry.journalName}</div>` : ''}
                 <div class="metadata">${formatISODateForDisplay(entry.date)}</div>
                 ${imageHtml}
-                <div class="body-text" dir="${textDir}" style="text-align: ${textAlign};">${bodyHtml}</div>
+                <div class="body-text" dir="auto">${bodyHtml}</div>
             `;
             container.appendChild(card);
         });
@@ -804,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const now = Date.now();
                     contentHtml = templateLines.map((line, index) => {
                         const itemId = `checklist-item-${now}-${index}`;
-                        return `<div class="checklist-item"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
+                        return `<div class="checklist-item" dir="auto"><input type="checkbox" id="${itemId}"><label for="${itemId}">${line.trim()}</label></div>`;
                     }).join('');
                     contentHtml += '<div>&nbsp;</div>'; // Add space to continue typing
                 } else { // It's a 'questions' journal
@@ -920,8 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (copyAllBtn) {
             copyAllBtn.addEventListener('click', () => {
                 const title = titleInput.value;
-                const bodyHtml = textInput.innerHTML;
-                const fullText = (title ? title + '\n\n' : '') + bodyHtml.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ');
+                // Use innerText to preserve visible formatting (newlines, etc.)
+                const fullText = (title ? title + '\n\n' : '') + textInput.innerText;
                 navigator.clipboard.writeText(fullText.trim()).then(() => {
                     showToast('הטקסט הועתק בהצלחה');
                 });
@@ -1034,15 +1083,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sanitized = sanitizeHtml(pastedHtml);
                     document.execCommand('insertHTML', false, sanitized);
                 } else if (pastedText && pastedText.length > 0) {
-                    // Create a temporary element to safely escape any potential HTML in the plain text.
-                    const tempDiv = document.createElement('div');
-                    tempDiv.textContent = pastedText;
-
-                    // Convert newline characters to <br> tags. This is the key fix.
-                    const htmlWithBreaks = tempDiv.innerHTML.replace(/\n/g, '<br>');
-
-                    // Insert the sanitized HTML.
-                    document.execCommand('insertHTML', false, htmlWithBreaks);
+                    // Wrap plain text lines in divs with dir="auto" for better BiDi support
+                    const lines = pastedText.split(/\r?\n/);
+                    let htmlToInsert = '';
+                    lines.forEach(line => {
+                         if (line.trim() === '') {
+                             htmlToInsert += '<div><br></div>';
+                         } else {
+                             const tempDiv = document.createElement('div');
+                             tempDiv.textContent = line;
+                             htmlToInsert += `<div dir="auto">${tempDiv.innerHTML}</div>`;
+                         }
+                    });
+                    document.execCommand('insertHTML', false, htmlToInsert);
                 }
             });
 
@@ -1058,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const newChecklistItem = document.createElement('div');
                         const inputId = `checklist-item-${Date.now()}`;
                         newChecklistItem.className = 'checklist-item';
+                        newChecklistItem.setAttribute('dir', 'auto');
                         newChecklistItem.innerHTML = `<input type="checkbox" id="${inputId}"><label for="${inputId}">&nbsp;</label>`;
 
                         const container = parentDiv.closest('.checklist-item') || parentDiv;
@@ -1078,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const textInput = document.getElementById('entry-textarea');
                 textInput.focus();
                 const inputId = `checklist-item-${Date.now()}`;
-                const htmlToInsert = `<div class="checklist-item"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
+                const htmlToInsert = `<div class="checklist-item" dir="auto"><input type="checkbox" id="${inputId}"><label for="${inputId}" contenteditable="true">&nbsp;</label></div>`;
                 document.execCommand('insertHTML', false, htmlToInsert);
             });
 
