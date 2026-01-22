@@ -898,7 +898,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 dateInput.value = formatISOForInput(entry.date);
             } else {
                 dateContainer.innerHTML = `<p class="date-display">${formatDateForComposerView(entry.date)}</p>`;
-                textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
+                // We no longer disable checkboxes in view mode to allow interaction
+                // textInput.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.disabled = true);
             }
         } else { // New entry
             dateInput.value = formatISOForInput(new Date().toISOString());
@@ -1090,6 +1091,76 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Handlers attached for both Edit and View modes (for interactivity)
+
+        // Centralized click handler for the text editor
+        textInput.addEventListener('click', (e) => {
+            // Handle delete image button clicks (Edit mode only)
+            const deleteBtn = e.target.closest('.delete-image-btn');
+            if (isEditing && deleteBtn) {
+                showConfirmModal('מחיקת תמונה', 'האם את/ה בטוח/ה שברצונך למחוק את התמונה?', () => {
+                    const imageContainer = deleteBtn.closest('.image-preview-container');
+                    if (imageContainer) {
+                        // The image container is wrapped in a contenteditable="false" div
+                        imageContainer.parentElement.remove();
+                    }
+                    // Since this handles legacy images too, check if we need to clear the old URL
+                    if (currentImageURL) {
+                        currentImageURL = null;
+                    }
+                });
+                return; // Stop processing after handling the delete
+            }
+
+            // Handle checklist item clicks manually.
+            // In a contenteditable element, clicking a label for a checkbox is often swallowed
+            // or treated as a caret positioning event by the browser/OS (especially mobile).
+            // We force the toggle here to ensure consistent behavior.
+            const label = e.target.closest('.checklist-item label');
+            if (label) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const inputId = label.getAttribute('for');
+                if (inputId) {
+                    const checkbox = textInput.querySelector(`#${inputId}`);
+                    if (checkbox) {
+                        // 1. Toggle the property (updates UI visual state via CSS)
+                        checkbox.checked = !checkbox.checked;
+
+                        // 2. Sync the attribute (ensures state is saved in innerHTML)
+                        if (checkbox.checked) {
+                            checkbox.setAttribute('checked', 'checked');
+                        } else {
+                            checkbox.removeAttribute('checked');
+                        }
+
+                        // 3. Trigger change event manually to ensure listeners fire (important for the listener below)
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            }
+        });
+
+        // Handle checklist state updates within the composer.
+        // We rely on native behavior for the toggle, but we must manually sync
+        // the 'checked' attribute to the DOM so that it persists when saved (innerHTML).
+        textInput.addEventListener('change', (e) => {
+            if (e.target.matches('input[type="checkbox"]')) {
+                if (e.target.checked) {
+                    e.target.setAttribute('checked', 'checked');
+                } else {
+                    e.target.removeAttribute('checked');
+                }
+
+                // If in VIEW mode, save changes immediately to Firebase
+                if (!isEditing && entry && journalsRef) {
+                    const newHtml = textInput.innerHTML;
+                    journalsRef.child(appData.currentJournalId).child('entries').child(entry.id).update({ text: newHtml });
+                }
+            }
+        });
+
         if (isEditing) {
             const addChecklistBtn = document.getElementById('add-checklist-btn');
             const addImageBtn = document.getElementById('add-image-btn');
@@ -1097,65 +1168,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             addImageBtn.addEventListener('click', () => {
                 document.getElementById('image-upload-input').click();
-            });
-
-            // Centralized click handler for the text editor
-            textInput.addEventListener('click', (e) => {
-                // Handle delete image button clicks
-                const deleteBtn = e.target.closest('.delete-image-btn');
-                if (deleteBtn) {
-                    showConfirmModal('מחיקת תמונה', 'האם את/ה בטוח/ה שברצונך למחוק את התמונה?', () => {
-                        const imageContainer = deleteBtn.closest('.image-preview-container');
-                        if (imageContainer) {
-                            // The image container is wrapped in a contenteditable="false" div
-                            imageContainer.parentElement.remove();
-                        }
-                        // Since this handles legacy images too, check if we need to clear the old URL
-                        if (currentImageURL) {
-                            currentImageURL = null;
-                        }
-                    });
-                    return; // Stop processing after handling the delete
-                }
-
-                // Handle checklist item clicks manually.
-                // In a contenteditable element, clicking a label for a checkbox is often swallowed
-                // or treated as a caret positioning event by the browser/OS (especially mobile).
-                // We force the toggle here to ensure consistent behavior.
-                const label = e.target.closest('.checklist-item label');
-                if (label) {
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    const inputId = label.getAttribute('for');
-                    if (inputId) {
-                        const checkbox = textInput.querySelector(`#${inputId}`);
-                        if (checkbox) {
-                            // 1. Toggle the property (updates UI visual state via CSS)
-                            checkbox.checked = !checkbox.checked;
-
-                            // 2. Sync the attribute (ensures state is saved in innerHTML)
-                            if (checkbox.checked) {
-                                checkbox.setAttribute('checked', 'checked');
-                            } else {
-                                checkbox.removeAttribute('checked');
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Handle checklist state updates within the composer.
-            // We rely on native behavior for the toggle, but we must manually sync
-            // the 'checked' attribute to the DOM so that it persists when saved (innerHTML).
-            textInput.addEventListener('change', (e) => {
-                if (e.target.matches('input[type="checkbox"]')) {
-                    if (e.target.checked) {
-                        e.target.setAttribute('checked', 'checked');
-                    } else {
-                        e.target.removeAttribute('checked');
-                    }
-                }
             });
 
             // Live Link Detection
