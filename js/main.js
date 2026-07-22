@@ -508,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
-            deleteBtn.innerHTML = '&times;';
+            deleteBtn.innerHTML = '<i data-lucide="trash-2"></i>';
             deleteBtn.dataset.id = journal.id;
 
             const editBtn = document.createElement('button');
