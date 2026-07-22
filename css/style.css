@@ -1,25 +1,31 @@
 /* Global Design System (Tokens) */
 :root {
     /* Font Stack */
-    --font-stack: 'Heebo', sans-serif;
+    --font-stack: 'Heebo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    /* Color and Surface Tokens (Dark Mode) */
-    --color-background-primary: #000000; /* Dark System Background */
-    --color-surface-card: #181818; /* Layered Dark Surface */
-    --color-text-primary: #FFFFFF; /* White */
+    /* Color and Surface Tokens (Dark Mode) - Elevated with premium glassmorphism & rich depths */
+    --color-background-primary: #0a0a0c; /* Luxurious deep dark background */
+    --color-surface-card: rgba(28, 28, 30, 0.6); /* Sleek translucent card surface */
+    --color-surface-card-hover: rgba(44, 44, 46, 0.8);
+    --color-text-primary: #f5f5f7; /* Soft Apple off-white */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
-    --color-accent-system: #D3EDE7; /* Lighter Sage Green from new palette */
-    --color-destructive: #800020; /* Bordeaux / Burgundy */
-    --primary-action: var(--cgolor-accent-system);
+    --color-accent-system: #D3EDE7; /* Lighter Sage Green */
+    --color-accent-hover: #b4dfd5;
+    --color-destructive: #ff3b30; /* Apple iOS standard red for destructive actions */
+    --color-destructive-hover: #ff453a;
+    --primary-action: var(--color-accent-system);
     --tertiary-action: var(--color-text-secondary);
-    --color-frosted-glass: rgba(44, 44, 46, 0.7);
-    --color-frosted-glass-border: rgba(255, 255, 255, 0.1);
+    --color-frosted-glass: rgba(30, 30, 30, 0.75);
+    --color-frosted-glass-border: rgba(255, 255, 255, 0.08);
 
     /* Border Radius */
-    --border-radius-card: 24px;
+    --border-radius-card: 20px;
+    --border-radius-button: 14px;
+    --border-radius-input: 12px;
 
-    /* Shadowing */
-    --box-shadow-dark: 0 1px 1px rgba(0, 0, 0, 0.3);
+    /* Shadowing - Soft depth for that Apple-like floating overlay feel */
+    --box-shadow-dark: 0 4px 30px rgba(0, 0, 0, 0.4);
+    --box-shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.05);
 
     /* Typography */
     --font-size-large-title: 34px;
@@ -33,8 +39,10 @@
 body {
     font-family: var(--font-stack);
     background-color: var(--color-background-primary);
+    background-image: radial-gradient(circle at 50% 0%, rgba(211, 237, 231, 0.04) 0%, transparent 60%);
     color: var(--color-text-primary);
     margin: 0;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -123,12 +131,12 @@ body.loading .loader {
 /* View Transition Animation */
 .view-screen[style*="display: block"],
 .view-screen[style*="display: flex"] {
-    animation: viewFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); /* iOS-like ease */
+    animation: viewFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); /* iOS-like ease */
 }
 
 @keyframes viewFadeIn {
-    from { opacity: 0; transform: scale(0.98); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: translateY(8px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* --- Corrected Timeline View Header --- */
@@ -136,23 +144,37 @@ body.loading .loader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
+    padding: 16px 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background-color: rgba(10, 10, 12, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .timeline-top-bar button {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--color-accent-system);
     cursor: pointer;
-    padding: 5px;
+    padding: 8px;
+    border-radius: 50%;
     display: flex; /* Use flexbox for alignment */
     align-items: center;
     justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timeline-top-bar button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
 }
 
 .timeline-top-bar button svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     stroke: var(--color-accent-system);
 }
 
@@ -163,11 +185,13 @@ body.loading .loader {
 
 #main-title {
     font-family: 'Bebas Neue', 'Heebo', sans-serif;
-    font-size: var(--font-size-large-title);
+    font-size: 38px;
     font-weight: var(--font-weight-large-title);
-    padding: 10px 20px 20px;
+    padding: 20px 24px 10px;
     margin: 0;
     text-align: right;
+    letter-spacing: -0.5px;
+    color: var(--color-text-primary);
 }
 
 /* New Search Bar Styles */
@@ -185,14 +209,16 @@ body.loading .loader {
 
 #search-input {
     width: 100%;
-    padding: 12px 15px;
-    background-color: var(--color-surface-card);
-    border: none;
-    border-radius: 10px;
+    padding: 12px 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-input);
     color: var(--color-text-primary);
     font-family: var(--font-stack);
     font-size: 16px;
     direction: rtl;
+    box-shadow: var(--box-shadow-inset);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #search-input::placeholder {
@@ -201,6 +227,9 @@ body.loading .loader {
 
 #search-input:focus {
     outline: none;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--color-accent-system);
+    box-shadow: 0 0 0 3px rgba(211, 237, 231, 0.15), var(--box-shadow-inset);
 }
 
 /* --- Journals List View Styles --- */
@@ -208,48 +237,79 @@ body.loading .loader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
+    padding: 16px 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background-color: rgba(10, 10, 12, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .journals-list-title {
-    font-size: var(--font-size-large-title);
-    font-weight: var(--font-weight-large-title);
+    font-size: 30px;
+    font-weight: 700;
     margin: 0;
     text-align: center;
     flex-grow: 1; /* Allows the title to take up space and center itself */
+    letter-spacing: -0.5px;
 }
 
 .header-action-btn {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--color-accent-system);
     cursor: pointer;
-    padding: 5px;
-    font-size: 17px;
-    font-weight: 500;
-    font-family: var(--font-stack);
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header-action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
 }
 
 .header-action-btn svg, .header-action-btn i {
-     width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     stroke: var(--color-accent-system);
+}
+
+#journals-list-done-btn {
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    background: var(--color-accent-system);
+    color: var(--color-background-primary);
+    border: none;
+}
+
+#journals-list-done-btn:hover {
+    background: var(--color-accent-hover);
 }
 
 
 #journals-list-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 20px;
-    padding: 20px 20px 100px; /* Added padding to prevent FAB overlap */
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    padding: 24px 20px 100px; /* Added padding to prevent FAB overlap */
 }
 
 .journal-list-item-wrapper {
     position: relative;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .journal-list-item {
     background-color: var(--color-surface-card);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: var(--border-radius-card);
     cursor: pointer;
     aspect-ratio: 1 / 1;
@@ -258,74 +318,88 @@ body.loading .loader {
     justify-content: center;
     align-items: center;
     text-align: center;
-    padding: 10px;
-    transition: opacity 0.1s ease-in-out;
-    gap: 10px; /* Space between icon and name */
+    padding: 16px;
+    box-shadow: var(--box-shadow-inset), 0 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: 12px; /* Space between icon and name */
+}
+
+.journal-list-item:hover {
+    background-color: var(--color-surface-card-hover);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow-inset), 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 .journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
+    border: 1px solid rgba(211, 237, 231, 0.2);
+    background: linear-gradient(135deg, rgba(28, 28, 30, 0.8) 0%, rgba(15, 15, 17, 0.8) 100%);
 }
 
-.journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
-}
-
-.journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
-}
-
-.journal-list-item.folder {
-    border: 1px solid var(--color-frosted-glass-border);
-    background-color: var(--color-background-primary);
+.journal-list-item.folder:hover {
+    border-color: rgba(211, 237, 231, 0.4);
 }
 
 .journal-icon {
-    width: 40px;
-    height: 40px;
-    stroke: var(--color-text-primary);
+    width: 32px;
+    height: 32px;
+    stroke: var(--color-accent-system);
     stroke-width: 1.5;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.journal-list-item:hover .journal-icon {
+    transform: scale(1.1);
 }
 
 .journal-name {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 500;
     color: var(--color-text-primary);
+    letter-spacing: -0.2px;
 }
 
 .delete-journal-btn {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 28px;
-    height: 28px;
+    top: -6px;
+    right: -6px;
+    width: 32px;
+    height: 32px;
     background-color: var(--color-destructive);
     color: white;
     border: 2px solid var(--color-background-primary);
     border-radius: 50%;
-    font-size: 20px;
-    line-height: 24px;
-    text-align: center;
     cursor: pointer;
     z-index: 10;
     display: none; /* Hidden by default using display */
-    transition: transform 0.1s ease-in-out;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+}
+
+.delete-journal-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: white;
+    stroke-width: 2.5;
+}
+
+.delete-journal-btn:hover {
+    background-color: var(--color-destructive-hover);
 }
 
 #journals-list-view.edit-mode .delete-journal-btn {
-    display: block; /* Shown in edit mode */
+    display: flex; /* Shown in edit mode */
 }
 
 .edit-journal-btn {
     position: absolute;
-    top: -5px;
-    left: -5px;
-    width: 28px;
-    height: 28px;
-    background-color: #3A3A3C;
+    top: -6px;
+    left: -6px;
+    width: 32px;
+    height: 32px;
+    background-color: #3a3a3c;
     color: white;
     border: 2px solid var(--color-background-primary);
     border-radius: 50%;
@@ -335,11 +409,16 @@ body.loading .loader {
     padding: 0;
     justify-content: center;
     align-items: center;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s;
+}
+
+.edit-journal-btn:hover {
+    background-color: #48484a;
 }
 
 .edit-journal-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     stroke: white;
 }
 
@@ -363,22 +442,34 @@ body.loading .loader {
 
 #add-journal-fab {
     position: fixed;
-    bottom: 30px;
+    bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background-color: var(--color-accent-system);
     border: none;
     color: var(--color-background-primary);
-    font-size: 36px;
-    line-height: 65px;
-    text-align: center;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: opacity 0.05s ease-in-out;
+    box-shadow: 0 8px 32px rgba(211, 237, 231, 0.25), 0 4px 12px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#add-journal-fab svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--color-background-primary);
+    stroke-width: 2.5;
+}
+
+#add-journal-fab:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateX(-50%) translateY(-2px) scale(1.05);
 }
 
 /* --- Password View Styles --- */
@@ -684,19 +775,23 @@ textarea,
 
 #login-form input, #signup-form input, #pin-setup-input, #pin-input {
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     font-size: 16px;
-    background-color: var(--color-surface-card);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--color-text-primary);
-    border-radius: 18px;
+    border-radius: var(--border-radius-input);
     box-sizing: border-box;
     text-align: right; /* RTL text alignment */
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: var(--box-shadow-inset);
 }
 
 #login-form input:focus, #signup-form input:focus {
     outline: none;
+    background-color: rgba(255, 255, 255, 0.08);
     border-color: var(--color-accent-system);
+    box-shadow: 0 0 0 3px rgba(211, 237, 231, 0.15), var(--box-shadow-inset);
 }
 
 /* Hidden PIN Input */
@@ -711,19 +806,19 @@ textarea,
 /* PIN Dots Container - Redundant rule removal (handled above) but ensuring specific overrides if needed */
 
 .pin-dot {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    border: 2px solid var(--color-text-secondary); /* Subtle default */
+    border: 2px solid rgba(255, 255, 255, 0.2); /* Subtle default */
     background-color: transparent;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy transition */
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); /* Apple-like precise ease */
 }
 
 .pin-dot.filled {
     background-color: var(--color-accent-system);
     border-color: var(--color-accent-system);
-    transform: scale(1.3);
-    box-shadow: 0 0 15px rgba(211, 237, 231, 0.6); /* Glow */
+    transform: scale(1.2);
+    box-shadow: 0 0 16px rgba(211, 237, 231, 0.5); /* Glow */
 }
 
 /* PIN Keyboard */
@@ -739,33 +834,38 @@ textarea,
 }
 
 .pin-key {
-    background-color: rgba(255, 255, 255, 0.05); /* Very subtle glass */
-    background: linear-gradient(145deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-    border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    background-color: rgba(255, 255, 255, 0.03); /* Extremely subtle glass */
+    background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255, 255, 255, 0.04); /* Subtle border */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: var(--color-text-primary);
-    font-size: 28px; /* Larger Text */
-    width: 75px;
-    height: 75px;
+    font-size: 26px; /* Symmetrical Text */
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.1s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     font-family: var(--font-stack);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle depth */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), var(--box-shadow-inset); /* Subtle depth */
+}
+
+.pin-key:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .pin-key:active,
 .pin-key.active {
     background-color: var(--color-accent-system); /* Fill it up! */
     color: var(--color-background-primary); /* Invert text color for contrast */
-    transform: scale(0.85); /* Deeper press */
+    transform: scale(0.9); /* Deeper press */
     border-color: transparent;
     box-shadow:
-        0 0 15px var(--color-accent-system), /* Outer glow */
+        0 0 20px rgba(211, 237, 231, 0.4), /* Outer glow */
         inset 0 2px 4px rgba(0,0,0,0.2); /* Inner depth */
 }
 
@@ -1017,38 +1117,50 @@ textarea,
 
 .journal-card {
     background-color: var(--color-surface-card);
-    border-radius: 18px; /* Specific radius for journal entry cards */
-    box-shadow: var(--box-shadow-dark);
-    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px; /* Specific radius for journal entry cards */
+    box-shadow: var(--box-shadow-dark), var(--box-shadow-inset);
+    padding: 20px;
     margin-bottom: 20px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.journal-card:hover {
+    background-color: var(--color-surface-card-hover);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3), var(--box-shadow-inset);
 }
 
 .journal-card .metadata {
     color: var(--color-text-secondary);
     font-size: var(--font-size-metadata);
     font-weight: var(--font-weight-metadata);
-    margin-bottom: 8px;
-    text-align: center;
+    margin-bottom: 12px;
+    text-align: right;
+    letter-spacing: -0.1px;
 }
 
 .journal-name-indicator {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     color: var(--color-accent-system);
     text-align: right;
-    margin-bottom: 8px;
-    opacity: 0.8;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 .journal-card .body-text {
     font-size: var(--font-size-body);
     font-weight: var(--font-weight-body);
-    line-height: 1.4;
+    line-height: 1.6;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 4;
     -webkit-box-orient: vertical;
+    color: var(--color-text-primary);
 }
 
 .body-text[dir="rtl"] {
@@ -1057,22 +1169,34 @@ textarea,
 
 #fab {
     position: fixed;
-    bottom: 30px;
+    bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     background-color: var(--color-accent-system);
     border: none;
     color: var(--color-background-primary);
-    font-size: 36px;
-    line-height: 65px;
-    text-align: center;
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: opacity 0.05s ease-in-out;
+    box-shadow: 0 8px 32px rgba(211, 237, 231, 0.25), 0 4px 12px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#fab svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--color-background-primary);
+    stroke-width: 2.5;
+}
+
+#fab:hover {
+    background-color: var(--color-accent-hover);
+    transform: translateX(-50%) translateY(-2px) scale(1.05);
 }
 
 /* --- Micro-interactions --- */
@@ -1085,18 +1209,16 @@ button,
 #fab,
 .modal-actions button,
 #login-btn, #signup-btn, #pin-setup-btn, #pin-submit-btn {
-    transition: transform 0.1s ease-out, filter 0.1s ease-out, opacity 0.1s ease-out;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 button:hover,
 .journal-list-item:hover,
-#add-journal-fab:hover,
-#fab:hover,
 .journal-card:hover,
 .insights-widget:hover,
 .modal-actions button:hover,
 #login-btn:hover, #signup-btn:hover, #pin-setup-btn:hover, #pin-submit-btn:hover {
-    filter: brightness(1.15);
+    filter: brightness(1.1);
 }
 
 button:active,
@@ -1104,13 +1226,10 @@ button:active,
 .suggestion-card:active,
 .insights-widget:active,
 .journal-list-item:active,
-#add-journal-fab:active,
-#fab:active,
 .modal-actions button:active,
 #login-btn:active, #signup-btn:active, #pin-setup-btn:active, #pin-submit-btn:active {
     transform: scale(0.98);
     filter: brightness(0.95);
-    transition-duration: 0.05s;
 }
 
 /* --- Composer View Styles --- */
@@ -1121,33 +1240,48 @@ button:active,
     width: 100%;
     height: 100%;
     background-color: var(--color-background-primary);
+    background-image: radial-gradient(circle at 50% 0%, rgba(211, 237, 231, 0.05) 0%, transparent 70%);
     z-index: 2000;
     display: flex;
     flex-direction: column;
     opacity: 0;
     visibility: hidden; /* Use visibility to remove from layout */
-    transition: opacity 0.3s ease-in-out, visibility 0.3s;
+    transform: translateY(20px);
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.4s;
 }
 
 #composer-view.visible {
     opacity: 1;
+    transform: translateY(0);
     visibility: visible; /* Make it visible and part of the layout */
 }
 
 .composer-header {
-    padding: 15px 20px;
+    padding: 16px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
 
 .composer-header button {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--color-accent-system);
-    font-size: 17px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     font-family: var(--font-stack);
+    padding: 8px 16px;
+    border-radius: 20px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.composer-header button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.02);
 }
 
 .composer-metadata {
@@ -1277,48 +1411,52 @@ button:active,
 
 .composer-toolbar {
     position: fixed;
-    bottom: 30px;
+    bottom: 32px;
     left: 50%;
     transform: translateX(-50%);
     width: auto;
-    background-color: var(--color-frosted-glass);
-    border: 1px solid var(--color-frosted-glass-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 25px;
-    padding: 8px;
+    background-color: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-radius: 30px;
+    padding: 6px 12px;
     display: flex;
-    gap: 8px; /* Add gap between the buttons */
+    gap: 10px; /* Add gap between the buttons */
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), var(--box-shadow-inset);
     z-index: 2010;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .toolbar-btn {
-    background: none;
+    background: transparent;
     border: none;
     color: var(--color-text-secondary);
     cursor: pointer;
-    padding: 8px;
+    padding: 10px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .toolbar-btn:hover {
-    background-color: #3a3a3c;
+    background-color: rgba(255, 255, 255, 0.08);
     color: var(--color-text-primary);
+    transform: scale(1.1);
 }
 
 .toolbar-btn svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
 }
 
 .toolbar-btn.destructive:hover {
     color: var(--color-destructive);
+    background-color: rgba(255, 59, 48, 0.1);
 }
 
 /* --- Custom Modal Styles --- */
@@ -1336,16 +1474,22 @@ button:active,
 }
 
 .modal-content {
-    background-color: var(--color-frosted-glass);
-    border: 1px solid var(--color-frosted-glass-border);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 25px;
+    background-color: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    padding: 28px 24px;
     border-radius: var(--border-radius-card);
     width: 90%;
     max-width: 320px;
     text-align: center;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--box-shadow-inset);
+    animation: modalScaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalScaleUp {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal-content h2 {
@@ -1388,27 +1532,31 @@ button:active,
 .modal-actions button {
     padding: 12px;
     border: none;
-    border-radius: 18px;
-    font-size: 17px;
+    border-radius: var(--border-radius-button);
+    font-size: 16px;
+    font-weight: 600;
     cursor: pointer;
+    font-family: var(--font-stack);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #create-new-journal-btn, #save-edit-journal-btn {
     background-color: var(--color-accent-system);
-    font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
 }
 
-#cancel-edit-journal-btn, #confirm-modal-cancel-btn {
-    background-color: #3A3A3C;
-    font-family: var(--font-stack);
+#cancel-edit-journal-btn, #confirm-modal-cancel-btn, #cancel-new-journal-btn {
+    background-color: rgba(255, 255, 255, 0.08);
     color: var(--color-text-primary);
+}
+
+#cancel-edit-journal-btn:hover, #confirm-modal-cancel-btn:hover, #cancel-new-journal-btn:hover {
+    background-color: rgba(255, 255, 255, 0.12);
 }
 
 #confirm-modal-ok-btn {
     background-color: var(--color-accent-system);
-    font-family: var(--font-stack);
     color: var(--color-background-primary);
     font-weight: 700;
 }
@@ -1418,12 +1566,16 @@ button:active,
     color: white;
 }
 
+#confirm-modal-ok-btn.destructive:hover {
+    background-color: var(--color-destructive-hover);
+}
+
 /* --- Modern Checklist Styles --- */
 .checklist-item {
     display: flex;
     align-items: center;
     gap: 12px; /* Increased gap for better spacing */
-    margin: 8px 0;
+    margin: 10px 0;
 }
 
 .checklist-item input[type="checkbox"] {
@@ -1440,7 +1592,7 @@ button:active,
     cursor: pointer;
     color: var(--color-text-primary);
     line-height: 1.5;
-    transition: color 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Custom checkbox circle (iPhone style) */
@@ -1450,12 +1602,12 @@ button:active,
     inset-inline-start: 0; /* Logical Property */
     top: 50%;
     transform: translateY(-50%);
-    width: 22px;
-    height: 22px;
-    border: 2px solid var(--color-text-secondary);
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     background-color: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .checklist-item label:hover::before {
@@ -1466,16 +1618,12 @@ button:active,
 .checklist-item input[type="checkbox"]:checked + label::after {
     content: '';
     position: absolute;
-    inset-inline-start: 8px; /* Logical Property */
+    inset-inline-start: 7px; /* Logical Property */
     top: 50%;
-    width: 5px;
-    height: 10px;
+    width: 4px;
+    height: 8px;
     border: solid var(--color-background-primary);
     border-width: 0 2px 2px 0;
-    /* Rotation might need mirroring in RTL?
-       Actually, checkmarks are usually the same direction.
-       But transform origin might matter.
-       Usually 45deg is fine. */
     transform: translateY(-60%) rotate(45deg);
 }
 
@@ -1529,21 +1677,29 @@ button:active,
 .emotion-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 15px;
-    padding: 0 10px; /* Add some padding on the sides */
+    gap: 12px;
+    padding: 8px 16px; /* Add some padding on the sides */
 }
 
 .emotion-day-card {
     background-color: var(--color-surface-card);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: var(--border-radius-card);
-    padding: 10px;
+    padding: 12px;
     cursor: pointer;
     text-align: center;
-    transition: transform 0.1s ease-in-out;
+    box-shadow: var(--box-shadow-inset);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.emotion-day-card:hover {
+    background-color: var(--color-surface-card-hover);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
 }
 
 .emotion-day-card:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
 }
 
 .emotion-date-header {
@@ -1660,15 +1816,21 @@ button:active,
 }
 
 .insights-widget {
-    background: linear-gradient(135deg, #D3EDE7 0%, #D6A99D 100%);
+    background: linear-gradient(135deg, #D3EDE7 0%, #E7BBAF 100%);
     border-radius: var(--border-radius-card);
-    padding: 20px;
+    padding: 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
     color: var(--color-background-primary); /* Dark text for light background */
-    transition: opacity 0.05s ease-in-out;
+    box-shadow: 0 10px 30px rgba(211, 237, 231, 0.15), 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.insights-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 40px rgba(211, 237, 231, 0.25), 0 6px 20px rgba(0,0,0,0.3);
 }
 
 .insights-widget .main-stat {
@@ -1734,7 +1896,8 @@ button:active,
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
-    transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: grid-template-columns 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: grid-template-columns;
 }
 
 .insights-main-stats.journaled-expanded {
@@ -1746,23 +1909,25 @@ button:active,
 }
 
 .stat-card {
-    padding: 20px;
+    padding: 24px;
     border-radius: var(--border-radius-card);
     color: var(--color-background-primary); /* Dark text for light background */
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
 }
 
 .stat-card.entries-year {
     grid-column: 1 / -1;
-    background: linear-gradient(35deg, #D6A99D 0%, #D3EDE7 100%);
+    background: linear-gradient(135deg, #E7BBAF 0%, #D3EDE7 100%);
 }
 
 .stat-card.days-journaled {
-    background-color: #e7bbaf;
+    background: linear-gradient(135deg, #f3cec4 0%, #e7bbaf 100%);
 }
 
 .stat-card.words-written {
-    background-color: #D3EDE7;
+    background: linear-gradient(135deg, #e4f5f1 0%, #D3EDE7 100%);
 }
 
 .stat-card .count {
@@ -1790,8 +1955,9 @@ button:active,
 .stat-card-expanded {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), padding-top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     padding-top: 0; /* No padding when collapsed */
+    will-change: max-height;
 }
 
 .stat-card.expanded .stat-card-expanded {
@@ -1806,7 +1972,7 @@ button:active,
     font-weight: 700;
     line-height: 1;
     margin-bottom: 8px;
-    transition: font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: font-size 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reduce font size on the non-expanded card to prevent clipping */
@@ -1826,25 +1992,40 @@ button:active,
 /* Bar Chart and Year Selector Styles */
 .year-selector-tabs {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 12px;
+    scrollbar-width: none; /* Firefox */
+}
+
+.year-selector-tabs::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
 }
 
 .year-selector-tab {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.08);
     border: none;
-    color: var(--color-text-primary);
+    color: var(--color-background-primary);
     padding: 8px 16px;
     border-radius: 20px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.year-selector-tab:hover {
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .year-selector-tab.active {
-    background-color: var(--color-text-primary);
-    color: var(--color-background-primary);
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
     font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 
@@ -1906,8 +2087,10 @@ button:active,
 /* Calendar Styles */
 .insights-calendar {
     background-color: var(--color-surface-card);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: var(--border-radius-card);
-    padding: 15px;
+    padding: 20px;
+    box-shadow: var(--box-shadow-inset);
 }
 
 .calendar-header {
@@ -1918,17 +2101,36 @@ button:active,
 }
 
 .calendar-header button {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--color-accent-system);
-    font-size: 24px;
     cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-header button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.calendar-header button svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--color-accent-system);
 }
 
 .calendar-header h2 {
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
     margin: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.2px;
 }
 
 .calendar-grid {
@@ -1946,6 +2148,10 @@ button:active,
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--color-text-primary);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent; /* Remove default tap highlight circle on mobile */
+    user-select: none;
 }
 
 .calendar-day.day-name {
@@ -1960,23 +2166,32 @@ button:active,
     bottom: 6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background-color: var(--color-accent-system);
+    transition: background-color 0.2s;
 }
 
 .calendar-day.is-clickable {
     cursor: pointer;
 }
 
-.calendar-day.is-selected {
-    background-color: var(--color-accent-system);
-    color: var(--color-background-primary);
+.calendar-day.is-clickable:hover {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Ensure that first touch / click instantly transforms to beautiful sage accent coloring */
+.calendar-day.is-clickable:active,
+.calendar-day.is-selected {
+    background-color: var(--color-accent-system) !important;
+    color: var(--color-background-primary) !important;
+    font-weight: 700;
+}
+
+.calendar-day.is-clickable:active::after,
 .calendar-day.is-selected::after {
-    background-color: var(--color-background-primary);
+    background-color: var(--color-background-primary) !important;
 }
 
 #entries-for-date-view {
@@ -2021,9 +2236,10 @@ button:active,
     display: flex;
     justify-content: center;
     gap: 10px;
-    padding: 10px;
-    background-color: var(--color-surface-card);
-    border-radius: var(--border-radius-card);
+    padding: 6px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 30px;
     margin: 0 auto; /* Classic horizontal centering */
 }
 
@@ -2034,18 +2250,19 @@ button:active,
     padding: 8px 16px;
     border-radius: 20px;
     font-family: var(--font-stack);
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.filter-btn:active {
-    opacity: 0.7;
+.filter-btn:hover {
+    color: var(--color-text-primary);
 }
 
 .filter-btn.active {
     background-color: var(--color-accent-system);
     color: var(--color-background-primary);
     font-weight: 700;
+    box-shadow: 0 4px 12px rgba(211, 237, 231, 0.2);
 }
