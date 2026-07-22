@@ -1896,7 +1896,8 @@ button:active,
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-bottom: 30px;
-    transition: grid-template-columns 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: grid-template-columns 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: grid-template-columns;
 }
 
 .insights-main-stats.journaled-expanded {
@@ -1913,6 +1914,7 @@ button:active,
     color: var(--color-background-primary); /* Dark text for light background */
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
 }
 
 .stat-card.entries-year {
@@ -1953,8 +1955,9 @@ button:active,
 .stat-card-expanded {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), padding-top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     padding-top: 0; /* No padding when collapsed */
+    will-change: max-height;
 }
 
 .stat-card.expanded .stat-card-expanded {
@@ -1969,7 +1972,7 @@ button:active,
     font-weight: 700;
     line-height: 1;
     margin-bottom: 8px;
-    transition: font-size 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: font-size 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reduce font size on the non-expanded card to prevent clipping */
@@ -1989,9 +1992,17 @@ button:active,
 /* Bar Chart and Year Selector Styles */
 .year-selector-tabs {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 10px;
     margin-bottom: 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 4px 12px;
+    scrollbar-width: none; /* Firefox */
+}
+
+.year-selector-tabs::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
 }
 
 .year-selector-tab {
@@ -2139,6 +2150,8 @@ button:active,
     justify-content: center;
     color: var(--color-text-primary);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent; /* Remove default tap highlight circle on mobile */
+    user-select: none;
 }
 
 .calendar-day.day-name {
@@ -2168,14 +2181,17 @@ button:active,
     background-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Ensure that first touch / click instantly transforms to beautiful sage accent coloring */
+.calendar-day.is-clickable:active,
 .calendar-day.is-selected {
-    background-color: var(--color-accent-system);
-    color: var(--color-background-primary);
+    background-color: var(--color-accent-system) !important;
+    color: var(--color-background-primary) !important;
     font-weight: 700;
 }
 
+.calendar-day.is-clickable:active::after,
 .calendar-day.is-selected::after {
-    background-color: var(--color-background-primary);
+    background-color: var(--color-background-primary) !important;
 }
 
 #entries-for-date-view {
