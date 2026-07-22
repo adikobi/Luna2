@@ -1741,18 +1741,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const card = e.target.closest('.journal-card');
-        if (card && card.parentElement.id !== 'entries-for-date-view') {
+        if (card) {
             // Do not open composer if a link was clicked. Use closest() to handle nested tags inside links.
             if (e.target.closest('a')) return;
 
             const entryId = card.dataset.id;
+            // Prevent opening dummy emoji entries which don't have real entry values
+            if (entryId && entryId.startsWith('emoji-')) return;
+
             const journalId = card.dataset.journalId || appData.currentJournalId;
             currentlyEditingEntryId = entryId;
             appData.currentJournalId = journalId;
             const journal = appData.journals.find(j => j.id === journalId);
-            const entry = journal.entries[entryId];
-            populateComposerView({ id: entryId, ...entry }, 'view');
-            composerView.classList.add('visible');
+            if (journal && journal.entries && journal.entries[entryId]) {
+                const entry = journal.entries[entryId];
+                populateComposerView({ id: entryId, ...entry }, 'view');
+                composerView.classList.add('visible');
+            }
             return;
         }
 

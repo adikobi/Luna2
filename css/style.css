@@ -1995,7 +1995,7 @@ button:active,
 }
 
 .year-selector-tab {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.08);
     border: none;
     color: var(--color-background-primary);
     padding: 8px 16px;
@@ -2007,12 +2007,12 @@ button:active,
 }
 
 .year-selector-tab:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .year-selector-tab.active {
     background-color: var(--color-background-primary);
-    color: var(--color-accent-system);
+    color: var(--color-text-primary);
     font-weight: 700;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
@@ -2090,17 +2090,36 @@ button:active,
 }
 
 .calendar-header button {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--color-accent-system);
-    font-size: 24px;
     cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.calendar-header button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.calendar-header button svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--color-accent-system);
 }
 
 .calendar-header h2 {
     font-size: 18px;
-    font-weight: 500;
+    font-weight: 600;
     margin: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.2px;
 }
 
 .calendar-grid {
@@ -2118,6 +2137,8 @@ button:active,
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--color-text-primary);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .calendar-day.day-name {
@@ -2132,14 +2153,19 @@ button:active,
     bottom: 6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
     background-color: var(--color-accent-system);
+    transition: background-color 0.2s;
 }
 
 .calendar-day.is-clickable {
     cursor: pointer;
+}
+
+.calendar-day.is-clickable:hover {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .calendar-day.is-selected {
