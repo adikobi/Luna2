@@ -1563,6 +1563,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(l => `<span>${l}</span>`).join('')}
             </div>
         `;
+
+        const activeTab = container.querySelector('.year-selector-tab.active');
+        if (activeTab) {
+            setTimeout(() => {
+                activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }, 50);
+        }
     }
 
     function renderExpandedDetails(stats, type) {

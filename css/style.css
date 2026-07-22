@@ -4,9 +4,9 @@
     --font-stack: 'Heebo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Color and Surface Tokens (Dark Mode) - Elevated with premium glassmorphism & rich depths */
-    --color-background-primary: #0a0a0c; /* Luxurious deep dark background */
-    --color-surface-card: rgba(28, 28, 30, 0.6); /* Sleek translucent card surface */
-    --color-surface-card-hover: rgba(44, 44, 46, 0.8);
+    --color-background-primary: #000000; /* Rich pure black background for high contrast */
+    --color-surface-card: #0d0d10; /* Darker charcoal surface for excellent readability */
+    --color-surface-card-hover: #16161c;
     --color-text-primary: #f5f5f7; /* Soft Apple off-white */
     --color-text-secondary: rgba(235, 235, 245, 0.6);
     --color-accent-system: #D3EDE7; /* Lighter Sage Green */
@@ -123,7 +123,7 @@ body.loading .loader {
 }
 
 .view-screen {
-    height: 100vh;
+    height: 100dvh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
 }
@@ -147,7 +147,7 @@ body.loading .loader {
     padding: 16px 20px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background-color: rgba(10, 10, 12, 0.5);
+    background-color: rgba(0, 0, 0, 0.75);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -240,7 +240,7 @@ body.loading .loader {
     padding: 16px 20px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    background-color: rgba(10, 10, 12, 0.5);
+    background-color: rgba(0, 0, 0, 0.75);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -299,7 +299,7 @@ body.loading .loader {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 16px;
-    padding: 24px 20px 100px; /* Added padding to prevent FAB overlap */
+    padding: 24px 20px 160px; /* Added padding to prevent FAB overlap and ensure easy bottom scrolling */
 }
 
 .journal-list-item-wrapper {
@@ -1104,7 +1104,7 @@ textarea,
 
 /* --- Journal Feed Styles --- */
 #journal-feed {
-    padding: 0 20px 100px; /* Added padding to prevent FAB overlap */
+    padding: 20px 20px 160px; /* Added padding to prevent FAB overlap and top bar crowding */
 }
 
 .month-header {
@@ -1338,7 +1338,7 @@ button:active,
 
 .composer-content {
     flex-grow: 1;
-    padding: 0 20px 100px; /* Added padding to prevent toolbar overlap */
+    padding: 20px 20px 180px; /* Generous top padding and bottom padding for safe-scrolling past toolbar on phones */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1602,12 +1602,13 @@ button:active,
     inset-inline-start: 0; /* Logical Property */
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
     border-radius: 50%;
     background-color: transparent;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .checklist-item label:hover::before {
@@ -1618,13 +1619,15 @@ button:active,
 .checklist-item input[type="checkbox"]:checked + label::after {
     content: '';
     position: absolute;
-    inset-inline-start: 7px; /* Logical Property */
+    inset-inline-start: 8px; /* Logical Property - beautifully centered */
     top: 50%;
-    width: 4px;
-    height: 8px;
+    width: 5px;
+    height: 10px;
     border: solid var(--color-background-primary);
-    border-width: 0 2px 2px 0;
-    transform: translateY(-60%) rotate(45deg);
+    border-width: 0 2.5px 2.5px 0;
+    box-sizing: border-box;
+    transform: translateY(-62%) rotate(45deg);
+    transform-origin: center;
 }
 
 /* Style for the checked state */
@@ -1651,11 +1654,12 @@ button:active,
 }
 
 .answer-text {
-    background-color: var(--color-surface-card);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
     padding: 12px;
     min-height: 40px;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
     line-height: 1.5;
 }
 
@@ -1888,7 +1892,7 @@ button:active,
 }
 
 .insights-content {
-    padding: 0 20px 20px;
+    padding: 20px 20px 160px; /* Added top and bottom padding for perfect mobile scrolling with no clipping */
 }
 
 .insights-main-stats {
@@ -1945,6 +1949,26 @@ button:active,
     cursor: pointer;
     padding: 0; /* Remove padding from the card itself */
     overflow: hidden; /* Hide the expanded content until it's ready */
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, box-shadow;
+}
+
+.stat-card.expandable:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    filter: brightness(1.04);
+}
+
+.stat-card.expandable:active {
+    transform: translateY(-1px) scale(0.98);
+    filter: brightness(0.98);
+}
+
+/* When the card is expanded, disable hover translate to prevent layout shaking while interacting */
+.stat-card.expandable.expanded:hover {
+    transform: none;
+    filter: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card-inner {
@@ -1954,14 +1978,16 @@ button:active,
 
 .stat-card-expanded {
     max-height: 0;
+    opacity: 0;
     overflow: hidden;
-    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), padding-top 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), padding-top 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     padding-top: 0; /* No padding when collapsed */
-    will-change: max-height;
+    will-change: max-height, opacity;
 }
 
 .stat-card.expanded .stat-card-expanded {
-    max-height: 300px; /* Animate to this height */
+    max-height: 350px; /* Slightly taller for safety */
+    opacity: 1;
     padding-top: 20px; /* Add padding when expanded */
 }
 
@@ -2015,6 +2041,7 @@ button:active,
     font-size: 14px;
     font-weight: 600;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
 }
 
 .year-selector-tab:hover {
@@ -2040,9 +2067,34 @@ button:active,
 
 .bar-chart-bar {
     width: 6%;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 3px 3px 0 0;
-    transition: height 0.3s ease-in-out;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 4px 4px 0 0;
+    transition: height 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Hide the bars until expanded so they grow beautifully on expand! */
+.stat-card:not(.expanded) .bar-chart-bar {
+    height: 0 !important;
+}
+
+.stat-card .detail-stat {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.stat-card.expanded .detail-stat {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.stat-card.expanded .detail-stat:nth-child(1) {
+    transition-delay: 0.1s;
+}
+
+.stat-card.expanded .detail-stat:nth-child(2) {
+    transition-delay: 0.2s;
 }
 
 .bar-chart-labels {
@@ -2201,7 +2253,7 @@ button:active,
 /* --- Graph View Styles --- */
 #graph-view {
     position: relative; /* Establishes a positioning context */
-    height: 100vh;
+    height: 100dvh;
     display: flex; /* Use flex to manage header and content layout */
     flex-direction: column;
     direction: ltr; /* Override global RTL for this view to fix WebKit centering bug */
