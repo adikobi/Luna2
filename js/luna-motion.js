@@ -112,8 +112,8 @@
             return;
         }
 
-        const from = dx === 0 ? 'translateY(8px)' : `translateX(${dx * 26}px)`;
-        play(el, { opacity: [0, 1], transform: [from, 'translate(0px, 0px)'] }, { duration: 0.34 });
+        const from = dx === 0 ? 'translateY(8px)' : `translateX(${dx * 16}px) scale(0.98)`;
+        play(el, { opacity: [0, 1], transform: [from, 'translate(0px, 0px) scale(1)'] }, { duration: 0.26 });
 
         // stagger the first screenful of content
         const vh = window.innerHeight;

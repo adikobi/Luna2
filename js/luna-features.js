@@ -519,6 +519,26 @@
         watchVisible($('#journals-list-view'), renderHome);
         watchVisible($('#insights-view'), () => renderInsights(true));
         renderHome();
+        // 5) Scroll-based auto hide/show for Floating Action Button
+        let lastScrollY = window.scrollY || 0;
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    const currentScrollY = window.scrollY || 0;
+                    const diff = currentScrollY - lastScrollY;
+                    const fabs = [document.getElementById('fab'), document.getElementById('add-journal-fab')].filter(Boolean);
+                    if (diff > 12 && currentScrollY > 60) {
+                        fabs.forEach(fab => fab.classList.add('fab-hidden'));
+                    } else if (diff < -8 || currentScrollY < 40) {
+                        fabs.forEach(fab => fab.classList.remove('fab-hidden'));
+                    }
+                    lastScrollY = Math.max(0, currentScrollY);
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }, { passive: true });
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

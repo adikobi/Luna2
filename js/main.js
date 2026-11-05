@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderJournalsList(journals) {
         const container = document.getElementById('journals-list-container');
         container.innerHTML = '';
-        journals.forEach(journal => {
+        journals.forEach((journal, index) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'journal-list-item-wrapper';
 
@@ -501,29 +501,75 @@ document.addEventListener('DOMContentLoaded', () => {
                 item.classList.add('folder');
             }
 
-            const iconHTML = journal.icon ? `<i data-lucide="${journal.icon}" class="journal-icon"></i>` : '';
+            item.dataset.icon = journal.icon || '';
+            const iconHTML = journal.icon ? `<div class="journal-icon-badge"><i data-lucide="${journal.icon}" class="journal-icon"></i></div>` : '';
             const nameHTML = `<span class="journal-name">${journal.name}</span>`;
-
             item.innerHTML = iconHTML + nameHTML;
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-journal-btn';
             deleteBtn.innerHTML = '<i data-lucide="trash-2"></i>';
             deleteBtn.dataset.id = journal.id;
+            deleteBtn.title = 'מחק יומן';
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-journal-btn';
             editBtn.innerHTML = '<i data-lucide="pencil"></i>';
             editBtn.dataset.id = journal.id;
+            editBtn.title = 'ערוך יומן';
+
+            const reorderControls = document.createElement('div');
+            reorderControls.className = 'reorder-journal-controls';
+            const isFirst = index === 0;
+            const isLast = index === journals.length - 1;
+            reorderControls.innerHTML = `
+                <button class="reorder-journal-btn reorder-prev" data-id="${journal.id}" data-dir="prev" ${isFirst ? 'disabled' : ''} title="הזז אחורה"><i data-lucide="chevron-right"></i></button>
+                <button class="reorder-journal-btn reorder-next" data-id="${journal.id}" data-dir="next" ${isLast ? 'disabled' : ''} title="הזז קדימה"><i data-lucide="chevron-left"></i></button>
+            `;
 
             wrapper.appendChild(item);
             wrapper.appendChild(deleteBtn);
             wrapper.appendChild(editBtn);
+            wrapper.appendChild(reorderControls);
             container.appendChild(wrapper);
         });
 
         // After adding all items, call Lucide to render the icons
         lucide.createIcons();
+    }
+
+    function reorderJournal(journalId, direction) {
+        if (!appData.journals || appData.journals.length <= 1) return;
+        const currentFolderId = appData.currentFolderId || null;
+        const list = appData.journals.filter(j => (j.parentId || null) === currentFolderId);
+        const idx = list.findIndex(j => j.id === journalId);
+        if (idx === -1) return;
+
+        const targetIdx = direction === 'prev' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= list.length) return;
+
+        const itemA = list[idx];
+        const itemB = list[targetIdx];
+
+        const globalIdxA = appData.journals.findIndex(j => j.id === itemA.id);
+        const globalIdxB = appData.journals.findIndex(j => j.id === itemB.id);
+
+        appData.journals[globalIdxA] = itemB;
+        appData.journals[globalIdxB] = itemA;
+
+        appData.journals.forEach((j, i) => { j.order = i; });
+
+        if (window.auth && auth.currentUser && window.db) {
+            db.ref(`users/${auth.currentUser.uid}/journals`).set(appData.journals).catch(err => {
+                console.warn('Failed saving journal order to db', err);
+            });
+        }
+        try {
+            localStorage.setItem('luna_journals_order', JSON.stringify(appData.journals.map(j => j.id)));
+        } catch (e) { /* ignore */ }
+
+        const filtered = appData.journals.filter(j => (j.parentId || null) === currentFolderId);
+        renderJournalsList(filtered);
     }
 
     function renderEmotionJournalView(journal) {
@@ -1954,7 +2000,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const journalsListContainer = document.getElementById('journals-list-container');
     journalsListContainer.addEventListener('click', (e) => {
-        if (!journalsRef) return;
         if (journalsListView.classList.contains('edit-mode')) {
             const deleteBtn = e.target.closest('.delete-journal-btn');
             if (deleteBtn) {
@@ -1973,6 +2018,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const journalId = editBtn.dataset.id;
                 openEditJournalModal(journalId);
                 return; // Prevent fall-through
+            }
+
+            const reorderBtn = e.target.closest('.reorder-journal-btn');
+            if (reorderBtn) {
+                const journalId = reorderBtn.dataset.id;
+                const dir = reorderBtn.dataset.dir;
+                reorderJournal(journalId, dir);
+                return;
             }
 
         } else {
@@ -2665,6 +2718,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose for testing
     window.showJournalsListView = showJournalsListView;
     window.showTimelineView = showTimelineView;
+    window.showInsightsView = showInsightsView;
     window.appData = appData;
     window.openNewJournalModal = openNewJournalModal;
+    window.calculateInsights = calculateInsights;
+    window.renderInsightsDetailView = renderInsightsDetailView;
+    window.renderInsightsWidget = renderInsightsWidget;
+    window.renderCalendar = renderCalendar;
 });

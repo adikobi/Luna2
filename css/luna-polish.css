@@ -28,6 +28,14 @@
     --mood-3: #a9b7bd;
     --mood-4: #b4dccb;
     --mood-5: #D3EDE7;
+
+    /* Emil Kowalski UI color tokens */
+    --color-accent-mint: #6ee7b7;
+    --color-accent-iris: #a78bfa;
+    --color-accent-coral: #fb7185;
+    --color-accent-sky: #38bdf8;
+    --color-accent-amber: #fbbf24;
+    --surface-card-elevated: linear-gradient(180deg, #181820 0%, #111116 100%);
 }
 
 html { -webkit-text-size-adjust: 100%; }
@@ -141,8 +149,11 @@ button:active, .journal-card:active, .journal-list-item:active, .insights-widget
     padding: 18px 18px 16px;
     margin-bottom: 12px;
     cursor: pointer;
+    background: var(--surface-card-elevated);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 }
-.journal-card:hover { background: var(--surface-2); border-color: rgba(255,255,255,.1); box-shadow: none; }
+.journal-card:hover { background: var(--surface-card-elevated); border-color: rgba(255,255,255,.12); box-shadow: 0 6px 24px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12); }
 .journal-card .metadata { display: flex; align-items: center; justify-content: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12.5px; }
 .journal-card .body-text { line-height: 1.55; font-size: 16.5px; letter-spacing: -0.003em; text-wrap: pretty; }
 .journal-name-indicator { letter-spacing: .04em; }
@@ -396,4 +407,137 @@ input:focus-visible, #entry-textarea:focus-visible { outline: none; }
 @media (max-width: 480px) {
     .journal-card { padding: 16px; margin-bottom: 12px; }
     #journal-feed { padding: 8px 14px calc(160px + var(--safe-bottom)); }
+}
+
+/* ---------- Emil UI Enhancements: Badges, Reorder, FAB, Insights ---------- */
+.journal-list-item-wrapper {
+    position: relative;
+    border-radius: var(--radius-lg);
+    background: var(--surface-card-elevated);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.journal-list-item-wrapper:active { transform: scale(0.98); }
+
+.journal-list-item {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: none;
+    gap: 10px;
+}
+.journal-list-item:hover { background: transparent; box-shadow: none; }
+
+.journal-icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s var(--ease-out);
+}
+.journal-list-item[data-icon="book-open"] .journal-icon-badge,
+.journal-card[data-icon="book-open"] .journal-icon-badge {
+    background: rgba(110, 231, 183, 0.14);
+    color: var(--color-accent-mint);
+}
+.journal-list-item[data-icon="star"] .journal-icon-badge,
+.journal-card[data-icon="star"] .journal-icon-badge {
+    background: rgba(167, 139, 250, 0.14);
+    color: var(--color-accent-iris);
+}
+.journal-list-item[data-icon="smile"] .journal-icon-badge,
+.journal-card[data-icon="smile"] .journal-icon-badge {
+    background: rgba(251, 113, 133, 0.14);
+    color: var(--color-accent-coral);
+}
+.journal-list-item[data-icon="sun"] .journal-icon-badge,
+.journal-card[data-icon="sun"] .journal-icon-badge {
+    background: rgba(251, 191, 36, 0.14);
+    color: var(--color-accent-amber);
+}
+.journal-list-item[data-icon="moon"] .journal-icon-badge,
+.journal-card[data-icon="moon"] .journal-icon-badge {
+    background: rgba(56, 189, 248, 0.14);
+    color: var(--color-accent-sky);
+}
+
+#fab, #add-journal-fab {
+    transition: transform 0.26s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.22s ease-out;
+    will-change: transform, opacity;
+}
+#fab.fab-hidden, #add-journal-fab.fab-hidden {
+    transform: translateY(90px) scale(0.85);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.reorder-journal-controls {
+    display: none;
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    justify-content: space-between;
+    z-index: 10;
+}
+#journals-list-view.edit-mode .reorder-journal-controls {
+    display: flex;
+}
+.reorder-journal-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+.reorder-journal-btn:active { transform: scale(0.9); }
+.reorder-journal-btn:disabled { opacity: 0.3; pointer-events: none; }
+.reorder-journal-btn svg { width: 16px; height: 16px; }
+
+#journals-list-view.edit-mode .journal-list-item-wrapper {
+    animation: none !important;
+}
+
+#insights-view { color: var(--color-text-primary); }
+.insights-main-stats .stat-card {
+    background: var(--surface-card-elevated);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.stat-card.entries-year .stat-value { color: var(--color-accent-iris); }
+.stat-card.days-journaled .stat-value { color: var(--color-accent-mint); }
+.stat-card.words-written .stat-value { color: var(--color-accent-coral); }
+.stat-card .stat-label { color: var(--color-text-secondary) !important; font-weight: 500; }
+.stat-card-expanded { color: var(--color-text-secondary) !important; }
+.stat-card-expanded .breakdown-item,
+.stat-card-expanded .stat-detail { color: var(--color-text-secondary) !important; }
+.year-selector-tab {
+    background: var(--surface-2);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-out);
+}
+.year-selector-tab.active { background: var(--color-accent-system); color: #0b0b0c; border-color: transparent; }
+.insights-calendar {
+    background: var(--surface-card-elevated);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
