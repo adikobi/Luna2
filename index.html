@@ -2,13 +2,20 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>יומן</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Luna">
+    <title>Luna</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300..800&family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="css/style.css?v=1728935093">
+    <!-- Luna polish layer: overrides + new features (loads after style.css) -->
+    <link rel="stylesheet" href="css/luna-polish.css?v=2">
     <!-- Firebase SDKs (v9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
@@ -18,7 +25,11 @@
     <!-- Chart.js Date Adapter (Bundled with a compatible date-fns) -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Motion (Framer Motion's vanilla engine). Pinned; app falls back to Web Animations if it fails to load. -->
+    <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js" defer></script>
     <script src="js/main.js" defer></script>
+    <script src="js/luna-motion.js?v=2" defer></script>
+    <script src="js/luna-features.js?v=2" defer></script>
 </head>
 <body class="loading">
     <!-- Loading Spinner -->
