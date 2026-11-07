@@ -2594,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth State Change Listener ---
     // Start splash screen timer
-    const splashMinTime = new Promise(resolve => setTimeout(resolve, 700)); // Minimum splash
+    const splashMinTime = new Promise(resolve => setTimeout(resolve, 1600)); // Minimum splash (lets the moon animation play)
 
     auth.onAuthStateChanged(async user => {
         hideLoadingIndicator(); // This hides the moon loader, but we now have the full splash overlay
