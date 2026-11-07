@@ -2470,9 +2470,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 showLoadingIndicator();
                 initializeData(appData.currentUser);
             } else {
-                pinView.querySelector('.password-container').classList.add('shake');
-                pinInput.value = '';
-                setTimeout(() => pinView.querySelector('.password-container').classList.remove('shake'), 500);
+                const pinBox = pinView.querySelector('.password-container');
+                pinBox.classList.add('shake');
+                if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                setTimeout(() => {
+                    pinBox.classList.remove('shake');
+                    pinInput.value = '';
+                    pinInput.dispatchEvent(new Event('input'));
+                }, 450);
             }
         }
     };
@@ -2589,7 +2594,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Auth State Change Listener ---
     // Start splash screen timer
-    const splashMinTime = new Promise(resolve => setTimeout(resolve, 2000)); // Minimum 2s splash
+    const splashMinTime = new Promise(resolve => setTimeout(resolve, 700)); // Minimum splash
 
     auth.onAuthStateChanged(async user => {
         hideLoadingIndicator(); // This hides the moon loader, but we now have the full splash overlay
@@ -2600,7 +2605,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const splashOverlay = document.getElementById('splash-screen-overlay');
         if (splashOverlay) {
             splashOverlay.classList.add('fade-out');
-            setTimeout(() => splashOverlay.remove(), 500); // Remove from DOM after fade
+            setTimeout(() => splashOverlay.remove(), 300); // Remove from DOM after fade
         }
 
         if (user) {
