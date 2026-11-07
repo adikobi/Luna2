@@ -48,7 +48,10 @@
         running.set(el, anim);
 
         const cleanup = () => {
-            if (running.get(el) === anim) running.delete(el);
+            // only the animation that still owns the element may clear its inline styles;
+            // a superseded one would wipe the new animation's held first frame (visible jump)
+            if (running.get(el) !== anim) return;
+            running.delete(el);
             try { anim.cancel?.(); } catch (e) { /* noop */ }
             o.clear.forEach((p) => el.style.removeProperty(p === 'clipPath' ? 'clip-path' : p));
         };
@@ -170,6 +173,11 @@
                     from = null;
                     composer.classList.remove('luna-from-card');
                 }
+                // header + body settle in just behind the container so nothing pops
+                ['.composer-header', '.composer-content'].forEach((sel, i) => {
+                    const n = composer.querySelector(sel);
+                    if (n) play(n, { opacity: [0, 1], transform: ['translateY(6px)', 'translateY(0px)'] }, { duration: 0.28, delay: 0.08 + i * 0.04 });
+                });
             } else if (!open && composer.dataset.lunaOpen) {
                 delete composer.dataset.lunaOpen;
                 if (from && !reduced()) {
@@ -209,6 +217,32 @@
     }, true);
 
     /* ---------------------------------------------------------------
+       2b. Insights stat cards: smooth, interruptible expand/collapse.
+       CSS sets the end state instantly; WAAPI animates between measured heights.
+       --------------------------------------------------------------- */
+    function watchStatCard(card) {
+        const exp = card.querySelector('.stat-card-expanded');
+        if (!exp) return;
+        let open = card.classList.contains('expanded'), lastH = 0, anim = null;
+        new MutationObserver(() => {
+            const now = card.classList.contains('expanded');
+            if (now === open) return;
+            open = now;
+            let from = now ? 0 : lastH;
+            if (anim) { from = parseFloat(getComputedStyle(exp).height) || from; try { anim.cancel(); } catch (e) { /* noop */ } anim = null; }
+            if (now) lastH = exp.scrollHeight;
+            if (reduced()) return;
+            const to = now ? lastH : 0;
+            anim = exp.animate(
+                { height: [from + 'px', to + 'px'], opacity: [from ? Math.min(1, from / (lastH || 1)) : 0, now ? 1 : 0] },
+                { duration: now ? 420 : 300, easing: css(EASE_DRAWER) });
+            const a = anim;
+            const end = () => { if (anim === a) anim = null; };
+            a.onfinish = end; a.oncancel = end;
+        }).observe(card, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    /* ---------------------------------------------------------------
        3. Boot
        --------------------------------------------------------------- */
     function boot() {
@@ -216,6 +250,7 @@
         document.querySelectorAll('.modal-overlay').forEach(watch);
         const composer = document.getElementById('composer-view');
         if (composer) watchComposer(composer);
+        document.querySelectorAll('.stat-card.expandable').forEach(watchStatCard);
 
         // modals created later (e.g. dynamic overlays)
         new MutationObserver((muts) => {

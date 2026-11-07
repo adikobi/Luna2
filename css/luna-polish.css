@@ -397,3 +397,174 @@ input:focus-visible, #entry-textarea:focus-visible { outline: none; }
     .journal-card { padding: 16px; margin-bottom: 12px; }
     #journal-feed { padding: 8px 14px calc(160px + var(--safe-bottom)); }
 }
+
+
+/* ==========================================================================
+   v3 — palette, cards, insights, icons, touch, FAB, reorder
+   ========================================================================== */
+:root {
+    --accent-1: #D3EDE7;      /* sage (primary) */
+    --accent-2: #F2B8A2;      /* apricot (warm secondary) */
+    --accent-3: #B3A9F4;      /* lavender (cool tertiary) */
+    --color-text-secondary: rgba(235, 235, 245, 0.7);   /* was .6 — legibility */
+    --ink-dark: #0b0b0c;
+    --card-fill: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.026)), #0c0c0f;
+    --card-fill-hover: linear-gradient(180deg, rgba(255,255,255,.095), rgba(255,255,255,.04)), #101014;
+    --card-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 1px rgba(0,0,0,.45), 0 16px 30px -18px rgba(0,0,0,.9);
+}
+
+/* ---------- Card container: tonal fill + gradient hairline (no flat grey border) ---------- */
+.journal-card, .journal-list-item, .insights-widget, .stat-card, .insights-calendar,
+.emotion-day-card, .luna-card, .luna-stat, .luna-sheet-item {
+    position: relative;
+    border: 0 !important;
+    background: var(--card-fill);
+    box-shadow: var(--card-shadow);
+}
+.journal-card::before, .journal-list-item::before, .insights-widget::before, .stat-card::before,
+.insights-calendar::before, .emotion-day-card::before, .luna-card::before, .luna-stat::before, .luna-sheet-item::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: linear-gradient(155deg, rgba(255,255,255,.18), rgba(255,255,255,.04) 38%, rgba(211,237,231,.12));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.journal-card:hover, .journal-list-item:hover, .insights-widget:hover, .emotion-day-card:hover { background: var(--card-fill-hover); box-shadow: var(--card-shadow); }
+.journal-list-item.folder { background: linear-gradient(160deg, color-mix(in srgb, var(--accent-1) 11%, transparent), transparent 70%), var(--card-fill); }
+
+/* secondary accents on content */
+.month-header { color: var(--accent-2); }
+.journal-card .metadata { color: var(--color-text-secondary); }
+.journal-name-indicator { color: var(--accent-3); font-weight: 600; }
+.luna-memory-card .luna-eyebrow { color: var(--accent-2); }
+
+/* ---------- Insights: legible on dark, three-accent system ---------- */
+.insights-title { color: var(--color-text-primary); }
+.insights-widget .main-stat .count { color: var(--accent-1); }
+.insights-widget .main-stat .label, .insights-widget .stat-item .text .label { color: var(--color-text-secondary); }
+.insights-widget .stat-item .text .count { color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.insights-widget .stat-item:nth-child(1) i { color: var(--accent-2); }
+.insights-widget .stat-item:nth-child(2) i { color: var(--accent-3); }
+
+.stat-card.entries-year { --tint: var(--accent-1); }
+.stat-card.days-journaled { --tint: var(--accent-2); }
+.stat-card.words-written { --tint: var(--accent-3); }
+.stat-card.entries-year, .stat-card.days-journaled, .stat-card.words-written {
+    color: var(--color-text-primary);
+    background: linear-gradient(160deg, color-mix(in srgb, var(--tint) 16%, transparent), transparent 72%), var(--card-fill);
+}
+.stat-card::before { background: linear-gradient(155deg, color-mix(in srgb, var(--tint) 45%, transparent), rgba(255,255,255,.04) 42%, color-mix(in srgb, var(--tint) 18%, transparent)); }
+.stat-card .count { color: var(--tint); }
+.stat-card .label { color: var(--color-text-primary); opacity: .78; white-space: nowrap; }
+.stat-card[data-stat="journaled"] .count, .stat-card[data-stat="written"] .count,
+.insights-main-stats.journaled-expanded .stat-card.words-written .count,
+.insights-main-stats.written-expanded .stat-card.days-journaled .count { font-size: 42px; transition: none; }
+.stat-card[data-stat="journaled"] .label, .stat-card[data-stat="written"] .label { font-size: 15px; opacity: .78; }
+.expanded-stat-grid .detail-stat .count { color: var(--tint); font-size: 26px; font-variant-numeric: tabular-nums; }
+.expanded-stat-grid .detail-stat .label { color: var(--color-text-secondary); font-size: 13px; }
+.year-selector-tab { background: rgba(255,255,255,.07); color: var(--color-text-primary); opacity: .85; }
+@media (hover: hover) { .year-selector-tab:hover { background: rgba(255,255,255,.13); } }
+.year-selector-tab.active { background: var(--tint); color: var(--ink-dark); box-shadow: none; opacity: 1; }
+.bar-chart-container { border-bottom: 1px solid rgba(255,255,255,.14); }
+.bar-chart-bar { background: var(--tint); box-shadow: none; }
+.bar-chart-labels { color: var(--color-text-secondary); font-size: 11px; }
+.calendar-day.day-name { color: var(--color-text-secondary); }
+.calendar-day.has-entry::after { background-color: var(--accent-2); }
+.calendar-day.is-clickable:active, .calendar-day.is-selected { background-color: var(--accent-1) !important; color: var(--ink-dark) !important; }
+.calendar-header button, .calendar-header button svg { color: var(--accent-1); }
+.no-entries-message { color: var(--color-text-secondary); text-align: center; padding: 24px 0; }
+.luna-stat:nth-child(1) .v { color: var(--accent-1); }
+.luna-stat:nth-child(2) .v { color: var(--accent-2); }
+.luna-stat:nth-child(3) .v { color: var(--accent-3); }
+.luna-stat .l, .luna-eyebrow, .luna-mood-sub, .luna-day { color: var(--color-text-secondary); }
+
+/* Expand / collapse: JS animates height; CSS just defines the end states */
+.stat-card, .stat-card.expandable { will-change: auto; transition: transform .22s var(--ease-out), background-color .2s ease; }
+.stat-card-inner { transition: none; }
+.stat-card-expanded { display: block; height: 0; max-height: none; padding-top: 0 !important; opacity: 0; overflow: hidden; transition: none; will-change: auto; }
+.stat-card.expanded .stat-card-expanded { height: auto; opacity: 1; }
+.stat-card-expanded > :first-child { margin-top: 18px; }
+.stat-card:not(.expanded) .bar-chart-bar { transition: none; }
+.stat-card.expanded .bar-chart-bar { transform-origin: bottom; transition: height .6s var(--ease-out); }
+.insights-main-stats { will-change: auto; transition: grid-template-columns .45s var(--ease-drawer); }
+.stat-card .detail-stat { transition: opacity .4s var(--ease-out), transform .4s var(--ease-out); }
+
+/* ---------- Skeleton (loading) ---------- */
+.luna-skel {
+    aspect-ratio: 1; border-radius: var(--radius-lg);
+    background: linear-gradient(100deg, rgba(255,255,255,.035) 30%, rgba(255,255,255,.085) 50%, rgba(255,255,255,.035) 70%) 0 0 / 220% 100%;
+    animation: lunaShimmer 1.5s linear infinite;
+}
+@keyframes lunaShimmer { to { background-position: -220% 0; } }
+
+/* ---------- Iconography ---------- */
+[data-lucide], svg.lucide { stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.75; }
+.header-action-btn, .timeline-top-bar button { color: var(--accent-1); }
+.header-action-btn svg, .timeline-top-bar button svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.9; }
+.header-action-btn, .timeline-top-bar button, .header-action-btn svg, .timeline-top-bar button svg { transition: background-color .2s ease, transform .16s var(--ease-out), color .2s ease; }
+.journal-icon { width: 34px; height: 34px; stroke: var(--ic, var(--accent-1)); stroke-width: 1.5; }
+.journal-list-item-wrapper:nth-child(3n+1) { --ic: var(--accent-1); }
+.journal-list-item-wrapper:nth-child(3n+2) { --ic: var(--accent-2); }
+.journal-list-item-wrapper:nth-child(3n)   { --ic: var(--accent-3); }
+.journal-list-item.folder .journal-icon { stroke: var(--accent-1); }
+.icon-picker-btn svg { stroke-width: 1.6; }
+.luna-sheet-item svg, .luna-sheet-item i { stroke: var(--accent-2); }
+.delete-journal-btn svg, .edit-journal-btn svg { stroke-width: 2; }
+
+/* ---------- FABs (re-parented to body by JS; never inside a scroller) ---------- */
+#fab, #add-journal-fab {
+    position: fixed; left: 50%; translate: -50% 0;
+    bottom: calc(26px + var(--safe-bottom)); z-index: 1000;
+    width: 58px; height: 58px; padding: 0; border-radius: 50%;
+    display: grid !important; place-items: center;
+    background: var(--accent-1); color: var(--ink-dark);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.5), 0 14px 30px -10px rgba(0,0,0,.85);
+    opacity: 0; visibility: hidden; scale: .82; pointer-events: none;
+    transition: opacity .2s ease, scale .28s var(--ease-out), background-color .2s ease, visibility 0s linear .28s;
+}
+#fab[style*="display: none"], #add-journal-fab[style*="display: none"] { display: none !important; }
+body[data-luna-view="timeline"] #fab, body[data-luna-view="list"] #add-journal-fab {
+    opacity: 1; visibility: visible; scale: 1; pointer-events: auto;
+    transition: opacity .22s ease, scale .32s var(--ease-out), background-color .2s ease, visibility 0s;
+}
+#fab, #fab:hover, #fab:active, #add-journal-fab, #add-journal-fab:hover, #add-journal-fab:active { transform: none; filter: none; }
+body[data-luna-view="timeline"] #fab:active, body[data-luna-view="list"] #add-journal-fab:active { scale: .92; transition-duration: .09s; background: var(--accent-hover); }
+#fab svg, #add-journal-fab svg { width: 24px; height: 24px; stroke: var(--ink-dark); stroke-width: 2.25; }
+
+/* ---------- Touch & press feedback: quick down, soft release ---------- */
+button, .journal-card, .journal-list-item, .insights-widget, .stat-card.expandable, .emotion-day-card, .luna-card-btn, .luna-chip {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    transition: transform .24s var(--ease-out), background-color .2s ease, color .2s ease, opacity .2s ease, box-shadow .2s ease;
+}
+button:active, .journal-card:active, .journal-list-item:active, .insights-widget:active, .emotion-day-card:active,
+.stat-card.expandable:active, .luna-card-btn:active, .luna-chip:active { transition-duration: .08s; }
+button:active:not(#fab):not(#add-journal-fab):not(.luna-drag) { transform: scale(.96); }
+.header-action-btn:active, .timeline-top-bar button:active, .calendar-header button:active { transform: scale(.9); background: rgba(255,255,255,.14); }
+.journal-card:active, .journal-list-item:active { transform: scale(.985); }
+.modal-actions button:active, #login-btn:active, #signup-btn:active, #pin-setup-btn:active, #pin-submit-btn:active, #create-first-journal-btn:active { transform: scale(.97); }
+.luna-card-btn.primary:active, .luna-chip[aria-pressed="true"]:active { background: var(--accent-hover); }
+button:disabled { opacity: .45; pointer-events: none; }
+.pin-key:active, .pin-key.active { background: rgba(211,237,231,.18); transition-duration: .06s; }
+@media (hover: none) {
+    button:hover, .journal-card:hover, .journal-list-item:hover, .insights-widget:hover, .stat-card.expandable:hover,
+    .emotion-day-card:hover, .modal-actions button:hover { filter: none; }
+    .journal-card:hover, .journal-list-item:hover, .stat-card.expandable:hover, .emotion-day-card:hover, .insights-widget:hover { transform: none; }
+}
+
+/* ---------- Reorder (edit mode) ---------- */
+.luna-drag {
+    display: none; position: absolute; inset-inline: 0; margin-inline: auto; bottom: 8px; z-index: 11;
+    width: 40px; height: 24px; padding: 0; border: 0; border-radius: 999px;
+    place-items: center; background: rgba(255,255,255,.09); color: var(--color-text-secondary);
+    cursor: grab; touch-action: none;
+}
+.luna-drag svg { width: 16px; height: 16px; stroke: currentColor; pointer-events: none; }
+#journals-list-view.edit-mode .luna-drag { display: grid; }
+.luna-drag:active { cursor: grabbing; transform: none !important; }
+.luna-sorting .journal-list-item-wrapper { animation: none !important; }
+.journal-list-item-wrapper.luna-lifted { z-index: 30; scale: 1.05; transition: scale .18s var(--ease-out); animation: none !important; }
+.journal-list-item-wrapper.luna-lifted .journal-list-item { box-shadow: var(--card-shadow), 0 24px 48px -12px rgba(0,0,0,.85); }
+
+@media (prefers-reduced-motion: reduce) {
+    .luna-skel { animation: none; }
+    #fab, #add-journal-fab { transition: opacity .15s ease, visibility 0s; scale: 1; }
+}

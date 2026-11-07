@@ -489,6 +489,148 @@
         const b = $('#show-all-entries-btn'); b && b.click();
     });
 
+
+    /* ------------------------------------------------------------------
+       FABs: re-parented to <body> so no transformed/scrolling ancestor can
+       ever drag them along; visibility follows the active view.
+       ------------------------------------------------------------------ */
+    function liftFabs() {
+        ['fab', 'add-journal-fab'].forEach((id) => { const f = document.getElementById(id); if (f && f.parentElement !== document.body) document.body.appendChild(f); });
+        const views = [['timeline-view', 'timeline'], ['journals-list-view', 'list']];
+        const sync = () => {
+            let cur = '';
+            views.forEach(([id, k]) => { const v = document.getElementById(id); if (v && v.style.display !== 'none' && v.style.display !== '') cur = k; });
+            document.body.dataset.lunaView = cur;
+        };
+        views.forEach(([id]) => { const v = document.getElementById(id); if (v) new MutationObserver(sync).observe(v, { attributes: true, attributeFilter: ['style'] }); });
+        sync();
+    }
+
+    /* ------------------------------------------------------------------
+       Loading skeleton for the journals grid (cleared by main.js's render)
+       ------------------------------------------------------------------ */
+    function skeleton() {
+        const c = $('#journals-list-container');
+        if (c && !c.children.length) c.innerHTML = Array(6).fill('<div class="luna-skel" aria-hidden="true"></div>').join('');
+    }
+
+    /* ------------------------------------------------------------------
+       Reorder journals (edit mode): drag the grip, or focus it + arrow keys.
+       Order persists as `order` on each sibling; main.js is untouched, we just
+       sort its freshly rendered tiles.
+       ------------------------------------------------------------------ */
+    const LIST = '#journals-list-container';
+    const tiles = (c) => $$(':scope > .journal-list-item-wrapper', c);
+    const tileId = (w) => w.firstElementChild && w.firstElementChild.dataset.id;
+
+    function applyOrder() {
+        const c = $(LIST); if (!c) return;
+        const ws = tiles(c); if (!ws.length) return;
+        const list = journals(), pos = new Map(list.map((j, i) => [j.id, i]));
+        const ord = (w) => { const j = list.find((x) => x.id === tileId(w)); return j && typeof j.order === 'number' ? j.order : Infinity; };
+        const sorted = ws.slice().sort((a, b) => (ord(a) - ord(b)) || ((pos.get(tileId(a)) || 0) - (pos.get(tileId(b)) || 0)) || 0);
+        if (sorted.some((w, i) => w !== ws[i])) sorted.forEach((w) => c.appendChild(w));
+        ws.forEach((w) => {
+            if (w.querySelector('.luna-drag')) return;
+            const h = document.createElement('button');
+            h.className = 'luna-drag'; h.type = 'button'; h.setAttribute('aria-label', 'שינוי סדר');
+            h.innerHTML = '<i data-lucide="grip"></i>';
+            w.appendChild(h);
+        });
+        icons();
+    }
+
+    function persistOrder(c) {
+        try {
+            const uid = window.appData.currentUser.uid, upd = {};
+            tiles(c).forEach((w, i) => { upd[`${tileId(w)}/order`] = i; });
+            window.firebase.database().ref(`users/${uid}/journals`).update(upd);
+        } catch (e) { toast('לא ניתן לשמור את הסדר'); }
+    }
+
+    // FLIP: measure visual rects, apply the DOM change, play the difference
+    function flip(c, mutate) {
+        const ws = tiles(c), first = new Map();
+        ws.forEach((w) => { first.set(w, w.getBoundingClientRect()); w.getAnimations().forEach((a) => a.cancel()); });
+        mutate();
+        if (M().reduced()) return;
+        ws.forEach((w) => {
+            if (w.classList.contains('luna-lifted')) return;
+            const a = first.get(w), b = w.getBoundingClientRect(), dx = a.left - b.left, dy = a.top - b.top;
+            if (!dx && !dy) return;
+            w.animate({ transform: [`translate(${dx}px, ${dy}px)`, 'translate(0, 0)'] }, { duration: 260, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+        });
+    }
+
+    function initReorder() {
+        const c = $(LIST); if (!c) return;
+        let st = null;
+
+        c.addEventListener('pointerdown', (e) => {
+            const h = e.target.closest('.luna-drag'); if (!h || st) return;
+            e.preventDefault();
+            const w = h.parentElement, sc = $('#journals-list-view'), r = w.getBoundingClientRect();
+            st = {
+                w, h, sc, id: e.pointerId, tx: 0, ty: 0, px: e.clientX, py: e.clientY, raf: 0,
+                gx: e.clientX - (r.left + r.width / 2), gy: e.clientY - (r.top + r.height / 2),
+                slots: tiles(c).map((t) => { const q = t.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 + sc.scrollTop }; })
+            };
+            c.classList.add('luna-sorting'); w.classList.add('luna-lifted');
+            try { h.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
+            try { navigator.vibrate && navigator.vibrate(8); } catch (_) { /* noop */ }
+            loop();
+        });
+        c.addEventListener('pointermove', (e) => { if (st && e.pointerId === st.id) { st.px = e.clientX; st.py = e.clientY; } });
+        const end = (e) => { if (st && e.pointerId === st.id) drop(); };
+        c.addEventListener('pointerup', end); c.addEventListener('pointercancel', end);
+
+        function loop() {
+            if (!st) return;
+            const { w, sc } = st, r = w.getBoundingClientRect();
+            // auto-scroll near the edges
+            const vr = sc.getBoundingClientRect(), edge = 70;
+            if (st.py < vr.top + edge) sc.scrollTop -= Math.ceil((vr.top + edge - st.py) / 5);
+            else if (st.py > vr.bottom - edge) sc.scrollTop += Math.ceil((st.py - (vr.bottom - edge)) / 5);
+            // follow the pointer: visual centre = pointer - grab offset; layout centre = rect centre - current translate
+            const lcx = r.left + r.width / 2 - st.tx, lcy = r.top + r.height / 2 - st.ty;
+            st.tx = st.px - st.gx - lcx; st.ty = st.py - st.gy - lcy;
+            w.style.translate = `${st.tx}px ${st.ty}px`;
+            // nearest slot decides the index
+            const X = st.px - st.gx, Y = st.py - st.gy + sc.scrollTop;
+            let best = 0, bd = Infinity;
+            st.slots.forEach((s, i) => { const d = (s.x - X) ** 2 + (s.y - Y) ** 2; if (d < bd) { bd = d; best = i; } });
+            const cur = tiles(c).indexOf(w);
+            if (best !== cur) {
+                const before = w.getBoundingClientRect();
+                flip(c, () => { const others = tiles(c).filter((t) => t !== w); c.insertBefore(w, others[best] || null); });
+                const after = w.getBoundingClientRect();     // keep the lifted tile under the finger
+                st.tx += before.left - after.left; st.ty += before.top - after.top;
+                w.style.translate = `${st.tx}px ${st.ty}px`;
+            }
+            st.raf = requestAnimationFrame(loop);
+        }
+
+        function drop() {
+            cancelAnimationFrame(st.raf);
+            const { w, tx, ty } = st; st = null;
+            w.style.translate = ''; w.classList.remove('luna-lifted');
+            if (!M().reduced()) w.animate({ translate: [`${tx}px ${ty}px`, '0px 0px'], scale: [1.05, 1] }, { duration: 240, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+            c.classList.remove('luna-sorting');
+            persistOrder(c);
+        }
+
+        // keyboard: focus the grip, Up/Down (or Left/Right) moves the tile one step
+        c.addEventListener('keydown', (e) => {
+            const h = e.target.closest('.luna-drag'); if (!h) return;
+            const dir = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key]; if (!dir) return;
+            e.preventDefault();
+            const w = h.parentElement, ws = tiles(c), i = ws.indexOf(w), j = i + dir;
+            if (j < 0 || j >= ws.length) return;
+            flip(c, () => c.insertBefore(w, dir > 0 ? ws[j].nextSibling : ws[j]));
+            h.focus(); persistOrder(c);
+        });
+    }
+
     /* ------------------------------------------------------------------
        Boot — runs after main.js's own DOMContentLoaded handler
        ------------------------------------------------------------------ */
@@ -519,6 +661,10 @@
         watchVisible($('#journals-list-view'), renderHome);
         watchVisible($('#insights-view'), () => renderInsights(true));
         renderHome();
+        liftFabs();
+        skeleton();
+        initReorder();
+        watchChildren($(LIST), applyOrder);
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
