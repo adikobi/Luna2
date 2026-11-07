@@ -405,7 +405,7 @@ input:focus-visible, #entry-textarea:focus-visible { outline: none; }
 :root {
     --accent-1: #D3EDE7;      /* sage (primary) */
     --accent-2: #F2B8A2;      /* apricot (warm secondary) */
-    --accent-3: #8CC8EE;      /* sky (cool tertiary) */
+    --accent-3: #EDDC9B;      /* butter (warm tertiary, echoes the moon) */
     --color-text-secondary: rgba(235, 235, 245, 0.7);   /* was .6 — legibility */
     --ink-dark: #0b0b0c;
     --card-fill: #0f0f12;
@@ -616,11 +616,17 @@ body[data-luna-view="timeline"] #fab:active, body[data-luna-view="list"] #add-jo
 .journal-card .metadata { margin-bottom: 10px; }
 .luna-card { padding: 18px 20px; }
 
-/* Splash / loader: static, short fade out */
+/* Splash / loader: the moon animation is back (everything else stays still) */
 #splash-screen-overlay { transition: opacity .25s ease-out, visibility .25s !important; }
-.pulsing-logo { filter: none; }
-.fade-in-text, .fade-in-text.delay-1 { opacity: 1 !important; transform: none !important; }
-.loader::before { box-shadow: none; }
+.loader::before { animation: moon-pulse 1.5s infinite ease-in-out alternate !important; }
+.loader::after { animation: moon-shadow 3s infinite linear !important; }
+#splash-screen-overlay .pulsing-logo { animation: pulse-logo 3s infinite ease-in-out !important; }
+#splash-screen-overlay .stars i { animation: twinkle 2.5s ease-in-out infinite alternate !important; }
+#splash-screen-overlay .star-1 { animation-delay: 0s !important; }
+#splash-screen-overlay .heart-star { animation-delay: .8s !important; }
+#splash-screen-overlay .star-2 { animation-delay: 1.5s !important; }
+#splash-screen-overlay .fade-in-text { animation: fade-in-up 1s ease-out forwards !important; }
+#splash-screen-overlay .fade-in-text.delay-1 { animation-delay: .5s !important; }
 
 /* ---------- Lock screen ---------- */
 #pin-view, #pin-setup-view {
@@ -660,4 +666,53 @@ body[data-luna-view="timeline"] #fab:active, body[data-luna-view="list"] #add-jo
     .pin-key, .pin-key:hover { width: 66px; height: 66px; font-size: 26px; }
     .pin-keyboard { gap: 12px 22px; }
     .pin-dots-container { margin-bottom: 22px; }
+}
+
+
+/* ==========================================================================
+   Insights motion — transform/opacity only, ease-out, interruptible
+   (stat-card height + calendar slide live in luna-motion.js)
+   ========================================================================== */
+@keyframes lunaRise { from { opacity: 0; translate: 0 10px; } }
+@keyframes lunaBar  { from { transform: scaleY(0); } }
+
+@media (prefers-reduced-motion: no-preference) {
+    /* screen enter: cards rise in a short cascade */
+    #insights-view[style*="display: block"] .stat-card, #insights-view[style*="display: flex"] .stat-card,
+    #insights-view[style*="display: block"] .insights-calendar, #insights-view[style*="display: flex"] .insights-calendar {
+        animation: lunaRise .42s var(--ease-out) backwards !important;
+    }
+    #insights-view .stat-card:nth-child(1) { animation-delay: .03s !important; }
+    #insights-view .stat-card:nth-child(2) { animation-delay: .08s !important; }
+    #insights-view .stat-card:nth-child(3) { animation-delay: .13s !important; }
+    #insights-view .insights-calendar { animation-delay: .19s !important; }
+
+    /* cards trade width smoothly when one expands */
+    .insights-main-stats { transition: grid-template-columns .42s var(--ease-drawer) !important; }
+
+    /* bars grow from the baseline, left to right; also replays when the year changes */
+    .stat-card.expanded .bar-chart-bar {
+        transform-origin: bottom;
+        animation: lunaBar .6s var(--ease-out) backwards !important;
+        animation-delay: .1s !important;
+    }
+    .stat-card.expanded .bar-chart-bar:nth-child(1) { animation-delay: 0.13s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(2) { animation-delay: 0.16s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(3) { animation-delay: 0.19s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(4) { animation-delay: 0.22s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(5) { animation-delay: 0.25s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(6) { animation-delay: 0.28s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(7) { animation-delay: 0.31s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(8) { animation-delay: 0.34s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(9) { animation-delay: 0.37s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(10) { animation-delay: 0.40s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(11) { animation-delay: 0.43s !important; }
+    .stat-card.expanded .bar-chart-bar:nth-child(12) { animation-delay: 0.46s !important; }
+
+    .stat-card.expanded .detail-stat { animation: lunaRise .45s var(--ease-out) backwards !important; }
+    .stat-card.expanded .detail-stat:nth-child(1) { animation-delay: .14s !important; }
+    .stat-card.expanded .detail-stat:nth-child(2) { animation-delay: .2s !important; }
+
+    .year-selector-tab { transition: background-color .2s ease-out, color .2s ease-out !important; }
+    .calendar-day { transition: background-color .15s ease-out, color .15s ease-out !important; }
 }
